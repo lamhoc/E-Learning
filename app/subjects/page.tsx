@@ -45,15 +45,23 @@ export default async function SubjectsPage() {
   const role = roleRecord.role as AppRole;
   if (!['admin', 'teacher', 'student'].includes(role)) redirect('/login');
 
+  if (role === 'student') {
+    const { data: application } = await supabase
+      .from('teacher_applications')
+      .select('user_id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (application) redirect('/register/teacher/pending');
+  }
+
   let subjectIds: string[] | null = null;
   let lookupError = '';
 
   if (role === 'teacher') {
     const { data, error } = await supabase
-      .from('classes')
+      .from('teacher_subject_assignments')
       .select('subject_id')
-      .eq('teacher_id', user.id)
-      .is('archived_at', null);
+      .eq('teacher_id', user.id);
 
     if (error) lookupError = error.message;
     subjectIds = [...new Set((data ?? []).map((row) => row.subject_id as string))];
@@ -109,6 +117,22 @@ export default async function SubjectsPage() {
             <span className="rounded-md bg-[#e7efe8] px-3 py-2 text-xs font-semibold text-[#355347]">
               {roleLabels[role]}
             </span>
+            {role === 'teacher' && (
+              <Link
+                href="/teacher/dashboard"
+                className="hidden rounded-md border border-[#cbd7ce] px-3 py-2 text-sm font-medium text-[#355347] transition hover:bg-[#edf3ed] sm:inline-flex"
+              >
+                Dashboard
+              </Link>
+            )}
+            {role === 'admin' && (
+              <Link
+                href="/admin/teacher-access"
+                className="hidden rounded-md border border-[#cbd7ce] px-3 py-2 text-sm font-medium text-[#355347] transition hover:bg-[#edf3ed] sm:inline-flex"
+              >
+                Quản lý giảng viên
+              </Link>
+            )}
             <form action={signOut}>
               <button
                 type="submit"
@@ -140,7 +164,7 @@ export default async function SubjectsPage() {
                 {role === 'admin'
                   ? 'Thêm môn học thật trong bảng subjects trên Supabase.'
                   : role === 'teacher'
-                    ? 'Tạo hoặc được phân công lớp học trong Supabase để thấy môn phụ trách.'
+                    ? 'Quản trị viên cần phân công môn học cho bạn trước khi môn xuất hiện tại đây.'
                     : 'Tài khoản này cần được ghi danh vào một lớp có môn học.'}
               </p>
             </div>

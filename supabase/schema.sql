@@ -130,6 +130,14 @@ CREATE TABLE public.classes (
   CHECK (length(trim(academic_year)) > 0)
 );
 
+CREATE TABLE public.teacher_subject_assignments (
+  teacher_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  subject_id uuid NOT NULL REFERENCES public.subjects(id) ON DELETE CASCADE,
+  assigned_by uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
+  assigned_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (teacher_id, subject_id)
+);
+
 CREATE TABLE public.class_memberships (
   class_id uuid NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
   student_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -371,6 +379,8 @@ FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 -- Index foreign-key/query paths not already covered by PK/UNIQUE indexes.
 CREATE INDEX classes_teacher_subject_idx
   ON public.classes (teacher_id, subject_id);
+CREATE INDEX teacher_subject_assignments_subject_idx
+  ON public.teacher_subject_assignments (subject_id, teacher_id);
 CREATE INDEX class_memberships_student_idx
   ON public.class_memberships (student_id, class_id);
 CREATE INDEX question_bank_owner_subject_idx
@@ -411,6 +421,31 @@ CREATE INDEX ai_tutor_messages_conversation_recent_idx
   ON public.ai_tutor_messages (conversation_id, created_at);
 
 -- Helpers are SECURITY DEFINER to avoid recursive RLS policy evaluation.
+CREATE OR REPLACE FUNCTION public.is_teacher_assigned_to_subject(
+  p_subject_id uuid,
+  p_teacher_id uuid DEFAULT auth.uid()
+)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT (p_teacher_id = (SELECT auth.uid()) OR public.has_role('admin'))
+    AND EXISTS (
+      SELECT 1
+      FROM public.user_roles AS role_record
+      WHERE role_record.user_id = p_teacher_id
+        AND role_record.role = 'teacher'
+    )
+    AND EXISTS (
+      SELECT 1
+      FROM public.teacher_subject_assignments AS assignment
+      WHERE assignment.teacher_id = p_teacher_id
+        AND assignment.subject_id = p_subject_id
+    );
+$$;
+
 CREATE OR REPLACE FUNCTION public.is_class_staff(p_class_id uuid)
 RETURNS boolean
 LANGUAGE sql
@@ -418,11 +453,12 @@ STABLE
 SECURITY DEFINER
 SET search_path = ''
 AS $$
-  SELECT public.has_role('admin') OR (
-    public.has_role('teacher') AND EXISTS (
-    SELECT 1 FROM public.classes AS c
-    WHERE c.id = p_class_id AND c.teacher_id = (SELECT auth.uid())
-    )
+  SELECT public.has_role('admin') OR EXISTS (
+    SELECT 1
+    FROM public.classes AS c
+    WHERE c.id = p_class_id
+      AND c.teacher_id = (SELECT auth.uid())
+      AND public.is_teacher_assigned_to_subject(c.subject_id)
   );
 $$;
 
@@ -485,15 +521,7 @@ AS $$
     WHERE s.id = p_subject_id
       AND s.archived_at IS NULL
       AND (
-        (
-          public.has_role('teacher')
-          AND EXISTS (
-            SELECT 1 FROM public.classes AS c
-            WHERE c.subject_id = s.id
-              AND c.teacher_id = (SELECT auth.uid())
-              AND c.archived_at IS NULL
-          )
-        )
+        public.is_teacher_assigned_to_subject(s.id)
         OR (
           public.has_role('student')
           AND EXISTS (
@@ -671,6 +699,7 @@ END;
 $$;
 
 REVOKE ALL ON FUNCTION public.is_class_staff(uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.is_teacher_assigned_to_subject(uuid, uuid) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.is_class_member(uuid, uuid) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.is_exam_manager(uuid) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.can_view_exam(uuid) FROM PUBLIC, anon;
@@ -681,6 +710,7 @@ REVOKE ALL ON FUNCTION public.can_assign_exam_to_class(uuid, uuid) FROM PUBLIC, 
 REVOKE ALL ON FUNCTION public.can_write_answer(uuid, uuid) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.publish_exam(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.is_class_staff(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.is_teacher_assigned_to_subject(uuid, uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_class_member(uuid, uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_exam_manager(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.can_view_exam(uuid) TO authenticated;
@@ -696,6 +726,7 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subjects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.teacher_subject_assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.class_memberships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.question_bank ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.question_options ENABLE ROW LEVEL SECURITY;
@@ -725,11 +756,29 @@ CREATE POLICY user_roles_read_self_or_admin ON public.user_roles
   FOR SELECT TO authenticated
   USING (user_id = (SELECT auth.uid()) OR public.has_role('admin'));
 
+REVOKE ALL ON TABLE public.teacher_subject_assignments FROM anon, authenticated;
+GRANT SELECT, INSERT, DELETE ON TABLE public.teacher_subject_assignments TO authenticated;
+CREATE POLICY teacher_subject_assignments_read ON public.teacher_subject_assignments
+  FOR SELECT TO authenticated
+  USING (public.has_role('admin') OR teacher_id = (SELECT auth.uid()));
+CREATE POLICY teacher_subject_assignments_admin_insert ON public.teacher_subject_assignments
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    public.has_role('admin')
+    AND EXISTS (
+      SELECT 1 FROM public.user_roles AS ur
+      WHERE ur.user_id = teacher_id AND ur.role = 'teacher'
+    )
+  );
+CREATE POLICY teacher_subject_assignments_admin_delete ON public.teacher_subject_assignments
+  FOR DELETE TO authenticated
+  USING (public.has_role('admin'));
+
 CREATE POLICY subjects_read_role_scoped ON public.subjects
   FOR SELECT TO authenticated USING (public.can_view_subject(id));
-CREATE POLICY subjects_insert_staff ON public.subjects
+CREATE POLICY subjects_insert_admin ON public.subjects
   FOR INSERT TO authenticated
-  WITH CHECK (public.has_role('admin') OR public.has_role('teacher'));
+  WITH CHECK (public.has_role('admin'));
 CREATE POLICY subjects_update_admin ON public.subjects
   FOR UPDATE TO authenticated USING (public.has_role('admin'))
   WITH CHECK (public.has_role('admin'));
@@ -743,12 +792,28 @@ CREATE POLICY classes_insert_teacher ON public.classes
   FOR INSERT TO authenticated
   WITH CHECK (
     public.has_role('admin') OR
-    (public.has_role('teacher') AND teacher_id = (SELECT auth.uid()))
+    (
+      public.has_role('teacher')
+      AND teacher_id = (SELECT auth.uid())
+      AND public.is_teacher_assigned_to_subject(subject_id)
+    )
   );
 CREATE POLICY classes_update_staff ON public.classes
   FOR UPDATE TO authenticated
-  USING (public.is_class_staff(id))
-  WITH CHECK (public.is_class_staff(id));
+  USING (
+    public.has_role('admin') OR (
+      public.has_role('teacher')
+      AND teacher_id = (SELECT auth.uid())
+      AND public.is_teacher_assigned_to_subject(subject_id)
+    )
+  )
+  WITH CHECK (
+    public.has_role('admin') OR (
+      public.has_role('teacher')
+      AND teacher_id = (SELECT auth.uid())
+      AND public.is_teacher_assigned_to_subject(subject_id)
+    )
+  );
 CREATE POLICY classes_delete_admin ON public.classes
   FOR DELETE TO authenticated USING (public.has_role('admin'));
 
@@ -819,6 +884,9 @@ CREATE POLICY exam_classes_staff_all ON public.exam_classes
   FOR ALL TO authenticated
   USING (public.can_assign_exam_to_class(exam_id, class_id))
   WITH CHECK (public.can_assign_exam_to_class(exam_id, class_id));
+CREATE POLICY exam_classes_staff_read ON public.exam_classes
+  FOR SELECT TO authenticated
+  USING (public.is_exam_manager(exam_id));
 
 CREATE POLICY exam_questions_read_assigned ON public.exam_questions
   FOR SELECT TO authenticated USING (public.can_view_exam(exam_id));
