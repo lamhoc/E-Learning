@@ -69,10 +69,14 @@ export function LoginForm() {
     setNoticeMessage('');
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
 
     if (error) {
-      setErrorMessage('Email hoặc mật khẩu chưa đúng. Hãy kiểm tra lại thông tin đăng nhập.');
+      setErrorMessage(
+        error.code === 'email_not_confirmed' || error.message.toLowerCase().includes('email not confirmed')
+          ? 'Email chưa được xác nhận. Hãy mở thư Supabase gửi và bấm link xác nhận, sau đó đăng nhập lại.'
+          : 'Email hoặc mật khẩu chưa đúng. Hãy kiểm tra lại thông tin đăng nhập.',
+      );
       setPending(false);
       return;
     }

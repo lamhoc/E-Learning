@@ -50,7 +50,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               {params.registered === 'teacher'
                 ? 'Tài khoản đã được tạo, không cần xác nhận email. Đăng nhập để tiếp tục; hồ sơ không có mã mời sẽ chờ admin duyệt.'
                 : params.registered === 'student'
-                  ? 'Đăng ký sinh viên thành công. Bạn có thể đăng nhập.'
+                  ? 'Đăng ký sinh viên thành công. Không cần xác nhận email; bạn có thể đăng nhập.'
+                  : params.registered === 'student-confirmation'
+                    ? 'Đã nhận đăng ký. Hãy xác nhận email qua liên kết Supabase gửi trước khi đăng nhập.'
                   : 'Tài khoản đã được tạo.'}
             </p>
           )}

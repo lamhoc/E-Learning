@@ -17,7 +17,7 @@ Next.js 16 App Router starter với Supabase Auth, RLS-protected subject listing
 
 Admin quản lý yêu cầu giảng viên, link mời, danh mục môn, phân công môn và giảng viên phụ trách lớp tại `/admin/teacher-access`. Link mời gắn email, dùng một lần, hết hạn sau 24 giờ; DB chỉ lưu hash. Đặt `NEXT_PUBLIC_SITE_URL` đúng với domain đang dùng để link mời hoạt động ở production.
 
-Giảng viên được tạo server-side bằng Supabase Admin API với email đã xác nhận để không gửi mail xác nhận Auth. Mã mời vẫn được kiểm tra và consume bởi trigger/RPC trong database; đăng ký không mã mời vẫn ở trạng thái chờ admin duyệt.
+Tài khoản sinh viên và giảng viên được tạo server-side bằng Supabase Admin API với email đã xác nhận, nên không gửi mail xác nhận Auth và có thể đăng nhập ngay. `SUPABASE_SERVICE_ROLE_KEY` phải được cấu hình ở server local và Vercel, không đưa ra client. Mã mời giảng viên vẫn được kiểm tra và consume bởi trigger/RPC trong database; đăng ký giảng viên không mã mời vẫn ở trạng thái chờ admin duyệt.
 
 Admin tạo môn học và phân công môn cho teacher. Teacher chỉ xem môn được phân công và tạo lớp của mình trong các môn đó; admin có thể chuyển lớp cho teacher khác được phân công cùng môn. Student chỉ xem môn của lớp đã ghi danh. Role được lưu trong `user_roles`, không phải `profiles.role`.
 

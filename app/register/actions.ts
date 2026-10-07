@@ -11,16 +11,6 @@ export type RegistrationState = {
   claimHref?: string;
 };
 
-function getSiteUrl() {
-  return (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '');
-}
-
-function getAuthRedirect(nextPath: string) {
-  const url = new URL('/auth/callback', getSiteUrl());
-  url.searchParams.set('next', nextPath);
-  return url.toString();
-}
-
 function getFormValues(formData: FormData) {
   return {
     fullName: String(formData.get('fullName') ?? '').trim(),
@@ -44,24 +34,29 @@ export async function registerStudent(
   const validationError = validateForm(fullName, email, password);
   if (validationError) return { status: 'error', message: validationError };
 
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
+  const adminClient = createAdminClient();
+  const { error } = await adminClient.auth.admin.createUser({
     email,
     password,
-    options: {
-      data: { full_name: fullName },
-      emailRedirectTo: getAuthRedirect('/login?registered=student'),
-    },
+    email_confirm: true,
+    user_metadata: { full_name: fullName },
   });
 
   if (error) {
-    return { status: 'error', message: 'Không thể tạo tài khoản. Hãy kiểm tra email hoặc thử lại sau.' };
+    console.error('Student Admin API createUser failed:', {
+      code: error.code,
+      status: error.status,
+      message: error.message,
+    });
+    return {
+      status: 'error',
+      message: 'Không thể tạo tài khoản. Email có thể đã được sử dụng; hãy đăng nhập hoặc đặt lại mật khẩu.',
+    };
   }
 
-  await supabase.auth.signOut();
   return {
     status: 'success',
-    message: 'Tài khoản đã được tạo. Đăng nhập để tiếp tục.',
+    message: 'Tài khoản sinh viên đã được tạo, không cần xác nhận email. Đăng nhập để tiếp tục.',
     redirectTo: '/login?registered=student',
   };
 }
