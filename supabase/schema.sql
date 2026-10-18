@@ -7,13 +7,20 @@ CREATE TYPE public.exam_status AS ENUM ('draft', 'published', 'closed', 'archive
 CREATE TYPE public.attempt_status AS ENUM ('in_progress', 'pending_grading', 'completed', 'voided');
 CREATE TYPE public.ai_job_status AS ENUM ('queued', 'processing', 'needs_review', 'completed', 'failed');
 
+CREATE SEQUENCE public.student_code_seq START WITH 1;
+
 -- User identity and authorization. Role is kept separate from editable profile data.
 CREATE TABLE public.profiles (
   id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   full_name text NOT NULL,
+  student_code text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+CREATE UNIQUE INDEX profiles_student_code_unique_idx
+  ON public.profiles (student_code)
+  WHERE student_code IS NOT NULL;
 
 CREATE TABLE public.user_roles (
   user_id uuid PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -470,6 +477,7 @@ RETURNS TABLE (
   student_id uuid,
   full_name text,
   student_email text,
+  student_code text,
   already_enrolled boolean
 )
 LANGUAGE plpgsql
@@ -483,7 +491,8 @@ BEGIN
     RAISE EXCEPTION 'Only class staff can look up students' USING ERRCODE = '42501';
   END IF;
 
-  IF v_email !~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$' THEN
+  IF v_email !~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$'
+     AND v_email !~ '^sv[0-9]{6,}$' THEN
     RETURN;
   END IF;
 
@@ -491,6 +500,7 @@ BEGIN
   SELECT u.id,
       COALESCE(NULLIF(p.full_name, ''), u.email::text),
       u.email::text,
+      p.student_code,
          EXISTS (
            SELECT 1
            FROM public.class_memberships AS membership
@@ -501,7 +511,7 @@ BEGIN
   JOIN public.profiles AS p ON p.id = u.id
   JOIN public.user_roles AS role_record ON role_record.user_id = u.id
   WHERE role_record.role = 'student'
-    AND lower(u.email) = v_email
+    AND (lower(u.email) = v_email OR lower(p.student_code) = v_email)
     AND NOT EXISTS (
       SELECT 1
       FROM public.teacher_applications AS application
@@ -516,6 +526,7 @@ RETURNS TABLE (
   student_id uuid,
   full_name text,
   student_email text,
+  student_code text,
   enrolled_at timestamptz
 )
 LANGUAGE plpgsql
@@ -528,7 +539,7 @@ BEGIN
   END IF;
 
   RETURN QUERY
-  SELECT p.id, p.full_name, u.email::text, membership.enrolled_at
+  SELECT p.id, p.full_name, u.email::text, p.student_code, membership.enrolled_at
   FROM public.class_memberships AS membership
   JOIN public.profiles AS p ON p.id = membership.student_id
   JOIN auth.users AS u ON u.id = membership.student_id

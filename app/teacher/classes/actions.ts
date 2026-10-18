@@ -10,6 +10,7 @@ export type StudentLookupState = {
     id: string;
     fullName: string;
     email: string;
+    studentCode: string;
     alreadyEnrolled: boolean;
   };
 };
@@ -43,9 +44,11 @@ export async function findStudentForClass(
   formData: FormData,
 ): Promise<StudentLookupState> {
   const classId = String(formData.get('classId') ?? '');
-  const email = String(formData.get('email') ?? '').trim().toLowerCase();
-  if (!uuidPattern.test(classId) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return { status: 'error', message: 'Nhập email hợp lệ để tìm sinh viên.' };
+  const identifier = String(formData.get('identifier') ?? '').trim().toLowerCase();
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
+  const isStudentCode = /^sv[0-9]{6,}$/.test(identifier);
+  if (!uuidPattern.test(classId) || (!isEmail && !isStudentCode)) {
+    return { status: 'error', message: 'Nhập mã sinh viên hoặc email chính xác.' };
   }
 
   const { supabase } = await getStaffClient();
@@ -53,7 +56,7 @@ export async function findStudentForClass(
 
   const { data, error } = await supabase.rpc('find_student_for_class', {
     p_class_id: classId,
-    p_email: email,
+    p_email: identifier,
   });
   if (error) {
     console.error('Could not find student for class:', error.code, error.message);
@@ -67,7 +70,7 @@ export async function findStudentForClass(
 
   const student = data?.[0];
   if (!student) {
-    return { status: 'error', message: 'Không tìm thấy tài khoản sinh viên với email này.' };
+    return { status: 'error', message: 'Không tìm thấy tài khoản sinh viên với mã hoặc email này.' };
   }
 
   return {
@@ -77,6 +80,7 @@ export async function findStudentForClass(
       id: student.student_id,
       fullName: student.full_name,
       email: student.student_email,
+      studentCode: student.student_code ?? '',
       alreadyEnrolled: student.already_enrolled,
     },
   };

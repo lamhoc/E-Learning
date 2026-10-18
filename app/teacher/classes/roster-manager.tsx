@@ -18,6 +18,7 @@ export type ClassRosterStudent = {
   id: string;
   fullName: string;
   email: string;
+  studentCode: string;
   enrolledAt: string;
 };
 
@@ -53,12 +54,12 @@ export function RosterManager({ classId, students }: { classId: string; students
     <div className="space-y-6">
       <section className="max-w-2xl">
         <h2 className="text-base font-semibold">Thêm sinh viên</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Tìm tài khoản theo email chính xác. Sinh viên cần đăng ký tài khoản trước.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Tìm theo mã sinh viên hoặc email chính xác. Sinh viên cần đăng ký tài khoản trước.</p>
         <form action={lookupAction} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
           <input type="hidden" name="classId" value={classId} />
           <div className="min-w-0 flex-1 space-y-1.5">
-            <Label htmlFor="student-email">Email sinh viên</Label>
-            <Input id="student-email" name="email" type="email" autoComplete="off" required placeholder="sinhvien@example.com" />
+            <Label htmlFor="student-identifier">Mã sinh viên hoặc email</Label>
+            <Input id="student-identifier" name="identifier" type="text" autoComplete="off" required placeholder="SV000123 hoặc email chính xác" />
           </div>
           <Button type="submit" disabled={searching} className="gap-2">
             <Search aria-hidden="true" className="size-4" /> {searching ? 'Đang tìm...' : 'Tìm sinh viên'}
@@ -75,7 +76,7 @@ export function RosterManager({ classId, students }: { classId: string; students
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/20 px-4 py-3">
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold">{lookup.student.fullName}</p>
-              <p className="mt-0.5 truncate text-sm text-muted-foreground">{lookup.student.email}</p>
+              <p className="mt-0.5 truncate text-sm text-muted-foreground">{lookup.student.studentCode} · {lookup.student.email}</p>
             </div>
             {lookup.student.alreadyEnrolled ? (
               <Badge variant="secondary">Đã trong lớp</Badge>

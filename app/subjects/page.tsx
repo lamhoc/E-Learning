@@ -25,7 +25,7 @@ export default async function SubjectsPage() {
   if (authError || !user) redirect('/login');
 
   const [{ data: profile }, { data: roleRecord, error: roleError }] = await Promise.all([
-    supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
+    supabase.from('profiles').select('full_name, student_code').eq('id', user.id).maybeSingle(),
     supabase.from('user_roles').select('role').eq('user_id', user.id).maybeSingle(),
   ]);
 
@@ -148,6 +148,11 @@ export default async function SubjectsPage() {
           <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-sm text-[#68776e]">Xin chào, {profile?.full_name ?? user.email}</p>
+              {role === 'student' && profile?.student_code && (
+                <p className="mt-1 text-xs font-medium text-[#5d766a]">
+                  Mã sinh viên: <span className="font-mono">{profile.student_code}</span>
+                </p>
+              )}
               <h2 className="mt-1 text-xl font-semibold">Môn học của bạn</h2>
             </div>
             <p className="text-sm text-[#68776e]">{subjects.length} môn học</p>

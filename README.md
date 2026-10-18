@@ -19,11 +19,13 @@ Admin quản lý yêu cầu giảng viên, link mời, danh mục môn, phân c�
 
 Tài khoản sinh viên và giảng viên được tạo server-side bằng Supabase Admin API với email đã xác nhận, nên không gửi mail xác nhận Auth và có thể đăng nhập ngay. `SUPABASE_SERVICE_ROLE_KEY` phải được cấu hình ở server local và Vercel, không đưa ra client. Mã mời giảng viên vẫn được kiểm tra và consume bởi trigger/RPC trong database; đăng ký giảng viên không mã mời vẫn ở trạng thái chờ admin duyệt.
 
-Admin tạo môn học và phân công môn cho teacher. Teacher chỉ xem môn được phân công và tạo lớp của mình trong các môn đó; admin có thể chuyển lớp cho teacher khác được phân công cùng môn. Admin và giảng viên phụ trách quản lý danh sách sinh viên từ trang chi tiết lớp, tìm tài khoản theo email chính xác rồi ghi danh/gỡ khỏi lớp. Student chỉ xem môn của lớp đã ghi danh. Role được lưu trong `user_roles`, không phải `profiles.role`.
+Admin tạo môn học và phân công môn cho teacher. Teacher chỉ xem môn được phân công và tạo lớp của mình trong các môn đó; admin có thể chuyển lớp cho teacher khác được phân công cùng môn. Admin và giảng viên phụ trách quản lý danh sách sinh viên từ trang chi tiết lớp, tìm tài khoản theo mã sinh viên hoặc email chính xác rồi ghi danh/gỡ khỏi lớp. Mã sinh viên có dạng `SV000001`, được database cấp tự động và hiển thị trong trang môn học của chính sinh viên. Student chỉ xem môn của lớp đã ghi danh. Role được lưu trong `user_roles`, không phải `profiles.role`.
 
 Với Supabase project đã tồn tại, chạy `supabase/migrations/20261005_teacher_subject_assignments.sql` trong SQL Editor trước khi dùng màn hình phân công môn/lớp.
 
 Để bật tìm và ghi danh sinh viên vào lớp trên project đã tồn tại, chạy `supabase/migrations/20261018_class_student_enrollment.sql` trong SQL Editor sau các migration hiện có.
+
+Để cấp mã sinh viên và cho phép tìm theo mã trên project đã tồn tại, chạy `supabase/migrations/20261018_student_identifiers.sql` sau migration ghi danh lớp.
 
 Để nâng một user thành admin sau khi đăng nhập lần đầu, lấy UUID của họ từ Authentication → Users rồi chạy trong SQL Editor:
 

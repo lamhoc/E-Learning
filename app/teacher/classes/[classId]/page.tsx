@@ -46,12 +46,14 @@ export default async function ClassRosterPage({ params }: ClassRosterPageProps) 
     student_id: string;
     full_name: string;
     student_email: string;
+    student_code: string;
     enrolled_at: string;
   }[];
   const students: ClassRosterStudent[] = rosterRows.map((student) => ({
     id: student.student_id,
     fullName: student.full_name,
     email: student.student_email,
+    studentCode: student.student_code,
     enrolledAt: student.enrolled_at,
   }));
 
