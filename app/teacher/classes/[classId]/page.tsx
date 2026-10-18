@@ -38,6 +38,10 @@ export default async function ClassRosterPage({ params }: ClassRosterPageProps) 
     supabase.rpc('list_class_roster', { p_class_id: classId }),
   ]);
 
+  if (rosterError) {
+    console.error('Could not load class roster:', rosterError.code, rosterError.message);
+  }
+
   const rosterRows = (roster ?? []) as {
     student_id: string;
     full_name: string;
@@ -80,7 +84,7 @@ export default async function ClassRosterPage({ params }: ClassRosterPageProps) 
           <CardContent>
             {rosterError ? (
               <div role="alert" className="rounded-md border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                Chưa tải được danh sách. Hãy chạy migration `20261018_class_student_enrollment.sql` trên Supabase.
+                Không tải được danh sách (mã lỗi {rosterError.code || 'không xác định'}). Kiểm tra mã lỗi trong log server để biết migration, schema cache hay quyền truy cập.
               </div>
             ) : (
               <RosterManager classId={classId} students={students} />
