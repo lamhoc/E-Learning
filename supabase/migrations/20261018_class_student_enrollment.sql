@@ -25,8 +25,8 @@ BEGIN
 
   RETURN QUERY
   SELECT u.id,
-         COALESCE(NULLIF(p.full_name, ''), u.email),
-         u.email,
+      COALESCE(NULLIF(p.full_name, ''), u.email::text),
+      u.email::text,
          EXISTS (
            SELECT 1
            FROM public.class_memberships AS membership
@@ -64,7 +64,7 @@ BEGIN
   END IF;
 
   RETURN QUERY
-  SELECT p.id, p.full_name, u.email, membership.enrolled_at
+  SELECT p.id, p.full_name, u.email::text, membership.enrolled_at
   FROM public.class_memberships AS membership
   JOIN public.profiles AS p ON p.id = membership.student_id
   JOIN auth.users AS u ON u.id = membership.student_id
