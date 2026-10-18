@@ -316,7 +316,7 @@ export default async function TeacherDashboardPage() {
                   <div className="space-y-1">
                     {data.classes.slice(0, 4).map((classItem) => (
                       <Link
-                        href="/subjects"
+                        href={`/teacher/classes/${classItem.id}`}
                         key={classItem.id}
                         className="group flex items-center gap-3 rounded-lg px-2 py-3 transition hover:bg-muted/70"
                       >

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { BookPlus, UserRoundCog, UserRoundMinus, UserRoundPlus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -192,7 +193,7 @@ export function AcademicAccess({
                   {classes.map((classItem) => (
                     <TableRow key={classItem.id}>
                       <TableCell className="pl-5">
-                        <span className="block font-medium">{classItem.name}</span>
+                        <Link href={`/teacher/classes/${classItem.id}`} className="block font-medium text-primary hover:underline">{classItem.name}</Link>
                         <span className="mt-1 block text-xs text-muted-foreground">{classItem.classCode} · {classItem.academicYear}</span>
                       </TableCell>
                       <TableCell>
