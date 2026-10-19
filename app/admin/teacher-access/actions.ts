@@ -11,6 +11,24 @@ export type InvitationState = {
   invitationUrl?: string;
 };
 
+function getInvitationSiteUrl() {
+  const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  const candidateUrl = configuredUrl
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')
+    || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000');
+  if (!candidateUrl) return null;
+
+  try {
+    const url = new URL(candidateUrl);
+    const isLocalHost = ['localhost', '127.0.0.1', '::1'].includes(url.hostname);
+    if (process.env.NODE_ENV === 'production' && (url.protocol !== 'https:' || isLocalHost)) return null;
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
 async function getAdminClient() {
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -153,6 +171,14 @@ export async function createTeacherInvitation(
     return { status: 'error', message: 'Nhập email giảng viên hợp lệ.' };
   }
 
+  const siteUrl = getInvitationSiteUrl();
+  if (!siteUrl) {
+    return {
+      status: 'error',
+      message: 'Chưa cấu hình domain production hợp lệ. Đặt NEXT_PUBLIC_SITE_URL trên Vercel rồi thử lại.',
+    };
+  }
+
   const { error: adminError, supabase, user } = await getAdminClient();
   if (adminError || !supabase || !user) {
     return { status: 'error', message: adminError ?? 'Không thể xác thực quyền admin.' };
@@ -173,7 +199,6 @@ export async function createTeacherInvitation(
     return { status: 'error', message: 'Không thể tạo mã mời. Kiểm tra migration và quyền admin.' };
   }
 
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '');
   const invitationUrl = new URL('/register/teacher', siteUrl);
   invitationUrl.searchParams.set('email', email);
   invitationUrl.searchParams.set('invite', token);
