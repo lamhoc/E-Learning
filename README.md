@@ -15,7 +15,7 @@ Next.js 16 App Router starter với Supabase Auth, RLS-protected subject listing
 4. Trong Supabase Auth, bật Email/Password và thêm redirect URLs `http://localhost:3000/auth/callback` cùng URL production của bạn.
 5. Chạy `npm run dev`, mở http://localhost:3000. Đăng ký student tại `/register/student`; đăng ký teacher tại `/register/teacher` (không mã mời thì chờ admin duyệt).
 
-Admin quản lý yêu cầu giảng viên, link mời, danh mục môn, phân công môn và giảng viên phụ trách lớp tại `/admin/teacher-access`. Link mời gắn email, dùng một lần, hết hạn sau 24 giờ; DB chỉ lưu hash. Đặt `NEXT_PUBLIC_SITE_URL` đúng với domain đang dùng để link mời hoạt động ở production.
+Admin quản lý yêu cầu giảng viên, link mời, danh mục môn, phân công môn và giảng viên phụ trách lớp tại `/admin/teacher-access`. Link mời gắn email, dùng một lần, hết hạn sau 24 giờ; DB chỉ lưu hash. Đặt `SITE_URL` thành domain đang dùng để link mời hoạt động ở production; biến này chỉ được đọc server-side.
 
 Tài khoản sinh viên và giảng viên được tạo server-side bằng Supabase Admin API với email đã xác nhận, nên không gửi mail xác nhận Auth và có thể đăng nhập ngay. `SUPABASE_SERVICE_ROLE_KEY` phải được cấu hình ở server local và Vercel, không đưa ra client. Mã mời giảng viên vẫn được kiểm tra và consume bởi trigger/RPC trong database; đăng ký giảng viên không mã mời vẫn ở trạng thái chờ admin duyệt.
 

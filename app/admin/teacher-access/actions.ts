@@ -12,7 +12,7 @@ export type InvitationState = {
 };
 
 function getInvitationSiteUrl() {
-  const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  const configuredUrl = process.env.SITE_URL?.trim();
   const candidateUrl = configuredUrl
     || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')
     || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000');
@@ -175,7 +175,7 @@ export async function createTeacherInvitation(
   if (!siteUrl) {
     return {
       status: 'error',
-      message: 'Chưa cấu hình domain production hợp lệ. Đặt NEXT_PUBLIC_SITE_URL trên Vercel rồi thử lại.',
+      message: 'Chưa cấu hình domain production hợp lệ. Đặt SITE_URL trên Vercel rồi thử lại.',
     };
   }
 
