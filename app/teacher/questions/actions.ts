@@ -63,12 +63,17 @@ export async function createQuestion(
   if (role === 'teacher') {
     const { data: assignment, error: assignError } = await supabase
       .from('teacher_subject_assignments')
-      .select('id')
+      .select('subject_id')
       .eq('teacher_id', user.id)
       .eq('subject_id', subjectId)
       .maybeSingle();
 
-    if (assignError || !assignment) {
+    if (assignError) {
+      console.error('Could not verify teacher subject assignment:', assignError.code, assignError.message);
+      return { status: 'error', message: 'Không thể kiểm tra phân công môn học. Vui lòng thử lại.' };
+    }
+
+    if (!assignment) {
       return { status: 'error', message: 'Bạn không được phân công môn học này.' };
     }
   }
