@@ -8,15 +8,12 @@ import {
   CheckCircle2,
   ClipboardList,
   GraduationCap,
-  LayoutDashboard,
   LibraryBig,
-  LogOut,
   Sparkles,
   Users,
 } from 'lucide-react';
-import { signOut } from '@/app/subjects/actions';
 import { Badge } from '@/components/ui/badge';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -35,6 +32,7 @@ import {
 } from '@/components/ui/table';
 import { getTeacherDashboardData, type TeacherExam } from '@/lib/teacher-dashboard';
 import { SubmissionChart } from '@/components/teacher/submission-chart';
+import { TeacherSidebar } from '@/components/teacher/teacher-sidebar';
 import { ClassForm } from './class-form';
 
 function getExamStatus(status: TeacherExam['status']) {
@@ -129,64 +127,7 @@ export default async function TeacherDashboardPage() {
 
   return (
     <main className="min-h-screen bg-[#f3f6f3] text-foreground lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
-      <aside className="hidden min-h-screen flex-col border-r border-[#d9e3dc] bg-[#17372e] px-4 py-6 text-white lg:sticky lg:top-0 lg:flex lg:h-screen">
-        <Link href="/teacher/dashboard" className="flex items-center gap-3 px-2">
-          <span className="grid size-10 place-items-center rounded-xl bg-[#c9ed99] text-[#17372e]">
-            <GraduationCap aria-hidden="true" className="size-6" />
-          </span>
-          <span>
-            <span className="block text-sm font-semibold tracking-wide">Mầm Học</span>
-            <span className="mt-0.5 block text-xs text-white/55">Không gian giảng dạy</span>
-          </span>
-        </Link>
-
-        <div className="mt-10 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">
-          Khu vực giảng viên
-        </div>
-        <nav aria-label="Điều hướng chính" className="mt-3 space-y-1">
-          <Link
-            href="/teacher/dashboard"
-            aria-current="page"
-            className="flex items-center gap-3 rounded-lg bg-white/12 px-3 py-2.5 text-sm font-medium text-white ring-1 ring-white/10 transition hover:bg-white/16"
-          >
-            <LayoutDashboard aria-hidden="true" className="size-4 text-[#c9ed99]" />
-            Tổng quan
-          </Link>
-          <Link
-            href="/subjects"
-            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-white/70 transition hover:bg-white/8 hover:text-white"
-          >
-            <BookOpen aria-hidden="true" className="size-4" />
-            Môn học
-          </Link>
-          <Link
-            href="/"
-            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-white/70 transition hover:bg-white/8 hover:text-white"
-          >
-            <Sparkles aria-hidden="true" className="size-4" />
-            Gia sư AI
-          </Link>
-        </nav>
-
-        <div className="mt-auto rounded-xl border border-white/10 bg-white/5 p-4">
-          <div className="flex items-center gap-3">
-            <span className="grid size-9 place-items-center rounded-full bg-[#f0a879] text-xs font-bold text-[#4b2a1b]">
-              {initials || 'GV'}
-            </span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-medium">{data.teacherName}</span>
-              <span className="block text-xs text-white/55">Giảng viên</span>
-            </span>
-          </div>
-          <Separator className="my-4 bg-white/12" />
-          <form action={signOut}>
-            <Button type="submit" variant="ghost" className="h-9 w-full justify-start gap-2 px-2 text-white/70 hover:bg-white/10 hover:text-white">
-              <LogOut aria-hidden="true" className="size-4" />
-              Đăng xuất
-            </Button>
-          </form>
-        </div>
-      </aside>
+      <TeacherSidebar activeRoute="dashboard" teacherName={data.teacherName} />
 
       <div className="min-w-0">
         <header className="sticky top-0 z-20 border-b border-[#e2e8e2] bg-[#f8faf8]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
@@ -199,6 +140,7 @@ export default async function TeacherDashboardPage() {
             </div>
             <p className="hidden text-xs font-medium capitalize text-muted-foreground sm:block">{today}</p>
             <nav aria-label="Điều hướng nhanh" className="flex items-center gap-2 lg:hidden">
+              <Link href="/teacher/questions" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>Ngân hàng câu hỏi</Link>
               <Link href="/subjects" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>Môn học</Link>
               <Link href="/" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>Gia sư AI</Link>
             </nav>
@@ -226,9 +168,14 @@ export default async function TeacherDashboardPage() {
               </h1>
               <p className="mt-2 text-sm text-muted-foreground">Theo dõi lớp học, đề thi và hoạt động nộp bài tại một nơi.</p>
             </div>
-            <Link href="/subjects" className={buttonVariants({ className: 'gap-2 shadow-sm' })}>
-              <BookOpen data-icon="inline-start" /> Quản lý môn học <ArrowUpRight data-icon="inline-end" />
-            </Link>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link href="/teacher/questions" className={buttonVariants({ variant: 'outline', className: 'gap-2 shadow-xs' })}>
+                <LibraryBig data-icon="inline-start" /> Ngân hàng câu hỏi
+              </Link>
+              <Link href="/subjects" className={buttonVariants({ className: 'gap-2 shadow-xs' })}>
+                <BookOpen data-icon="inline-start" /> Quản lý môn học <ArrowUpRight data-icon="inline-end" />
+              </Link>
+            </div>
           </section>
 
           {data.errorMessage && (
@@ -244,7 +191,9 @@ export default async function TeacherDashboardPage() {
           <section aria-label="Chỉ số giảng dạy" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <MetricCard label="Lớp đang phụ trách" value={data.classCount.toLocaleString('vi-VN')} detail="Lớp chưa lưu trữ" icon={BookOpen} tone="green" />
             <MetricCard label="Lượt ghi danh" value={data.enrollmentCount.toLocaleString('vi-VN')} detail="Trên các lớp của bạn" icon={Users} tone="orange" />
-            <MetricCard label="Câu hỏi trong kho" value={data.questionCount.toLocaleString('vi-VN')} detail="Câu hỏi do bạn tạo" icon={LibraryBig} tone="blue" />
+            <Link href="/teacher/questions" className="block transition hover:opacity-95">
+              <MetricCard label="Câu hỏi trong kho" value={data.questionCount.toLocaleString('vi-VN')} detail="Bấm để xem và quản lý kho" icon={LibraryBig} tone="blue" />
+            </Link>
             <MetricCard label="Đề đã phát hành" value={data.publishedExamCount.toLocaleString('vi-VN')} detail="Trong các đề bạn tạo" icon={ClipboardList} tone="yellow" />
           </section>
 
