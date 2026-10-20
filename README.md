@@ -27,6 +27,8 @@ Với Supabase project đã tồn tại, chạy `supabase/migrations/20261005_te
 
 Để cấp mã sinh viên và cho phép tìm theo mã trên project đã tồn tại, chạy `supabase/migrations/20261018_student_identifiers.sql` sau migration ghi danh lớp.
 
+Để bật import CSV danh sách lớp trên project đã tồn tại, chạy `supabase/migrations/20261020_bulk_class_enrollment.sql` sau các migration ghi danh và mã sinh viên. CSV dùng cột `student_code,email`; mỗi dòng điền một định danh. Import không tạo tài khoản mới và giới hạn 500 dòng.
+
 Để nâng một user thành admin sau khi đăng nhập lần đầu, lấy UUID của họ từ Authentication → Users rồi chạy trong SQL Editor:
 
 ```sql
