@@ -1,4 +1,7 @@
-CREATE OR REPLACE FUNCTION public.find_student_for_class(
+DROP FUNCTION IF EXISTS public.find_student_for_class(uuid, text);
+DROP FUNCTION IF EXISTS public.list_class_roster(uuid);
+
+CREATE FUNCTION public.find_student_for_class(
   p_class_id uuid,
   p_email text
 )
@@ -47,7 +50,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.list_class_roster(p_class_id uuid)
+CREATE FUNCTION public.list_class_roster(p_class_id uuid)
 RETURNS TABLE (
   student_id uuid,
   full_name text,
