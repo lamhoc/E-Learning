@@ -194,6 +194,13 @@ export function RosterManager({ classId, students }: { classId: string; students
           >
             <Download aria-hidden="true" className="size-4" /> Tải mẫu CSV
           </a>
+          <a
+            href="/student-roster-import-sample.csv"
+            download
+            className="inline-flex h-8 items-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium transition hover:bg-muted"
+          >
+            <FileSpreadsheet aria-hidden="true" className="size-4" /> Tải file thử 5 dòng
+          </a>
         </div>
 
         <form action={previewAction} className="flex flex-col gap-3 sm:flex-row sm:items-end">
