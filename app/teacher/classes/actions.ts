@@ -284,12 +284,15 @@ export async function bulkEnrollClassCsv(
     p_student_ids: studentIds,
   });
   if (error) {
-    console.error('Could not bulk enroll students:', error.code);
+    console.error('Could not bulk enroll students:', {
+      code: error.code,
+      message: error.message,
+    });
     return {
       status: 'error',
       message: error.code === '42501'
         ? 'Bạn không có quyền ghi danh sinh viên vào lớp này.'
-        : 'Không thể ghi danh CSV. Hãy tải lại preview và thử lại.',
+        : `Không thể ghi danh CSV (mã lỗi ${error.code || 'không xác định'}). Kiểm tra log server để biết chi tiết.`,
     };
   }
 
