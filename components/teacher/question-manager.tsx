@@ -23,6 +23,7 @@ import {
   CardHeader,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { MathText } from '@/components/ui/math-text';
 import { QuestionModal } from './question-modal';
 import { deleteQuestion } from '@/app/teacher/questions/actions';
 import type { BankQuestion, SubjectSummary } from '@/lib/question-bank';
@@ -379,9 +380,10 @@ export function QuestionManager({
 
                 <CardContent className="space-y-3.5 pt-0">
                   {/* Question Text */}
-                  <div className="text-sm font-medium leading-relaxed text-foreground">
-                    {q.question_text}
-                  </div>
+                  <MathText
+                    content={q.question_text}
+                    className="text-sm font-medium leading-relaxed text-foreground"
+                  />
 
                   {/* Multiple Choice Options List */}
                   {isMC && q.options && q.options.length > 0 && (
@@ -406,9 +408,10 @@ export function QuestionManager({
                             >
                               {opt.option_key}
                             </span>
-                            <span className="flex-1 leading-relaxed">
-                              {opt.option_text}
-                            </span>
+                            <MathText
+                              content={opt.option_text}
+                              className="min-w-0 flex-1 leading-relaxed"
+                            />
                             {isCorrect && (
                               <Badge
                                 variant="outline"
@@ -431,9 +434,10 @@ export function QuestionManager({
                           <span className="font-semibold text-purple-900">
                             Đáp án tham khảo:
                           </span>{' '}
-                          <span className="text-purple-950">
-                            {q.answer_key.model_answer}
-                          </span>
+                          <MathText
+                            content={q.answer_key.model_answer}
+                            className="text-purple-950"
+                          />
                         </div>
                       )}
                       {q.answer_key.grading_rubric && (
@@ -441,9 +445,10 @@ export function QuestionManager({
                           <span className="font-semibold text-purple-900">
                             Thang điểm / Hướng dẫn chấm:
                           </span>{' '}
-                          <span className="text-purple-950">
-                            {q.answer_key.grading_rubric}
-                          </span>
+                          <MathText
+                            content={q.answer_key.grading_rubric}
+                            className="text-purple-950"
+                          />
                         </div>
                       )}
                     </div>
@@ -457,7 +462,7 @@ export function QuestionManager({
                         <span className="font-semibold text-foreground">
                           Giải thích chi tiết:
                         </span>{' '}
-                        {q.explanation}
+                        <MathText content={q.explanation} />
                       </div>
                     </div>
                   )}
