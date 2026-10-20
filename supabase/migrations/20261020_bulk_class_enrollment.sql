@@ -162,3 +162,5 @@ GRANT EXECUTE ON FUNCTION public.preview_class_enrollment_csv(uuid, text[]) TO a
 GRANT EXECUTE ON FUNCTION public.bulk_enroll_students_in_class(uuid, uuid[]) TO authenticated;
 
 NOTIFY pgrst, 'reload schema';
+
+NOTIFY pgrst, 'reload schema';
