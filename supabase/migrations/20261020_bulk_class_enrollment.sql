@@ -146,7 +146,7 @@ BEGIN
 
     INSERT INTO public.class_memberships (class_id, student_id)
     VALUES (p_class_id, v_student_id)
-    ON CONFLICT (class_id, student_id) DO NOTHING;
+    ON CONFLICT ON CONSTRAINT class_memberships_pkey DO NOTHING;
 
     GET DIAGNOSTICS v_inserted = ROW_COUNT;
     student_id := v_student_id;
@@ -160,7 +160,5 @@ REVOKE ALL ON FUNCTION public.preview_class_enrollment_csv(uuid, text[]) FROM PU
 REVOKE ALL ON FUNCTION public.bulk_enroll_students_in_class(uuid, uuid[]) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.preview_class_enrollment_csv(uuid, text[]) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.bulk_enroll_students_in_class(uuid, uuid[]) TO authenticated;
-
-NOTIFY pgrst, 'reload schema';
 
 NOTIFY pgrst, 'reload schema';
