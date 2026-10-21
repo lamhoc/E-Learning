@@ -49,7 +49,7 @@ export function TeacherSidebar({ activeRoute, teacherName }: TeacherSidebarProps
     {
       id: 'ai-tutor',
       label: 'Gia sư AI',
-      href: '/',
+      href: '/chat',
       icon: Sparkles,
       active: false,
     },

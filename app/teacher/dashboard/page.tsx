@@ -142,7 +142,7 @@ export default async function TeacherDashboardPage() {
             <nav aria-label="Điều hướng nhanh" className="flex items-center gap-2 lg:hidden">
               <Link href="/teacher/questions" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>Ngân hàng câu hỏi</Link>
               <Link href="/subjects" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>Môn học</Link>
-              <Link href="/" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>Gia sư AI</Link>
+              <Link href="/chat" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>Gia sư AI</Link>
             </nav>
             <div className="ml-auto flex items-center gap-3">
               {!data.errorMessage ? (
@@ -350,7 +350,7 @@ export default async function TeacherDashboardPage() {
 
           <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e0e8e1] py-4 text-xs text-muted-foreground">
             <span>Mầm Học · Hệ thống quản lý đào tạo</span>
-            <Link href="/" className="inline-flex items-center gap-1.5 transition hover:text-foreground">
+            <Link href="/chat" className="inline-flex items-center gap-1.5 transition hover:text-foreground">
               <Sparkles aria-hidden="true" className="size-3.5" /> Mở gia sư AI
             </Link>
           </footer>
