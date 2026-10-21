@@ -73,7 +73,13 @@ Nếu là trắc nghiệm (multiple_choice):
 Nếu là tự luận (essay):
 {"questions":[{"question_text":"Chuỗi nội dung bài toán tự luận...","model_answer":"Đáp án mẫu từng bước...","grading_rubric":"Thang điểm từng ý...","explanation":"Hướng dẫn phương pháp tư duy và lưu ý..."}]}`;
 
-  const userPrompt = `Hãy tạo chính xác ${req.count} câu hỏi chất lượng cao với các thông số sau:
+  try {
+    const batchSize = 3;
+    const generatedQuestions: GeneratedQuestionDraft[] = [];
+
+    for (let offset = 0; offset < req.count; offset += batchSize) {
+      const batchCount = Math.min(batchSize, req.count - offset);
+      const userPrompt = `Hãy tạo chính xác ${batchCount} câu hỏi chất lượng cao với các thông số sau:
 - Môn học: ${req.subjectName} (Mã môn: ${req.subjectCode})
 - Chủ đề / Bài học: ${req.topic}
 - Loại câu hỏi: ${isMC ? 'Trắc nghiệm khách quan 4 lựa chọn (A, B, C, D)' : 'Tự luận / Bài tập tự giải'}
@@ -82,81 +88,88 @@ ${req.additionalNote ? `- Ghi chú thêm từ giảng viên: ${req.additionalNot
 
 Chỉ trả về JSON object hợp lệ theo cấu trúc {"questions":[...]}, không trả về mảng ở cấp gốc.`;
 
-  try {
-    const response = await groq.chat.completions.create({
-      model,
-      temperature: 0.3,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      response_format: { type: 'json_object' },
-    });
+      const response = await groq.chat.completions.create({
+        model,
+        temperature: 0.3,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        response_format: { type: 'json_object' },
+      });
 
-    const rawContent = response.choices[0]?.message?.content?.trim() || '';
+      const rawContent = response.choices[0]?.message?.content?.trim() || '';
 
-    // Parse JSON
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(rawContent);
-    } catch {
-      // If wrapped in markdown code fence
-      const cleaned = rawContent.replace(/^```json\s*/, '').replace(/```\s*$/, '').trim();
-      parsed = JSON.parse(cleaned);
-    }
-
-    // Support both direct array or wrapped in object like { questions: [...] }
-    let list: Record<string, unknown>[] = [];
-    if (Array.isArray(parsed)) {
-      list = parsed as Record<string, unknown>[];
-    } else if (parsed && typeof parsed === 'object') {
-      const values = Object.values(parsed);
-      const arrayProp = values.find(Array.isArray);
-      if (arrayProp) {
-        list = arrayProp as Record<string, unknown>[];
+      // Parse JSON
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(rawContent);
+      } catch {
+        // If wrapped in markdown code fence
+        const cleaned = rawContent.replace(/^```json\s*/, '').replace(/```\s*$/, '').trim();
+        parsed = JSON.parse(cleaned);
       }
-    }
 
-    if (list.length === 0) {
-      throw new Error('AI không trả về danh sách câu hỏi hợp lệ.');
-    }
+      // Support both direct array or wrapped in object like { questions: [...] }
+      let list: Record<string, unknown>[] = [];
+      if (Array.isArray(parsed)) {
+        list = parsed as Record<string, unknown>[];
+      } else if (parsed && typeof parsed === 'object') {
+        const values = Object.values(parsed);
+        const arrayProp = values.find(Array.isArray);
+        if (arrayProp) {
+          list = arrayProp as Record<string, unknown>[];
+        }
+      }
 
-    return list.map((item, index) => {
-      const qText = String(item.question_text || '').trim();
-      const explanation = String(item.explanation || '').trim();
+      if (list.length !== batchCount) {
+        throw new Error(
+          `AI chỉ trả về ${list.length}/${batchCount} câu hỏi trong một lượt. Vui lòng thử lại.`,
+        );
+      }
 
-      if (isMC) {
-        const optA = String(item.option_a || '').trim();
-        const optB = String(item.option_b || '').trim();
-        const optC = String(item.option_c || '').trim();
-        const optD = String(item.option_d || '').trim();
-        const rawKey = String(item.correct_option || 'A').trim().toUpperCase();
-        const correctKey = ['A', 'B', 'C', 'D'].includes(rawKey)
-          ? (rawKey as 'A' | 'B' | 'C' | 'D')
-          : 'A';
+      const batchQuestions = list.map((item, index) => {
+        const qText = String(item.question_text || '').trim();
+        const explanation = String(item.explanation || '').trim();
+        const tempId = `gen-${Date.now()}-${offset + index}`;
+
+        if (isMC) {
+          const optA = String(item.option_a || '').trim();
+          const optB = String(item.option_b || '').trim();
+          const optC = String(item.option_c || '').trim();
+          const optD = String(item.option_d || '').trim();
+          const rawKey = String(item.correct_option || 'A').trim().toUpperCase();
+          const correctKey = ['A', 'B', 'C', 'D'].includes(rawKey)
+            ? (rawKey as 'A' | 'B' | 'C' | 'D')
+            : 'A';
+
+          return {
+            tempId,
+            question_type: 'multiple_choice' as const,
+            question_text: qText,
+            option_a: optA,
+            option_b: optB,
+            option_c: optC,
+            option_d: optD,
+            correct_option: correctKey,
+            explanation,
+          };
+        }
 
         return {
-          tempId: `gen-${Date.now()}-${index}`,
-          question_type: 'multiple_choice',
-          question_text: qText,
-          option_a: optA,
-          option_b: optB,
-          option_c: optC,
-          option_d: optD,
-          correct_option: correctKey,
-          explanation,
-        };
-      } else {
-        return {
-          tempId: `gen-${Date.now()}-${index}`,
-          question_type: 'essay',
+          tempId,
+          question_type: 'essay' as const,
           question_text: qText,
           model_answer: String(item.model_answer || '').trim(),
           grading_rubric: String(item.grading_rubric || '').trim(),
           explanation,
         };
-      }
-    });
+      });
+
+      generatedQuestions.push(...batchQuestions);
+    }
+
+    return generatedQuestions;
   } catch (error) {
     const errorDetails =
       error && typeof error === 'object'
