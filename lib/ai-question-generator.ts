@@ -37,6 +37,12 @@ const DIFFICULTY_MAP: Record<AIDifficulty, string> = {
   expert: 'Vận dụng cao (Khó / Phân loại học sinh xuất sắc, biến đổi phức tạp)',
 };
 
+const LATEX_BACKSLASH_TOKEN = '__LATEX_BACKSLASH__';
+
+function restoreLatexBackslashes(value: unknown): string {
+  return String(value ?? '').replaceAll(LATEX_BACKSLASH_TOKEN, '\\').trim();
+}
+
 export async function generateQuestionsAI(
   req: GenerateAIRequest,
 ): Promise<GeneratedQuestionDraft[]> {
@@ -65,13 +71,17 @@ QUY TẮC BẮT BUỘC VỀ NỘI DUNG VÀ ĐỊNH DẠNG:
 4. ĐỐI VỚI CÂU HỎI TỰ LUẬN:
    - Cung cấp đáp án tham khảo (model_answer) đầy đủ các bước.
    - Cung cấp thang điểm / tiêu chí chấm (grading_rubric) phân bổ điểm từng bước.
+5. ĐỊNH DẠNG ĐẦU RA: Trả về DUY NHẤT một JSON object hợp lệ có khóa "questions" chứa mảng câu hỏi. Không thêm markdown, chú thích, dấu phẩy cuối hoặc văn bản ngoài JSON. Chỉ dùng token ${LATEX_BACKSLASH_TOKEN} thay cho dấu gạch chéo ngược trong LaTeX.
 5. ĐỊNH DẠNG ĐẦU RA: Trả về DUY NHẤT một JSON object hợp lệ có khóa "questions" chứa mảng câu hỏi. Không thêm markdown, chú thích, dấu phẩy cuối hoặc văn bản ngoài JSON. Trong chuỗi JSON, mọi dấu gạch chéo ngược của LaTeX phải được escape thành \\\\.
 
 Nếu là trắc nghiệm (multiple_choice):
 {"questions":[{"question_text":"Chuỗi nội dung câu hỏi...","option_a":"Nội dung phương án A...","option_b":"Nội dung phương án B...","option_c":"Nội dung phương án C...","option_d":"Nội dung phương án D...","correct_option":"A","explanation":"Giải thích chi tiết cách giải..."}]}
 
 Nếu là tự luận (essay):
-{"questions":[{"question_text":"Chuỗi nội dung bài toán tự luận...","model_answer":"Đáp án mẫu từng bước...","grading_rubric":"Thang điểm từng ý...","explanation":"Hướng dẫn phương pháp tư duy và lưu ý..."}]}`;
+{"questions":[{"question_text":"Chuỗi nội dung bài toán tự luận...","model_answer":"Đáp án mẫu từng bước...","grading_rubric":"Thang điểm từng ý...","explanation":"Hướng dẫn phương pháp tư duy và lưu ý..."}]}
+
+LƯU Ý ƯU TIÊN: JSON phải parse được trước khi khôi phục LaTeX. Không đưa ký tự gạch chéo ngược vào bất kỳ giá trị nào. Thay mỗi ký tự đó bằng đúng token ${LATEX_BACKSLASH_TOKEN}. Ví dụ, viết ${LATEX_BACKSLASH_TOKEN}frac{a}{b} trong chuỗi JSON; server sẽ chuyển token thành lệnh LaTeX sau khi parse.
+`;
 
   try {
     const batchSize = 3;
@@ -129,15 +139,15 @@ Chỉ trả về JSON object hợp lệ theo cấu trúc {"questions":[...]}, kh
       }
 
       const batchQuestions = list.map((item, index) => {
-        const qText = String(item.question_text || '').trim();
-        const explanation = String(item.explanation || '').trim();
+        const qText = restoreLatexBackslashes(item.question_text);
+        const explanation = restoreLatexBackslashes(item.explanation);
         const tempId = `gen-${Date.now()}-${offset + index}`;
 
         if (isMC) {
-          const optA = String(item.option_a || '').trim();
-          const optB = String(item.option_b || '').trim();
-          const optC = String(item.option_c || '').trim();
-          const optD = String(item.option_d || '').trim();
+          const optA = restoreLatexBackslashes(item.option_a);
+          const optB = restoreLatexBackslashes(item.option_b);
+          const optC = restoreLatexBackslashes(item.option_c);
+          const optD = restoreLatexBackslashes(item.option_d);
           const rawKey = String(item.correct_option || 'A').trim().toUpperCase();
           const correctKey = ['A', 'B', 'C', 'D'].includes(rawKey)
             ? (rawKey as 'A' | 'B' | 'C' | 'D')
@@ -160,8 +170,8 @@ Chỉ trả về JSON object hợp lệ theo cấu trúc {"questions":[...]}, kh
           tempId,
           question_type: 'essay' as const,
           question_text: qText,
-          model_answer: String(item.model_answer || '').trim(),
-          grading_rubric: String(item.grading_rubric || '').trim(),
+          model_answer: restoreLatexBackslashes(item.model_answer),
+          grading_rubric: restoreLatexBackslashes(item.grading_rubric),
           explanation,
         };
       });
@@ -173,13 +183,18 @@ Chỉ trả về JSON object hợp lệ theo cấu trúc {"questions":[...]}, kh
   } catch (error) {
     const errorDetails =
       error && typeof error === 'object'
-        ? (error as { code?: unknown; status?: unknown })
+        ? (error as {
+            code?: unknown;
+            status?: unknown;
+            error?: { code?: unknown };
+          })
         : null;
+    const errorCode = errorDetails?.error?.code ?? errorDetails?.code;
 
-    if (errorDetails?.code === 'json_validate_failed') {
+    if (errorCode === 'json_validate_failed') {
       console.error('Groq rejected generated JSON:', {
-        code: errorDetails.code,
-        status: errorDetails.status,
+        code: errorCode,
+        status: errorDetails?.status,
       });
       throw new Error(
         'AI chưa thể tạo câu hỏi đúng định dạng. Vui lòng thử lại hoặc giảm số lượng câu hỏi.',
