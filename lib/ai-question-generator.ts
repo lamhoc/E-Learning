@@ -46,7 +46,7 @@ export async function generateQuestionsAI(
   }
 
   const groq = new Groq({ apiKey });
-  const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+  const model = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
 
   const isMC = req.questionType === 'multiple_choice';
   const difficultyDesc = DIFFICULTY_MAP[req.difficulty] ?? req.difficulty;
