@@ -65,30 +65,13 @@ QUY TẮC BẮT BUỘC VỀ NỘI DUNG VÀ ĐỊNH DẠNG:
 4. ĐỐI VỚI CÂU HỎI TỰ LUẬN:
    - Cung cấp đáp án tham khảo (model_answer) đầy đủ các bước.
    - Cung cấp thang điểm / tiêu chí chấm (grading_rubric) phân bổ điểm từng bước.
-5. ĐỊNH DẠNG ĐẦU RA: Trả về DUY NHẤT một mảng JSON thuần túy (không kèm bất kỳ văn bản giải thích nào ngoài JSON), tuân thủ cấu trúc sau:
+5. ĐỊNH DẠNG ĐẦU RA: Trả về DUY NHẤT một JSON object hợp lệ có khóa "questions" chứa mảng câu hỏi. Không thêm markdown, chú thích, dấu phẩy cuối hoặc văn bản ngoài JSON. Trong chuỗi JSON, mọi dấu gạch chéo ngược của LaTeX phải được escape thành \\\\.
 
 Nếu là trắc nghiệm (multiple_choice):
-[
-  {
-    "question_text": "Chuỗi nội dung câu hỏi...",
-    "option_a": "Nội dung phương án A...",
-    "option_b": "Nội dung phương án B...",
-    "option_c": "Nội dung phương án C...",
-    "option_d": "Nội dung phương án D...",
-    "correct_option": "A", // hoặc "B", "C", "D"
-    "explanation": "Giải thích chi tiết cách giải..."
-  }
-]
+{"questions":[{"question_text":"Chuỗi nội dung câu hỏi...","option_a":"Nội dung phương án A...","option_b":"Nội dung phương án B...","option_c":"Nội dung phương án C...","option_d":"Nội dung phương án D...","correct_option":"A","explanation":"Giải thích chi tiết cách giải..."}]}
 
 Nếu là tự luận (essay):
-[
-  {
-    "question_text": "Chuỗi nội dung bài toán tự luận...",
-    "model_answer": "Đáp án mẫu từng bước...",
-    "grading_rubric": "Thang điểm từng ý...",
-    "explanation": "Hướng dẫn phương pháp tư duy và lưu ý..."
-  }
-]`;
+{"questions":[{"question_text":"Chuỗi nội dung bài toán tự luận...","model_answer":"Đáp án mẫu từng bước...","grading_rubric":"Thang điểm từng ý...","explanation":"Hướng dẫn phương pháp tư duy và lưu ý..."}]}`;
 
   const userPrompt = `Hãy tạo chính xác ${req.count} câu hỏi chất lượng cao với các thông số sau:
 - Môn học: ${req.subjectName} (Mã môn: ${req.subjectCode})
@@ -97,7 +80,7 @@ Nếu là tự luận (essay):
 - Cấp độ tư duy: ${difficultyDesc}
 ${req.additionalNote ? `- Ghi chú thêm từ giảng viên: ${req.additionalNote}` : ''}
 
-Trả về định dạng JSON thuần túy (JSON array).`;
+Chỉ trả về JSON object hợp lệ theo cấu trúc {"questions":[...]}, không trả về mảng ở cấp gốc.`;
 
   try {
     const response = await groq.chat.completions.create({
@@ -175,6 +158,21 @@ Trả về định dạng JSON thuần túy (JSON array).`;
       }
     });
   } catch (error) {
+    const errorDetails =
+      error && typeof error === 'object'
+        ? (error as { code?: unknown; status?: unknown })
+        : null;
+
+    if (errorDetails?.code === 'json_validate_failed') {
+      console.error('Groq rejected generated JSON:', {
+        code: errorDetails.code,
+        status: errorDetails.status,
+      });
+      throw new Error(
+        'AI chưa thể tạo câu hỏi đúng định dạng. Vui lòng thử lại hoặc giảm số lượng câu hỏi.',
+      );
+    }
+
     console.error('Groq AI Question Generator Error:', error);
     throw new Error(
       error instanceof Error
