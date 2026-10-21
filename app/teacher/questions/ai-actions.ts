@@ -83,7 +83,7 @@ export async function generateAIQuestionsAction(input: {
   if (role === 'teacher') {
     const { data: assignment, error: assignError } = await supabase
       .from('teacher_subject_assignments')
-      .select('id')
+      .select('subject_id')
       .eq('teacher_id', user.id)
       .eq('subject_id', subjectId)
       .maybeSingle();
