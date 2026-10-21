@@ -25,6 +25,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { MathText } from '@/components/ui/math-text';
 import { QuestionModal } from './question-modal';
+import { AIGeneratorModal } from './ai-generator-modal';
 import { deleteQuestion } from '@/app/teacher/questions/actions';
 import type { BankQuestion, SubjectSummary } from '@/lib/question-bank';
 
@@ -47,6 +48,7 @@ export function QuestionManager({
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [questionToEdit, setQuestionToEdit] = useState<BankQuestion | null>(null);
 
   // Deletion State
@@ -202,7 +204,7 @@ export function QuestionManager({
               />
             </div>
 
-            {/* Filter Dropdowns */}
+            {/* Filter Dropdowns & Action Buttons */}
             <div className="flex flex-wrap items-center gap-2.5">
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Filter className="size-3.5" /> Lọc:
@@ -260,6 +262,16 @@ export function QuestionManager({
                 </button>
               </div>
 
+              {/* AI Question Generator Button */}
+              <Button
+                onClick={() => setIsAIModalOpen(true)}
+                variant="outline"
+                className="gap-1.5 border-[#246348] text-[#17372e] hover:bg-[#eef6f1]"
+              >
+                <Sparkles className="size-4 text-[#246348]" />
+                AI Sinh câu hỏi
+              </Button>
+
               {/* Create Question Button */}
               <Button
                 onClick={handleOpenCreate}
@@ -307,16 +319,25 @@ export function QuestionManager({
               </h3>
               <p className="mt-1.5 max-w-sm text-xs text-muted-foreground">
                 {totalCount === 0
-                  ? 'Bắt đầu xây dựng ngân hàng đề thi bằng cách thêm các câu hỏi trắc nghiệm hoặc tự luận đầu tiên.'
+                  ? 'Bắt đầu xây dựng ngân hàng đề thi bằng cách tạo câu hỏi thủ công hoặc sử dụng AI sinh tự động.'
                   : 'Hãy thử thay đổi từ khóa tìm kiếm hoặc bỏ chọn các bộ lọc môn học/loại câu hỏi.'}
               </p>
               {totalCount === 0 && (
-                <Button
-                  onClick={handleOpenCreate}
-                  className="mt-5 gap-2 bg-[#17372e] text-white hover:bg-[#20493e]"
-                >
-                  <Plus className="size-4" /> Tạo câu hỏi đầu tiên
-                </Button>
+                <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+                  <Button
+                    onClick={() => setIsAIModalOpen(true)}
+                    variant="outline"
+                    className="gap-2 border-[#246348] text-[#17372e] hover:bg-[#eef6f1]"
+                  >
+                    <Sparkles className="size-4 text-[#246348]" /> AI sinh câu hỏi tự động
+                  </Button>
+                  <Button
+                    onClick={handleOpenCreate}
+                    className="gap-2 bg-[#17372e] text-white hover:bg-[#20493e]"
+                  >
+                    <Plus className="size-4" /> Tạo câu hỏi thủ công
+                  </Button>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -473,7 +494,7 @@ export function QuestionManager({
         )}
       </div>
 
-      {/* Modal for Creating or Editing Question */}
+      {/* Modal for Creating or Editing Question Manually */}
       {isModalOpen && (
         <QuestionModal
           key={questionToEdit?.id ?? 'new'}
@@ -487,6 +508,20 @@ export function QuestionManager({
           }}
           subjects={subjects}
           questionToEdit={questionToEdit}
+        />
+      )}
+
+      {/* Modal for AI Question Generation */}
+      {isAIModalOpen && (
+        <AIGeneratorModal
+          isOpen={isAIModalOpen}
+          onClose={() => setIsAIModalOpen(false)}
+          subjects={subjects}
+          onSuccess={() => {
+            startTransition(() => {
+              router.refresh();
+            });
+          }}
         />
       )}
     </div>
