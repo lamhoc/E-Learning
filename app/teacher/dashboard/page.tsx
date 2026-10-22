@@ -4,13 +4,19 @@ import {
   ArrowRight,
   ArrowUpRight,
   BookOpen,
+  Bot,
   CalendarDays,
   CheckCircle2,
   ClipboardList,
+  FileText,
   GraduationCap,
+  HelpCircle,
   LibraryBig,
+  Plus,
   Sparkles,
+  Upload,
   Users,
+  Zap,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
@@ -34,6 +40,8 @@ import { getTeacherDashboardData, type TeacherExam } from '@/lib/teacher-dashboa
 import { SubmissionChart } from '@/components/teacher/submission-chart';
 import { TeacherSidebar } from '@/components/teacher/teacher-sidebar';
 import { ClassForm } from './class-form';
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function getExamStatus(status: TeacherExam['status']) {
   switch (status) {
@@ -60,6 +68,8 @@ function getSubjectName(subject: { name: string } | { name: string }[] | null) {
   return Array.isArray(subject) ? subject[0]?.name : subject?.name;
 }
 
+// ─── Sub-components ──────────────────────────────────────────────────────────
+
 function MetricCard({
   label,
   value,
@@ -74,21 +84,31 @@ function MetricCard({
   tone: 'green' | 'orange' | 'blue' | 'yellow';
 }) {
   const toneClasses = {
-    green: 'bg-[#e1f1e8] text-[#236448]',
-    orange: 'bg-[#fff0e5] text-[#a24f20]',
-    blue: 'bg-[#e6eef7] text-[#3d638b]',
-    yellow: 'bg-[#f9f0d9] text-[#927022]',
+    green: 'bg-emerald-50 text-emerald-700',
+    orange: 'bg-orange-50 text-orange-700',
+    blue: 'bg-sky-50 text-sky-700',
+    yellow: 'bg-amber-50 text-amber-700',
+  };
+  const valueTone = {
+    green: 'text-emerald-700',
+    orange: 'text-orange-700',
+    blue: 'text-sky-700',
+    yellow: 'text-amber-700',
   };
 
   return (
-    <Card className="group transition duration-200 hover:-translate-y-0.5 hover:shadow-md">
-      <CardContent className="flex min-h-[132px] items-start justify-between gap-4 p-5">
+    <Card className="group transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+      <CardContent className="flex min-h-[128px] items-start justify-between gap-4 p-5">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-muted-foreground">{label}</p>
-          <p className="mt-3 text-3xl font-semibold tabular-nums tracking-tight">{value}</p>
-          <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+          <p className={`mt-3 text-3xl font-bold tabular-nums tracking-tight ${valueTone[tone]}`}>
+            {value}
+          </p>
+          <p className="mt-1 text-xs text-slate-400">{detail}</p>
         </div>
-        <span className={`grid size-10 shrink-0 place-items-center rounded-lg ${toneClasses[tone]}`}>
+        <span
+          className={`grid size-10 shrink-0 place-items-center rounded-xl ${toneClasses[tone]}`}
+        >
           <Icon aria-hidden="true" className="size-5" />
         </span>
       </CardContent>
@@ -98,148 +118,341 @@ function MetricCard({
 
 function EmptyPanel({ title, description }: { title: string; description: string }) {
   return (
-    <div className="flex min-h-44 flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/30 px-6 py-8 text-center">
-      <span className="grid size-10 place-items-center rounded-full bg-background text-muted-foreground ring-1 ring-border">
+    <div className="flex min-h-44 flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 px-6 py-8 text-center">
+      <span className="grid size-10 place-items-center rounded-full bg-white text-slate-400 ring-1 ring-slate-200">
         <BookOpen aria-hidden="true" className="size-5" />
       </span>
-      <h3 className="mt-3 text-sm font-semibold">{title}</h3>
-      <p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">{description}</p>
-      <Link href="/subjects" className={buttonVariants({ variant: 'outline', size: 'sm', className: 'mt-4' })}>
+      <h3 className="mt-3 text-sm font-semibold text-slate-700">{title}</h3>
+      <p className="mt-1 max-w-sm text-sm leading-6 text-slate-400">{description}</p>
+      <Link
+        href="/subjects"
+        className={buttonVariants({ variant: 'outline', size: 'sm', className: 'mt-4' })}
+      >
         Mở danh sách môn học <ArrowRight data-icon="inline-end" />
       </Link>
     </div>
   );
 }
 
+// ─── Quick Action data ────────────────────────────────────────────────────────
+
+const QUICK_ACTIONS = [
+  {
+    icon: Sparkles,
+    label: 'Sinh câu hỏi AI',
+    desc: 'Dùng Groq AI',
+    href: '/teacher/questions',
+    color: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-100',
+    iconBg: 'bg-emerald-600 text-white',
+  },
+  {
+    icon: Upload,
+    label: 'Upload tài liệu',
+    desc: 'DOCX / PPTX',
+    href: '/teacher/questions',
+    color: 'bg-teal-50 text-teal-700 hover:bg-teal-100 border-teal-100',
+    iconBg: 'bg-teal-600 text-white',
+  },
+  {
+    icon: Plus,
+    label: 'Tạo lớp học',
+    desc: 'Lớp học mới',
+    href: '#create-class',
+    color: 'bg-sky-50 text-sky-700 hover:bg-sky-100 border-sky-100',
+    iconBg: 'bg-sky-600 text-white',
+  },
+  {
+    icon: LibraryBig,
+    label: 'Ngân hàng câu hỏi',
+    desc: 'Xem & quản lý',
+    href: '/teacher/questions',
+    color: 'bg-violet-50 text-violet-700 hover:bg-violet-100 border-violet-100',
+    iconBg: 'bg-violet-600 text-white',
+  },
+  {
+    icon: Bot,
+    label: 'Gia sư AI',
+    desc: 'Hỏi bất cứ điều gì',
+    href: '/chat',
+    color: 'bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-100',
+    iconBg: 'bg-amber-500 text-white',
+  },
+  {
+    icon: FileText,
+    label: 'Tạo đề thi',
+    desc: 'Từ ngân hàng câu hỏi',
+    href: '/teacher/questions',
+    color: 'bg-rose-50 text-rose-700 hover:bg-rose-100 border-rose-100',
+    iconBg: 'bg-rose-600 text-white',
+  },
+];
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default async function TeacherDashboardPage() {
   const data = await getTeacherDashboardData();
+
   const initials = data.teacherName
     .split(/[\s@.]+/)
     .filter(Boolean)
     .slice(0, 2)
     .map((part) => part[0]?.toLocaleUpperCase())
     .join('');
+
   const today = new Intl.DateTimeFormat('vi-VN', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
   }).format(new Date());
 
+  // Tên ngắn gọn để chào
+  const shortName = data.teacherName.split(/\s+/).at(-1) ?? data.teacherName;
+
   return (
-    <main className="min-h-screen bg-[#f3f6f3] text-foreground lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
+    <main className="min-h-screen bg-slate-50 text-slate-900 lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
       <TeacherSidebar activeRoute="dashboard" teacherName={data.teacherName} />
 
       <div className="min-w-0">
-        <header className="sticky top-0 z-20 border-b border-[#e2e8e2] bg-[#f8faf8]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
+        {/* ── Topbar ── */}
+        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
+            {/* Mobile logo */}
             <div className="flex items-center gap-2 lg:hidden">
               <span className="grid size-9 place-items-center rounded-lg bg-[#17372e] text-[#c9ed99]">
                 <GraduationCap aria-hidden="true" className="size-5" />
               </span>
-              <span className="text-sm font-semibold">Mầm Học</span>
+              <span className="text-sm font-bold text-slate-900">Mầm Học</span>
             </div>
-            <p className="hidden text-xs font-medium capitalize text-muted-foreground sm:block">{today}</p>
-            <nav aria-label="Điều hướng nhanh" className="flex items-center gap-2 lg:hidden">
-              <Link href="/teacher/questions" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>Ngân hàng câu hỏi</Link>
-              <Link href="/subjects" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>Môn học</Link>
-              <Link href="/chat" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>Gia sư AI</Link>
+
+            <p className="hidden text-xs font-medium capitalize text-slate-500 sm:block">
+              {today}
+            </p>
+
+            {/* Mobile nav */}
+            <nav aria-label="Điều hướng nhanh" className="flex items-center gap-1 lg:hidden">
+              <Link
+                href="/teacher/questions"
+                className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+              >
+                <HelpCircle className="size-3.5" />
+                <span className="hidden sm:inline">Câu hỏi</span>
+              </Link>
+              <Link
+                href="/subjects"
+                className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+              >
+                <BookOpen className="size-3.5" />
+                <span className="hidden sm:inline">Môn học</span>
+              </Link>
+              <Link
+                href="/chat"
+                className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+              >
+                <Sparkles className="size-3.5" />
+                <span className="hidden sm:inline">AI</span>
+              </Link>
             </nav>
+
             <div className="ml-auto flex items-center gap-3">
               {!data.errorMessage ? (
-                <Badge variant="outline" className="hidden gap-1.5 border-emerald-200 bg-emerald-50 text-emerald-800 sm:inline-flex">
+                <Badge
+                  variant="outline"
+                  className="hidden gap-1.5 border-emerald-200 bg-emerald-50 text-emerald-800 sm:inline-flex"
+                >
                   <CheckCircle2 data-icon="inline-start" /> Đã đồng bộ
                 </Badge>
               ) : (
-                <Badge variant="destructive" className="hidden sm:inline-flex">Cần kiểm tra dữ liệu</Badge>
+                <Badge variant="destructive" className="hidden sm:inline-flex">
+                  Cần kiểm tra dữ liệu
+                </Badge>
               )}
-              <span className="grid size-9 place-items-center rounded-full bg-[#f0a879] text-xs font-bold text-[#4b2a1b]" aria-label={`Tài khoản ${data.teacherName}`}>
+              <span
+                className="grid size-9 place-items-center rounded-full bg-[#f0a879] text-xs font-bold text-[#4b2a1b]"
+                aria-label={`Tài khoản ${data.teacherName}`}
+              >
                 {initials || 'GV'}
               </span>
             </div>
           </div>
         </header>
 
+        {/* ── Main content ── */}
         <div className="mx-auto max-w-[1440px] space-y-7 px-5 py-7 sm:px-8 sm:py-8 lg:px-10">
+
+          {/* ── Greeting ── */}
           <section className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-sm font-medium text-[#648174]">Không gian giảng dạy</p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-[28px]">
-                Chào {data.teacherName.split(/\s+/).at(-1)}, hôm nay thế nào?
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+                Không gian giảng dạy
+              </p>
+              <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900 sm:text-[28px]">
+                Chào {shortName}! 👋
               </h1>
-              <p className="mt-2 text-sm text-muted-foreground">Theo dõi lớp học, đề thi và hoạt động nộp bài tại một nơi.</p>
+              <p className="mt-1.5 text-sm text-slate-500">
+                Theo dõi lớp học, đề thi và hoạt động nộp bài tại một nơi.
+              </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Link href="/teacher/questions" className={buttonVariants({ variant: 'outline', className: 'gap-2 shadow-xs' })}>
+              <Link
+                href="/teacher/questions"
+                className={buttonVariants({ variant: 'outline', className: 'gap-2 shadow-xs' })}
+              >
                 <LibraryBig data-icon="inline-start" /> Ngân hàng câu hỏi
               </Link>
-              <Link href="/subjects" className={buttonVariants({ className: 'gap-2 shadow-xs' })}>
-                <BookOpen data-icon="inline-start" /> Quản lý môn học <ArrowUpRight data-icon="inline-end" />
+              <Link
+                href="/subjects"
+                className={buttonVariants({ className: 'gap-2 shadow-xs bg-[#17372e] hover:bg-[#20493e] text-white' })}
+              >
+                <BookOpen data-icon="inline-start" /> Môn học
+                <ArrowUpRight data-icon="inline-end" />
               </Link>
             </div>
           </section>
 
+          {/* ── Error alert ── */}
           {data.errorMessage && (
-            <div role="alert" className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            <div
+              role="alert"
+              className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+            >
               <ClipboardList aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
               <div>
                 <p className="font-semibold">Một số dữ liệu chưa tải được</p>
-                <p className="mt-1 text-amber-900/80">{data.errorMessage} Kiểm tra các policy RLS trên Supabase rồi tải lại trang.</p>
+                <p className="mt-1 text-amber-900/80">
+                  {data.errorMessage} Kiểm tra các policy RLS trên Supabase rồi tải lại trang.
+                </p>
               </div>
             </div>
           )}
 
-          <section aria-label="Chỉ số giảng dạy" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricCard label="Lớp đang phụ trách" value={data.classCount.toLocaleString('vi-VN')} detail="Lớp chưa lưu trữ" icon={BookOpen} tone="green" />
-            <MetricCard label="Lượt ghi danh" value={data.enrollmentCount.toLocaleString('vi-VN')} detail="Trên các lớp của bạn" icon={Users} tone="orange" />
-            <Link href="/teacher/questions" className="block transition hover:opacity-95">
-              <MetricCard label="Câu hỏi trong kho" value={data.questionCount.toLocaleString('vi-VN')} detail="Bấm để xem và quản lý kho" icon={LibraryBig} tone="blue" />
-            </Link>
-            <MetricCard label="Đề đã phát hành" value={data.publishedExamCount.toLocaleString('vi-VN')} detail="Trong các đề bạn tạo" icon={ClipboardList} tone="yellow" />
+          {/* ── Quick Actions (Bento strip) ── */}
+          <section aria-label="Thao tác nhanh">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-400">
+              Thao tác nhanh
+            </p>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+              {QUICK_ACTIONS.map((action) => {
+                const Icon = action.icon;
+                return (
+                  <Link
+                    key={action.label}
+                    href={action.href}
+                    className={`group flex flex-col items-center gap-2.5 rounded-2xl border p-4 text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm ${action.color}`}
+                  >
+                    <span
+                      className={`grid size-9 place-items-center rounded-xl shadow-sm transition-transform group-hover:scale-105 ${action.iconBg}`}
+                    >
+                      <Icon className="size-4" />
+                    </span>
+                    <span>
+                      <span className="block text-xs font-semibold">{action.label}</span>
+                      <span className="mt-0.5 block text-[10px] opacity-70">{action.desc}</span>
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
           </section>
 
+          {/* ── Metric cards (Bento Grid) ── */}
+          <section aria-label="Chỉ số giảng dạy" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <MetricCard
+              label="Lớp đang phụ trách"
+              value={data.classCount.toLocaleString('vi-VN')}
+              detail="Lớp chưa lưu trữ"
+              icon={BookOpen}
+              tone="green"
+            />
+            <MetricCard
+              label="Lượt ghi danh"
+              value={data.enrollmentCount.toLocaleString('vi-VN')}
+              detail="Trên các lớp của bạn"
+              icon={Users}
+              tone="orange"
+            />
+            <Link href="/teacher/questions" className="block transition hover:opacity-95">
+              <MetricCard
+                label="Câu hỏi trong kho"
+                value={data.questionCount.toLocaleString('vi-VN')}
+                detail="Bấm để xem và quản lý kho"
+                icon={LibraryBig}
+                tone="blue"
+              />
+            </Link>
+            <MetricCard
+              label="Đề đã phát hành"
+              value={data.publishedExamCount.toLocaleString('vi-VN')}
+              detail="Trong các đề bạn tạo"
+              icon={ClipboardList}
+              tone="yellow"
+            />
+          </section>
+
+          {/* ── Onboarding nudge (khi chưa có lớp) ── */}
           {data.classCount === 0 && (
-            <Card className="border-[#dce7dc] bg-[#edf5ee] shadow-none">
-              <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
+            <div className="flex items-center justify-between gap-4 rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50 to-teal-50 p-5">
+              <div className="flex items-center gap-4">
+                <span className="grid size-10 place-items-center rounded-xl bg-emerald-600 text-white">
+                  <Zap className="size-5" />
+                </span>
                 <div>
-                  <p className="font-semibold">Bắt đầu với lớp học đầu tiên</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Chọn môn đã được quản trị viên phân công để tạo lớp.</p>
+                  <p className="font-semibold text-slate-800">Bắt đầu với lớp học đầu tiên</p>
+                  <p className="mt-0.5 text-sm text-slate-500">
+                    Chọn môn đã được quản trị viên phân công để tạo lớp.
+                  </p>
                 </div>
-                <Link href="/subjects" className={buttonVariants({ variant: 'outline', className: 'gap-2 border-[#b8cdbd] bg-white' })}>
-                  Đi tới môn học <ArrowRight data-icon="inline-end" />
-                </Link>
-              </CardContent>
-            </Card>
+              </div>
+              <Link
+                href="/subjects"
+                className={buttonVariants({
+                  variant: 'outline',
+                  className: 'shrink-0 gap-2 border-emerald-200 bg-white hover:bg-emerald-50',
+                })}
+              >
+                Đi tới môn học <ArrowRight data-icon="inline-end" />
+              </Link>
+            </div>
           )}
 
-          <Card>
+          {/* ── Create class form ── */}
+          <Card id="create-class" className="scroll-mt-20 rounded-2xl shadow-sm">
             <CardHeader>
-              <CardTitle className="text-base">Tạo lớp học</CardTitle>
-              <CardDescription>Lớp mới sẽ thuộc môn được phân công và do bạn phụ trách.</CardDescription>
+              <CardTitle className="text-base font-semibold">Tạo lớp học mới</CardTitle>
+              <CardDescription>
+                Lớp mới sẽ thuộc môn được phân công và do bạn phụ trách.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <ClassForm subjects={data.assignedSubjects} />
             </CardContent>
           </Card>
 
+          {/* ── Charts + Recent classes (2-col bento) ── */}
           <section className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.85fr)]">
-            <Card className="min-w-0">
+            {/* Submission chart */}
+            <Card className="min-w-0 rounded-2xl shadow-sm">
               <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
                 <div>
-                  <CardTitle className="text-base">Hoạt động nộp bài</CardTitle>
-                  <CardDescription className="mt-1">Bài thi đã nộp trong 7 ngày gần nhất</CardDescription>
+                  <CardTitle className="text-base font-semibold">Hoạt động nộp bài</CardTitle>
+                  <CardDescription className="mt-1">
+                    Bài thi đã nộp trong 7 ngày gần nhất
+                  </CardDescription>
                 </div>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#edf5ee] px-2.5 py-1 text-xs font-medium text-[#32684f]">
-                  <span className="size-1.5 rounded-full bg-[#4c9b70]" /> {data.submissionCount.toLocaleString('vi-VN')} tổng bài
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                  <span className="size-1.5 rounded-full bg-emerald-500" />
+                  {data.submissionCount.toLocaleString('vi-VN')} tổng bài
                 </span>
               </CardHeader>
               <CardContent>
                 {data.submissionCount === 0 ? (
                   <div className="flex h-[250px] flex-col items-center justify-center text-center">
-                    <span className="grid size-11 place-items-center rounded-full bg-[#f0f4f0] text-[#658073]">
+                    <span className="grid size-11 place-items-center rounded-full bg-slate-100 text-slate-400">
                       <CalendarDays aria-hidden="true" className="size-5" />
                     </span>
-                    <p className="mt-3 text-sm font-medium">Chưa có bài nộp</p>
-                    <p className="mt-1 text-sm text-muted-foreground">Biểu đồ sẽ cập nhật khi sinh viên hoàn thành bài thi.</p>
+                    <p className="mt-3 text-sm font-medium text-slate-600">Chưa có bài nộp</p>
+                    <p className="mt-1 text-sm text-slate-400">
+                      Biểu đồ sẽ cập nhật khi sinh viên hoàn thành bài thi.
+                    </p>
                   </div>
                 ) : (
                   <SubmissionChart data={data.submissionsByDay} />
@@ -247,10 +460,11 @@ export default async function TeacherDashboardPage() {
               </CardContent>
             </Card>
 
-            <Card className="min-w-0">
+            {/* Recent classes */}
+            <Card className="min-w-0 rounded-2xl shadow-sm">
               <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
                 <div>
-                  <CardTitle className="text-base">Lớp học gần đây</CardTitle>
+                  <CardTitle className="text-base font-semibold">Lớp học gần đây</CardTitle>
                   <CardDescription className="mt-1">Các lớp bạn đang phụ trách</CardDescription>
                 </div>
                 <Badge variant="secondary">{data.classes.length} lớp</Badge>
@@ -267,22 +481,31 @@ export default async function TeacherDashboardPage() {
                       <Link
                         href={`/teacher/classes/${classItem.id}`}
                         key={classItem.id}
-                        className="group flex items-center gap-3 rounded-lg px-2 py-3 transition hover:bg-muted/70"
+                        className="group flex items-center gap-3 rounded-xl px-2 py-3 transition hover:bg-slate-50"
                       >
-                        <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-[#e5f0e9] text-[#35674f] transition group-hover:bg-[#d8eadf]">
+                        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700 transition group-hover:bg-emerald-100">
                           <BookOpen aria-hidden="true" className="size-4" />
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium">{classItem.name}</span>
-                          <span className="mt-1 block truncate text-xs text-muted-foreground">
-                            {getSubjectName(classItem.subject) ?? 'Môn học'} · {classItem.academic_year}
+                          <span className="block truncate text-sm font-medium text-slate-800">
+                            {classItem.name}
+                          </span>
+                          <span className="mt-0.5 block truncate text-xs text-slate-400">
+                            {getSubjectName(classItem.subject) ?? 'Môn học'} ·{' '}
+                            {classItem.academic_year}
                           </span>
                         </span>
-                        <ArrowUpRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground" />
+                        <ArrowUpRight
+                          aria-hidden="true"
+                          className="size-4 shrink-0 text-slate-300 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-slate-600"
+                        />
                       </Link>
                     ))}
                     <Separator className="my-2" />
-                    <Link href="/subjects" className="inline-flex items-center gap-1 px-2 py-2 text-sm font-medium text-primary hover:underline">
+                    <Link
+                      href="/subjects"
+                      className="inline-flex items-center gap-1 px-2 py-2 text-sm font-medium text-emerald-700 hover:underline"
+                    >
                       Xem môn học <ArrowRight aria-hidden="true" className="size-4" />
                     </Link>
                   </div>
@@ -291,14 +514,18 @@ export default async function TeacherDashboardPage() {
             </Card>
           </section>
 
-          <Card className="overflow-hidden">
+          {/* ── Recent exams table ── */}
+          <Card className="overflow-hidden rounded-2xl shadow-sm">
             <CardHeader className="flex flex-row flex-wrap items-end justify-between gap-3">
               <div>
-                <CardTitle className="text-base">Đề thi gần đây</CardTitle>
-                <CardDescription className="mt-1">Các đề bạn tạo, sắp xếp theo thời gian gần nhất</CardDescription>
+                <CardTitle className="text-base font-semibold">Đề thi gần đây</CardTitle>
+                <CardDescription className="mt-1">
+                  Các đề bạn tạo, sắp xếp theo thời gian gần nhất
+                </CardDescription>
               </div>
               <Badge variant="outline" className="gap-1.5">
-                <ArrowDownRight aria-hidden="true" className="size-3.5" /> {data.pendingGradingCount.toLocaleString('vi-VN')} chờ chấm
+                <ArrowDownRight aria-hidden="true" className="size-3.5" />
+                {data.pendingGradingCount.toLocaleString('vi-VN')} chờ chấm
               </Badge>
             </CardHeader>
             <CardContent className="px-0 pb-0">
@@ -313,7 +540,7 @@ export default async function TeacherDashboardPage() {
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-muted/40 hover:bg-muted/40">
+                      <TableRow className="bg-slate-50 hover:bg-slate-50">
                         <TableHead className="min-w-[220px] pl-5">Tên đề</TableHead>
                         <TableHead>Môn học</TableHead>
                         <TableHead className="text-center">Câu hỏi</TableHead>
@@ -326,18 +553,32 @@ export default async function TeacherDashboardPage() {
                       {data.exams.map((exam) => {
                         const status = getExamStatus(exam.status);
                         return (
-                          <TableRow key={exam.id} className="transition-colors hover:bg-muted/30">
+                          <TableRow key={exam.id} className="transition-colors hover:bg-slate-50/70">
                             <TableCell className="max-w-[300px] pl-5">
-                              <span className="block truncate font-medium">{exam.title}</span>
-                              <span className="mt-1 block text-xs text-muted-foreground">{exam.duration_minutes} phút</span>
+                              <span className="block truncate font-medium text-slate-800">
+                                {exam.title}
+                              </span>
+                              <span className="mt-0.5 block text-xs text-slate-400">
+                                {exam.duration_minutes} phút
+                              </span>
                             </TableCell>
-                            <TableCell className="text-muted-foreground">{getSubjectName(exam.subject) ?? '—'}</TableCell>
-                            <TableCell className="text-center tabular-nums">{exam.exam_questions?.length ?? 0}</TableCell>
-                            <TableCell className="text-center tabular-nums">{exam.exam_classes?.length ?? 0}</TableCell>
+                            <TableCell className="text-slate-500">
+                              {getSubjectName(exam.subject) ?? '—'}
+                            </TableCell>
+                            <TableCell className="text-center tabular-nums">
+                              {exam.exam_questions?.length ?? 0}
+                            </TableCell>
+                            <TableCell className="text-center tabular-nums">
+                              {exam.exam_classes?.length ?? 0}
+                            </TableCell>
                             <TableCell>
-                              <Badge variant="outline" className={status.className}>{status.label}</Badge>
+                              <Badge variant="outline" className={status.className}>
+                                {status.label}
+                              </Badge>
                             </TableCell>
-                            <TableCell className="pr-5 text-right text-muted-foreground">{formatDate(exam.created_at)}</TableCell>
+                            <TableCell className="pr-5 text-right text-slate-400">
+                              {formatDate(exam.created_at)}
+                            </TableCell>
                           </TableRow>
                         );
                       })}
@@ -348,9 +589,10 @@ export default async function TeacherDashboardPage() {
             </CardContent>
           </Card>
 
-          <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e0e8e1] py-4 text-xs text-muted-foreground">
+          {/* ── Footer ── */}
+          <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 py-4 text-xs text-slate-400">
             <span>Mầm Học · Hệ thống quản lý đào tạo</span>
-            <Link href="/chat" className="inline-flex items-center gap-1.5 transition hover:text-foreground">
+            <Link href="/chat" className="inline-flex items-center gap-1.5 transition hover:text-slate-700">
               <Sparkles aria-hidden="true" className="size-3.5" /> Mở gia sư AI
             </Link>
           </footer>
