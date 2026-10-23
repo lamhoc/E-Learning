@@ -1,7 +1,13 @@
 import { ReactNode } from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { ShieldCheck, BookOpen, LogOut } from 'lucide-react';
+import {
+  BookOpen,
+  GraduationCap,
+  LogOut,
+  ShieldCheck,
+  Users,
+} from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { signOut } from '@/app/subjects/actions';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -57,13 +63,28 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Admin Navigation Hub */}
+          <nav className="flex items-center gap-1.5 sm:gap-2">
+            <Link
+              href="/admin/teacher-access"
+              className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+            >
+              <GraduationCap className="size-4 text-emerald-800" />
+              <span className="hidden md:inline">Giảng viên & Phân môn</span>
+            </Link>
+            <Link
+              href="/admin/student-management"
+              className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+            >
+              <Users className="size-4 text-blue-700" />
+              <span className="hidden md:inline">Tài khoản Sinh viên</span>
+            </Link>
             <Link
               href="/subjects"
               className={buttonVariants({ variant: 'ghost', size: 'sm' })}
             >
-              <BookOpen className="size-4" />
-              <span className="hidden sm:inline">Xem Môn học</span>
+              <BookOpen className="size-4 text-slate-600" />
+              <span className="hidden lg:inline">Môn học</span>
             </Link>
             <form action={signOut}>
               <Button
@@ -76,7 +97,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
                 <span className="hidden sm:inline">Đăng xuất</span>
               </Button>
             </form>
-          </div>
+          </nav>
         </div>
       </header>
 
