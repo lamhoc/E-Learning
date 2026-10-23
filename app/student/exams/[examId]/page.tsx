@@ -21,6 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getStudentExamPageData } from '@/lib/student-exam';
 import { ExamTakingClient } from '@/components/student/exam-taking-client';
 import { StartExamButton } from '@/components/student/start-exam-button';
+import { ExamTutorDrawer } from '@/components/student/exam-tutor-drawer';
 
 type StudentExamPageProps = {
   params: Promise<{
@@ -135,6 +136,36 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
           </div>
         </section>
 
+        {/* If Latest Attempt Result is Released: AI Tutor Callout */}
+        {latestAttempt?.released_at && (
+          <section className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-violet-200 bg-linear-to-r from-violet-50/90 via-purple-50/50 to-emerald-50/40 p-5 sm:p-6 shadow-xs">
+            <div className="flex items-start gap-3.5">
+              <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-violet-700 text-white shadow-xs">
+                <Sparkles className="size-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm sm:text-base font-bold text-slate-900">
+                    Gia sư AI Chữa đề — Lượt #{latestAttempt.attempt_no}
+                  </h2>
+                  <Badge className="border-violet-200 bg-violet-100 text-violet-800 text-[10px]">
+                    Groq AI
+                  </Badge>
+                </div>
+                <p className="mt-1 text-xs text-slate-600 max-w-xl leading-relaxed">
+                  Gia sư AI sẽ phân tích các câu bạn làm sai, hướng dẫn phương pháp giải từng bước kèm công thức Toán học chuẩn xác.
+                </p>
+              </div>
+            </div>
+            <ExamTutorDrawer
+              attemptId={latestAttempt.id}
+              examTitle={exam.title}
+              attemptNo={latestAttempt.attempt_no}
+              variant="banner"
+            />
+          </section>
+        )}
+
         {/* If Student Already Has Previous Attempts */}
         {attempts.length > 0 && (
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
@@ -157,6 +188,7 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
                     <th className="py-2.5 font-semibold">Nộp bài</th>
                     <th className="py-2.5 font-semibold">Trạng thái</th>
                     <th className="py-2.5 text-right font-semibold">Điểm số</th>
+                    <th className="py-2.5 text-right font-semibold">Gia sư AI</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -203,6 +235,17 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
                           </span>
                         ) : (
                           <span className="text-slate-400">Chờ duyệt</span>
+                        )}
+                      </td>
+                      <td className="py-3 text-right">
+                        {att.released_at ? (
+                          <ExamTutorDrawer
+                            attemptId={att.id}
+                            examTitle={exam.title}
+                            attemptNo={att.attempt_no}
+                          />
+                        ) : (
+                          <span className="text-slate-300">—</span>
                         )}
                       </td>
                     </tr>
