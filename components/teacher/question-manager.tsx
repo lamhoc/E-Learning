@@ -4,7 +4,10 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   BookOpen,
+  Check,
   CheckCircle2,
+  Copy,
+  Eye,
   FileQuestion,
   Filter,
   LibraryBig,
@@ -26,6 +29,7 @@ import { Input } from '@/components/ui/input';
 import { MathText } from '@/components/ui/math-text';
 import { QuestionModal } from './question-modal';
 import { AIGeneratorModal } from './ai-generator-modal';
+import { ExamPreviewModal } from './exam-preview-modal';
 import { deleteQuestion } from '@/app/teacher/questions/actions';
 import type { BankQuestion, SubjectSummary } from '@/lib/question-bank';
 
@@ -45,11 +49,16 @@ export function QuestionManager({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<'all' | 'multiple_choice' | 'essay'>('all');
+  const [filterExplanation, setFilterExplanation] = useState<'all' | 'with' | 'without'>('all');
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [questionToEdit, setQuestionToEdit] = useState<BankQuestion | null>(null);
+
+  // Copy State
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Deletion State
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -63,6 +72,13 @@ export function QuestionManager({
     }
     // Type filter
     if (selectedType !== 'all' && q.question_type !== selectedType) {
+      return false;
+    }
+    // Explanation filter
+    if (filterExplanation === 'with' && !q.explanation?.trim()) {
+      return false;
+    }
+    if (filterExplanation === 'without' && q.explanation?.trim()) {
       return false;
     }
     // Search query filter
@@ -92,6 +108,26 @@ export function QuestionManager({
   const handleOpenEdit = (q: BankQuestion) => {
     setQuestionToEdit(q);
     setIsModalOpen(true);
+  };
+
+  const handleCopyQuestion = (q: BankQuestion) => {
+    let text = `[Câu hỏi]: ${q.question_text}\n`;
+    if (q.question_type === 'multiple_choice' && q.options) {
+      q.options.forEach((opt) => {
+        text += `${opt.option_key}. ${opt.option_text}\n`;
+      });
+      if (q.answer_key?.correct_option_key) {
+        text += `=> Đáp án đúng: ${q.answer_key.correct_option_key}\n`;
+      }
+    } else if (q.answer_key?.model_answer) {
+      text += `=> Đáp án mẫu: ${q.answer_key.model_answer}\n`;
+    }
+    if (q.explanation) {
+      text += `[Giải thích]: ${q.explanation}\n`;
+    }
+    navigator.clipboard.writeText(text);
+    setCopiedId(q.id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   const handleDelete = async (questionId: string) => {
@@ -225,6 +261,18 @@ export function QuestionManager({
                 ))}
               </select>
 
+              {/* Explanation Filter */}
+              <select
+                value={filterExplanation}
+                onChange={(e) => setFilterExplanation(e.target.value as 'all' | 'with' | 'without')}
+                aria-label="Lọc theo lời giải"
+                className="h-9 rounded-md border border-input bg-background px-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="all">Mọi lời giải</option>
+                <option value="with">Đã có lời giải chi tiết</option>
+                <option value="without">Chưa có lời giải</option>
+              </select>
+
               {/* Type Filter */}
               <div className="flex rounded-md border border-input bg-muted/30 p-0.5">
                 <button
@@ -262,6 +310,17 @@ export function QuestionManager({
                 </button>
               </div>
 
+              {/* Exam Preview Button */}
+              <Button
+                onClick={() => setIsPreviewOpen(true)}
+                variant="outline"
+                className="gap-1.5 border-slate-300 text-slate-700 hover:bg-slate-100"
+                title="Xem đề thi tổng hợp từ danh sách câu hỏi đã lọc"
+              >
+                <Eye className="size-4 text-slate-600" />
+                Xem trước đề ({filteredQuestions.length})
+              </Button>
+
               {/* AI Question Generator Button */}
               <Button
                 onClick={() => setIsAIModalOpen(true)}
@@ -291,13 +350,14 @@ export function QuestionManager({
           <p className="text-xs font-medium text-muted-foreground">
             Hiển thị <span className="font-semibold text-foreground">{filteredQuestions.length}</span> / {totalCount} câu hỏi
           </p>
-          {(searchQuery || selectedSubject !== 'all' || selectedType !== 'all') && (
+          {(searchQuery || selectedSubject !== 'all' || selectedType !== 'all' || filterExplanation !== 'all') && (
             <button
               type="button"
               onClick={() => {
                 setSearchQuery('');
                 setSelectedSubject('all');
                 setSelectedType('all');
+                setFilterExplanation('all');
               }}
               className="text-xs text-primary hover:underline"
             >
@@ -373,6 +433,25 @@ export function QuestionManager({
                   </div>
 
                   <div className="flex items-center gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleCopyQuestion(q)}
+                      className="h-8 gap-1 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+                      title="Sao chép nội dung câu hỏi và đáp án"
+                    >
+                      {copiedId === q.id ? (
+                        <>
+                          <Check className="size-3.5 text-emerald-600" />
+                          <span className="text-emerald-600">Đã chép</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="size-3.5" />
+                          Chép
+                        </>
+                      )}
+                    </Button>
                     <Button
                       size="sm"
                       variant="ghost"
@@ -522,6 +601,20 @@ export function QuestionManager({
               router.refresh();
             });
           }}
+        />
+      )}
+
+      {/* Modal for Exam Preview */}
+      {isPreviewOpen && (
+        <ExamPreviewModal
+          isOpen={isPreviewOpen}
+          onClose={() => setIsPreviewOpen(false)}
+          questions={filteredQuestions}
+          subjectName={
+            selectedSubject === 'all'
+              ? 'Tất cả môn phụ trách'
+              : subjects.find((s) => s.id === selectedSubject)?.name
+          }
         />
       )}
     </div>

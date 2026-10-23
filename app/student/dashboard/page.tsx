@@ -176,14 +176,13 @@ function ExamCard({ exam }: { exam: StudentExam }) {
         </span>
         <span>Tối đa {exam.max_attempts} lượt</span>
       </div>
-      <button
-        type="button"
-        disabled
-        className="mt-4 w-full cursor-not-allowed rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-400"
-        title="Tính năng làm bài sẽ sớm được mở"
+      <Link
+        href={`/student/exams/${exam.id}`}
+        className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#17372e] px-3 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-[#20493e]"
       >
-        Tính năng làm bài sắp ra mắt
-      </button>
+        <span>Vào làm bài</span>
+        <ArrowRight className="size-4" />
+      </Link>
     </article>
   );
 }
@@ -485,9 +484,12 @@ export default async function StudentDashboardPage() {
                           return (
                             <TableRow key={attempt.id}>
                               <TableCell className="min-w-48">
-                                <span className="block font-medium text-slate-800">
+                                <Link
+                                  href={`/student/exams/${attempt.exam_id}`}
+                                  className="block font-medium text-slate-800 transition hover:text-emerald-700 hover:underline"
+                                >
                                   {exam?.title || 'Đề thi'}
-                                </span>
+                                </Link>
                                 <span className="mt-0.5 block text-xs text-slate-400">
                                   Lượt {attempt.attempt_no}
                                 </span>
