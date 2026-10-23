@@ -3,6 +3,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 
 export type InvitationState = {
@@ -13,15 +14,18 @@ export type InvitationState = {
 
 function getInvitationSiteUrl() {
   const configuredUrl = process.env.SITE_URL?.trim();
-  const candidateUrl = configuredUrl
-    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')
-    || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000');
+  const candidateUrl =
+    configuredUrl ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '') ||
+    (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000');
   if (!candidateUrl) return null;
 
   try {
     const url = new URL(candidateUrl);
     const isLocalHost = ['localhost', '127.0.0.1', '::1'].includes(url.hostname);
-    if (process.env.NODE_ENV === 'production' && (url.protocol !== 'https:' || isLocalHost)) return null;
+    if (process.env.NODE_ENV === 'production' && (url.protocol !== 'https:' || isLocalHost)) {
+      return null;
+    }
     if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
     return url.origin;
   } catch {
@@ -31,20 +35,234 @@ function getInvitationSiteUrl() {
 
 async function getAdminClient() {
   const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) return { error: 'Vui lòng đăng nhập lại.', supabase: null };
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) return { error: 'Vui lòng đăng nhập lại.', supabase: null, user: null };
 
+  const isMetadataAdmin = user.app_metadata?.role === 'admin';
   const { data: roleRecord, error: roleError } = await supabase
     .from('user_roles')
     .select('role')
     .eq('user_id', user.id)
     .maybeSingle();
-  if (roleError || roleRecord?.role !== 'admin') {
-    return { error: 'Chỉ admin mới được quản lý quyền giảng viên.', supabase: null };
+
+  const isDbAdmin = !roleError && roleRecord?.role === 'admin';
+
+  if (!isMetadataAdmin && !isDbAdmin) {
+    return { error: 'Chỉ admin mới được quản lý quyền giảng viên.', supabase: null, user: null };
   }
 
   return { error: null, supabase, user };
 }
+
+/**
+ * Phê duyệt đơn xin cấp quyền giáo viên
+ * Sử dụng Supabase Admin Client để cập nhật app_metadata & user_metadata role = 'teacher'
+ */
+export async function approveTeacher(userId: string) {
+  if (!/^[0-9a-f-]{36}$/i.test(userId)) {
+    return { success: false, error: 'User ID không hợp lệ.' };
+  }
+
+  const { error: adminError, user } = await getAdminClient();
+  if (adminError || !user) {
+    return { success: false, error: adminError || 'Không có quyền admin.' };
+  }
+
+  try {
+    const adminClient = createAdminClient();
+
+    // 1. Cập nhật role trong Auth Metadata thông qua Supabase Service Role
+    const { error: authUpdateError } = await adminClient.auth.admin.updateUserById(userId, {
+      app_metadata: { role: 'teacher' },
+      user_metadata: { role: 'teacher' },
+    });
+
+    if (authUpdateError) {
+      console.error('Không thể cập nhật auth metadata giáo viên:', authUpdateError);
+      return { success: false, error: 'Lỗi cập nhật metadata tài khoản Auth.' };
+    }
+
+    // 2. Đồng bộ bảng user_roles
+    const { error: roleError } = await adminClient
+      .from('user_roles')
+      .upsert({ user_id: userId, role: 'teacher' }, { onConflict: 'user_id' });
+
+    if (roleError) {
+      console.error('Không thể cập nhật bảng user_roles:', roleError);
+    }
+
+    // 3. Cập nhật bảng teacher_applications
+    const { error: appError } = await adminClient
+      .from('teacher_applications')
+      .update({
+        status: 'approved',
+        reviewed_by: user.id,
+        reviewed_at: new Date().toISOString(),
+        review_note: 'Phê duyệt bởi Quản trị viên',
+      })
+      .eq('user_id', userId);
+
+    if (appError) {
+      console.error('Không thể cập nhật teacher_applications:', appError);
+    }
+
+    // 4. Gửi thông báo đến giáo viên
+    await adminClient.from('notifications').insert({
+      user_id: userId,
+      title: 'Tài khoản Giáo viên đã được phê duyệt',
+      message: 'Hồ sơ xin cấp quyền giáo viên của bạn đã được phê duyệt thành công. Bạn đã có quyền tạo đề thi, quản lý lớp và chấm bài.',
+    });
+
+    revalidatePath('/admin/teacher-access');
+    revalidatePath('/teacher/dashboard');
+    revalidatePath('/subjects');
+    return { success: true };
+  } catch (err) {
+    console.error('Lỗi khi phê duyệt giáo viên:', err);
+    return { success: false, error: 'Đã xảy ra lỗi hệ thống khi duyệt giáo viên.' };
+  }
+}
+
+/**
+ * Từ chối đơn xin cấp quyền giáo viên
+ */
+export async function rejectTeacher(userId: string, note?: string) {
+  if (!/^[0-9a-f-]{36}$/i.test(userId)) {
+    return { success: false, error: 'User ID không hợp lệ.' };
+  }
+
+  const { error: adminError, user } = await getAdminClient();
+  if (adminError || !user) {
+    return { success: false, error: adminError || 'Không có quyền admin.' };
+  }
+
+  try {
+    const adminClient = createAdminClient();
+
+    const { error: appError } = await adminClient
+      .from('teacher_applications')
+      .update({
+        status: 'rejected',
+        reviewed_by: user.id,
+        reviewed_at: new Date().toISOString(),
+        review_note: note?.trim().slice(0, 500) || 'Từ chối bởi Quản trị viên',
+      })
+      .eq('user_id', userId);
+
+    if (appError) {
+      console.error('Không thể từ chối teacher_applications:', appError);
+      return { success: false, error: 'Không thể cập nhật trạng thái đơn đăng ký.' };
+    }
+
+    await adminClient.from('notifications').insert({
+      user_id: userId,
+      title: 'Hồ sơ Giáo viên không được chấp thuận',
+      message: note?.trim()
+        ? `Đơn xin cấp quyền giáo viên của bạn không được phê duyệt: ${note.trim()}`
+        : 'Đơn xin cấp quyền giáo viên của bạn chưa được phê duyệt. Vui lòng liên hệ ban quản trị để biết thêm chi tiết.',
+    });
+
+    revalidatePath('/admin/teacher-access');
+    return { success: true };
+  } catch (err) {
+    console.error('Lỗi khi từ chối giáo viên:', err);
+    return { success: false, error: 'Đã xảy ra lỗi hệ thống khi từ chối hồ sơ.' };
+  }
+}
+
+/**
+ * Phân công môn học cho giáo viên
+ */
+export async function assignSubject(teacherId: string, subjectId: string) {
+  if (!/^[0-9a-f-]{36}$/i.test(teacherId) || !/^[0-9a-f-]{36}$/i.test(subjectId)) {
+    return { success: false, error: 'Thông tin phân công không hợp lệ.' };
+  }
+
+  const { error: adminError, user } = await getAdminClient();
+  if (adminError || !user) {
+    return { success: false, error: adminError || 'Không có quyền admin.' };
+  }
+
+  try {
+    const adminClient = createAdminClient();
+
+    // Xác nhận giáo viên có role teacher
+    const { data: roleData } = await adminClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', teacherId)
+      .maybeSingle();
+
+    if (roleData?.role !== 'teacher') {
+      return { success: false, error: 'Tài khoản chưa được cấp quyền giáo viên.' };
+    }
+
+    const { error } = await adminClient.from('teacher_subject_assignments').upsert(
+      {
+        teacher_id: teacherId,
+        subject_id: subjectId,
+        assigned_by: user.id,
+      },
+      { onConflict: 'teacher_id,subject_id', ignoreDuplicates: true },
+    );
+
+    if (error) {
+      console.error('Could not assign subject to teacher:', error);
+      return { success: false, error: 'Không thể lưu phân công môn học.' };
+    }
+
+    revalidatePath('/admin/teacher-access');
+    revalidatePath('/teacher/dashboard');
+    revalidatePath('/subjects');
+    return { success: true };
+  } catch (err) {
+    console.error('Lỗi khi phân công môn học:', err);
+    return { success: false, error: 'Đã xảy ra lỗi khi phân công môn.' };
+  }
+}
+
+/**
+ * Hủy phân công môn học của giáo viên
+ */
+export async function unassignSubject(teacherId: string, subjectId: string) {
+  if (!/^[0-9a-f-]{36}$/i.test(teacherId) || !/^[0-9a-f-]{36}$/i.test(subjectId)) {
+    return { success: false, error: 'Thông tin phân công không hợp lệ.' };
+  }
+
+  const { error: adminError } = await getAdminClient();
+  if (adminError) {
+    return { success: false, error: adminError };
+  }
+
+  try {
+    const adminClient = createAdminClient();
+    const { error } = await adminClient
+      .from('teacher_subject_assignments')
+      .delete()
+      .eq('teacher_id', teacherId)
+      .eq('subject_id', subjectId);
+
+    if (error) {
+      console.error('Could not remove teacher subject assignment:', error);
+      return { success: false, error: 'Không thể gỡ phân công môn học.' };
+    }
+
+    revalidatePath('/admin/teacher-access');
+    revalidatePath('/teacher/dashboard');
+    revalidatePath('/subjects');
+    return { success: true };
+  } catch (err) {
+    console.error('Lỗi khi gỡ phân công môn học:', err);
+    return { success: false, error: 'Đã xảy ra lỗi khi gỡ phân công môn.' };
+  }
+}
+
+/* ========================================================================= */
+/* FOR COMPATIBILITY WITH EXISTING HTML FORMS / REDIRECTS                     */
+/* ========================================================================= */
 
 export async function createSubject(formData: FormData) {
   const code = String(formData.get('code') ?? '').trim().toUpperCase();
@@ -76,52 +294,22 @@ export async function createSubject(formData: FormData) {
 export async function assignTeacherSubject(formData: FormData) {
   const teacherId = String(formData.get('teacherId') ?? '');
   const subjectId = String(formData.get('subjectId') ?? '');
-  if (!/^[0-9a-f-]{36}$/i.test(teacherId) || !/^[0-9a-f-]{36}$/i.test(subjectId)) {
-    redirect('/admin/teacher-access?error=assignment-invalid');
-  }
 
-  const { error: adminError, supabase, user } = await getAdminClient();
-  if (adminError || !supabase || !user) redirect('/admin/teacher-access?error=unauthorized');
-
-  const { error } = await supabase.from('teacher_subject_assignments').upsert({
-    teacher_id: teacherId,
-    subject_id: subjectId,
-    assigned_by: user.id,
-  }, { onConflict: 'teacher_id,subject_id', ignoreDuplicates: true });
-  if (error) {
-    console.error('Could not assign subject to teacher:', error.code, error.message);
+  const result = await assignSubject(teacherId, subjectId);
+  if (!result.success) {
     redirect('/admin/teacher-access?error=assignment-save');
   }
-
-  revalidatePath('/admin/teacher-access');
-  revalidatePath('/teacher/dashboard');
-  revalidatePath('/subjects');
   redirect('/admin/teacher-access?success=assignment-saved');
 }
 
 export async function removeTeacherSubject(formData: FormData) {
   const teacherId = String(formData.get('teacherId') ?? '');
   const subjectId = String(formData.get('subjectId') ?? '');
-  if (!/^[0-9a-f-]{36}$/i.test(teacherId) || !/^[0-9a-f-]{36}$/i.test(subjectId)) {
-    redirect('/admin/teacher-access?error=assignment-invalid');
-  }
 
-  const { error: adminError, supabase } = await getAdminClient();
-  if (adminError || !supabase) redirect('/admin/teacher-access?error=unauthorized');
-
-  const { error } = await supabase
-    .from('teacher_subject_assignments')
-    .delete()
-    .eq('teacher_id', teacherId)
-    .eq('subject_id', subjectId);
-  if (error) {
-    console.error('Could not remove teacher subject assignment:', error.code, error.message);
+  const result = await unassignSubject(teacherId, subjectId);
+  if (!result.success) {
     redirect('/admin/teacher-access?error=assignment-remove');
   }
-
-  revalidatePath('/admin/teacher-access');
-  revalidatePath('/teacher/dashboard');
-  revalidatePath('/subjects');
   redirect('/admin/teacher-access?success=assignment-removed');
 }
 
@@ -215,25 +403,22 @@ export async function reviewTeacherApplication(formData: FormData) {
   const decision = String(formData.get('decision') ?? '');
   const approve = decision === 'approve';
   const note = String(formData.get('note') ?? '').trim().slice(0, 500);
+
   if (!/^[0-9a-f-]{36}$/i.test(userId) || !['approve', 'reject'].includes(decision)) {
     redirect('/admin/teacher-access?error=invalid');
   }
 
-  const { error: adminError, supabase } = await getAdminClient();
-  if (adminError || !supabase) redirect('/admin/teacher-access?error=unauthorized');
-
-  const { error } = await supabase.rpc('review_teacher_application', {
-    p_user_id: userId,
-    p_approve: approve,
-    p_note: note || null,
-  });
-  if (error) {
-    console.error('Could not review teacher application:', error.message);
-    redirect('/admin/teacher-access?error=review');
+  if (approve) {
+    const result = await approveTeacher(userId);
+    if (!result.success) {
+      redirect('/admin/teacher-access?error=review');
+    }
+  } else {
+    const result = await rejectTeacher(userId, note);
+    if (!result.success) {
+      redirect('/admin/teacher-access?error=review');
+    }
   }
 
-  revalidatePath('/admin/teacher-access');
-  revalidatePath('/register/teacher/pending');
-  revalidatePath('/subjects');
   redirect(`/admin/teacher-access?success=${approve ? 'approved' : 'rejected'}`);
 }
