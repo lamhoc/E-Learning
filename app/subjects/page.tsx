@@ -25,7 +25,7 @@ export default async function SubjectsPage() {
   if (authError || !user) redirect('/login');
 
   const [{ data: profile }, { data: roleRecord, error: roleError }] = await Promise.all([
-    supabase.from('profiles').select('full_name, student_code').eq('id', user.id).maybeSingle(),
+    supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
     supabase.from('user_roles').select('role').eq('user_id', user.id).maybeSingle(),
   ]);
 
@@ -52,6 +52,7 @@ export default async function SubjectsPage() {
       .eq('user_id', user.id)
       .maybeSingle();
     if (application) redirect('/register/teacher/pending');
+    redirect('/student/dashboard');
   }
 
   let subjectIds: string[] | null = null;
@@ -65,29 +66,6 @@ export default async function SubjectsPage() {
 
     if (error) lookupError = error.message;
     subjectIds = [...new Set((data ?? []).map((row) => row.subject_id as string))];
-  } else if (role === 'student') {
-    const { data: memberships, error: membershipError } = await supabase
-      .from('class_memberships')
-      .select('class_id')
-      .eq('student_id', user.id);
-
-    if (membershipError) {
-      lookupError = membershipError.message;
-    } else {
-      const classIds = [...new Set((memberships ?? []).map((row) => row.class_id as string))];
-      if (classIds.length > 0) {
-        const { data, error } = await supabase
-          .from('classes')
-          .select('subject_id')
-          .in('id', classIds)
-          .is('archived_at', null);
-
-        if (error) lookupError = error.message;
-        subjectIds = [...new Set((data ?? []).map((row) => row.subject_id as string))];
-      } else {
-        subjectIds = [];
-      }
-    }
   }
 
   let subjects: Subject[] = [];
@@ -148,11 +126,6 @@ export default async function SubjectsPage() {
           <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-sm text-[#68776e]">Xin chào, {profile?.full_name ?? user.email}</p>
-              {role === 'student' && profile?.student_code && (
-                <p className="mt-1 text-xs font-medium text-[#5d766a]">
-                  Mã sinh viên: <span className="font-mono">{profile.student_code}</span>
-                </p>
-              )}
               <h2 className="mt-1 text-xl font-semibold">Môn học của bạn</h2>
             </div>
             <p className="text-sm text-[#68776e]">{subjects.length} môn học</p>
@@ -168,9 +141,7 @@ export default async function SubjectsPage() {
               <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-[#68776e]">
                 {role === 'admin'
                   ? 'Thêm môn học thật trong bảng subjects trên Supabase.'
-                  : role === 'teacher'
-                    ? 'Quản trị viên cần phân công môn học cho bạn trước khi môn xuất hiện tại đây.'
-                    : 'Tài khoản này cần được ghi danh vào một lớp có môn học.'}
+                  : 'Quản trị viên cần phân công môn học cho bạn trước khi môn xuất hiện tại đây.'}
               </p>
             </div>
           ) : (

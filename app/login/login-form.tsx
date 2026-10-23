@@ -96,7 +96,13 @@ export function LoginForm() {
       ? await supabase.from('user_roles').select('role').eq('user_id', user.id).maybeSingle()
       : { data: null };
 
-    router.replace(roleRecord?.role === 'teacher' ? '/teacher/dashboard' : '/subjects');
+    router.replace(
+      roleRecord?.role === 'teacher'
+        ? '/teacher/dashboard'
+        : roleRecord?.role === 'student'
+          ? '/student/dashboard'
+          : '/subjects',
+    );
     router.refresh();
   }
 
