@@ -181,7 +181,7 @@ const QUICK_ACTIONS = [
     icon: FileText,
     label: 'Tạo đề thi',
     desc: 'Từ ngân hàng câu hỏi',
-    href: '/teacher/questions',
+    href: '/teacher/exams/create',
     color: 'bg-rose-50 text-rose-700 hover:bg-rose-100 border-rose-100',
     iconBg: 'bg-rose-600 text-white',
   },
