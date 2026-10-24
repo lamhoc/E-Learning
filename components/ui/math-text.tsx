@@ -59,78 +59,85 @@ function parseSegments(text: string): Segment[] {
   return segments;
 }
 
-export function MathText({
-  content,
-  className = '',
-  as: Component = 'div',
-}: MathTextProps) {
-  const segments = useMemo(() => {
-    if (!content) return [];
-    return parseSegments(content);
-  }, [content]);
+// Bọc React.memo để loại bỏ hoàn toàn việc re-parse và render KaTeX nặng nề khi parent re-render
+export const MathText = React.memo(
+  function MathText({
+    content,
+    className = '',
+    as: Component = 'div',
+  }: MathTextProps) {
+    const segments = useMemo(() => {
+      if (!content) return [];
+      return parseSegments(content);
+    }, [content]);
 
-  if (!content) return null;
+    if (!content) return null;
 
-  return (
-    <Component className={className}>
-      {segments.map((segment, index) => {
-        if (segment.type === 'block-math') {
-          try {
-            const html = katex.renderToString(segment.value, {
-              displayMode: true,
-              throwOnError: false,
-            });
-            return (
-              <span
-                key={index}
-                className="my-2 block overflow-x-auto text-center"
-                dangerouslySetInnerHTML={{ __html: html }}
-              />
-            );
-          } catch {
-            return (
-              <span key={index} className="text-destructive font-mono text-xs">
-                $${segment.value}$$
-              </span>
-            );
+    return (
+      <Component className={className}>
+        {segments.map((segment, index) => {
+          if (segment.type === 'block-math') {
+            try {
+              const html = katex.renderToString(segment.value, {
+                displayMode: true,
+                throwOnError: false,
+              });
+              return (
+                <span
+                  key={index}
+                  className="my-2 block overflow-x-auto text-center"
+                  dangerouslySetInnerHTML={{ __html: html }}
+                />
+              );
+            } catch {
+              return (
+                <span key={index} className="text-destructive font-mono text-xs">
+                  $${segment.value}$$
+                </span>
+              );
+            }
           }
-        }
 
-        if (segment.type === 'inline-math') {
-          try {
-            const html = katex.renderToString(segment.value, {
-              displayMode: false,
-              throwOnError: false,
-            });
-            return (
-              <span
-                key={index}
-                className="inline-block px-0.5 align-middle"
-                dangerouslySetInnerHTML={{ __html: html }}
-              />
-            );
-          } catch {
-            return (
-              <span key={index} className="text-destructive font-mono text-xs">
-                ${segment.value}$
-              </span>
-            );
+          if (segment.type === 'inline-math') {
+            try {
+              const html = katex.renderToString(segment.value, {
+                displayMode: false,
+                throwOnError: false,
+              });
+              return (
+                <span
+                  key={index}
+                  className="inline-block px-0.5 align-middle"
+                  dangerouslySetInnerHTML={{ __html: html }}
+                />
+              );
+            } catch {
+              return (
+                <span key={index} className="text-destructive font-mono text-xs">
+                  ${segment.value}$
+                </span>
+              );
+            }
           }
-        }
 
-        // Plain text: preserve line breaks
-        const lines = segment.value.split('\n');
-        return (
-          <React.Fragment key={index}>
-            {lines.map((line, lIdx) => (
-              <React.Fragment key={lIdx}>
-                {lIdx > 0 && <br />}
-                {line}
-              </React.Fragment>
-            ))}
-          </React.Fragment>
-        );
-      })}
-    </Component>
-  );
-}
+          // Plain text: preserve line breaks
+          const lines = segment.value.split('\n');
+          return (
+            <React.Fragment key={index}>
+              {lines.map((line, lIdx) => (
+                <React.Fragment key={lIdx}>
+                  {lIdx > 0 && <br />}
+                  {line}
+                </React.Fragment>
+              ))}
+            </React.Fragment>
+          );
+        })}
+      </Component>
+    );
+  },
+  (prev, next) =>
+    prev.content === next.content &&
+    prev.className === next.className &&
+    prev.as === next.as
+);

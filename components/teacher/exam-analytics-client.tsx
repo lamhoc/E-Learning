@@ -31,9 +31,23 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ExamScoreChart } from './exam-score-chart';
 import type { StudentExamResultItem, TeacherExamAnalyticsData } from '@/lib/teacher-exam-analytics';
+
+// Lazy loading biểu đồ Recharts nhằm loại bỏ tắc nghẽn main-thread bundle
+const ExamScoreChart = dynamic(
+  () => import('./exam-score-chart').then((mod) => mod.ExamScoreChart),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-72 w-full items-center justify-center rounded-xl bg-slate-50/50 p-6">
+        <Skeleton className="h-60 w-full rounded-xl" />
+      </div>
+    ),
+  }
+);
 
 function formatDate(value: string | null) {
   if (!value) return '—';

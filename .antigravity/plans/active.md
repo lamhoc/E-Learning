@@ -1,6 +1,6 @@
 # Kế hoạch triển khai E-Learning ("Mầm Học")
 
-> **Trạng thái:** Phase 20 hoàn thành - Đồng bộ cân xứng Metric Cards Teacher Dashboard, Sửa luồng Login Redirection về Admin Hub và Xây dựng trang `/admin/page.tsx`.
+> **Trạng thái:** Phase 21 hoàn thành - Tối ưu hóa hiệu năng toàn diện (Triệt tiêu N+1 query, Streaming Skeleton loading.tsx, Dynamic import Recharts và Memoize KaTeX).
 > **Cập nhật:** 2026-10-24
 
 ## Trạng thái đã hoàn thành & Lịch sử Commit (`main`)
@@ -106,6 +106,12 @@
     - Thẻ 2: "Quản lý Sinh viên" (Icon `Users` / `UserCheck`) dẫn về `/admin/student-management` kèm số lượng sinh viên hoạt động.
     - Hiệu ứng hover nổi bật (`hover:shadow-xl`, `hover:-translate-y-1`, `transition-all duration-300`).
     - Được bảo vệ nghiêm ngặt bởi `app/admin/layout.tsx`.
+  - Đã nghiệm thu thành công bằng `npx tsc --noEmit` (0 errors) và `npm run build` (pass 100%, 23/23 routes).
+- [x] **Phase 21 (Commit `241080d`)**: Tối ưu hóa hiệu năng toàn diện (Performance & UX Optimization)
+  - **Mục tiêu 1 (Triệt tiêu N+1 Query & Waterfall)**: Refactor `lib/teacher-dashboard.ts`, thay thế 7 query riêng lẻ lấy số lượng bài nộp 7 ngày bằng 1 query duy nhất gom nhóm in-memory, tiết kiệm 6 HTTP network roundtrips.
+  - **Mục tiêu 2 (Hệ thống Streaming & Suspense)**: Bổ sung 6 file `loading.tsx` chuẩn Skeleton Screen EdTech cho các route chính (`/student/dashboard`, `/teacher/grading`, `/teacher/grading/[attemptId]`, `/admin`, `/admin/student-management`, `/teacher/exams/[examId]`), xóa bỏ hoàn toàn cảm giác "đứng hình" khi click chuyển trang.
+  - **Mục tiêu 3 (Dynamic Imports Recharts)**: Dùng `next/dynamic` với Skeleton fallback cho `SubmissionChart` và `ExamScoreChart`, loại bỏ ~200KB JS khỏi initial bundle.
+  - **Mục tiêu 4 (Tối ưu KaTeX Math Rendering)**: Bọc `React.memo` cho `MathText` trong `components/ui/math-text.tsx` để tránh re-parse công thức toán khi re-render UI.
   - Đã nghiệm thu thành công bằng `npx tsc --noEmit` (0 errors) và `npm run build` (pass 100%, 23/23 routes).
 
 ---

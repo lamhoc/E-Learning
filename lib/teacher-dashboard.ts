@@ -137,7 +137,11 @@ export async function getTeacherDashboardData(): Promise<TeacherDashboardData> {
   const classIds = classes.map((item) => item.id);
   const examIds = (allExamIdsResult.data ?? []).map((item) => item.id);
 
-  const [membershipResult, submissionsResult, pendingResult, pendingListResult, dailyResults] = await Promise.all([
+  const sevenDaysList = getLastSevenDays();
+  const earliestStart = sevenDaysList[0].start;
+  const latestEnd = sevenDaysList[sevenDaysList.length - 1].end;
+
+  const [membershipResult, submissionsResult, pendingResult, pendingListResult, weeklySubmissionsResult] = await Promise.all([
     classIds.length
       ? supabase
           .from('class_memberships')
@@ -174,21 +178,16 @@ export async function getTeacherDashboardData(): Promise<TeacherDashboardData> {
           .order('submitted_at', { ascending: false })
           .limit(6)
       : Promise.resolve({ data: [], error: null }),
+    // Tối ưu hóa: Thay thế 7 query tuần tự bằng 1 query duy nhất trong khoảng 7 ngày qua
     examIds.length
-      ? Promise.all(
-          getLastSevenDays().map(async ({ start, end, day }) => {
-            const { count, error } = await supabase
-              .from('exam_attempts')
-              .select('id', { count: 'exact', head: true })
-              .in('exam_id', examIds)
-              .in('status', ['pending_grading', 'completed'])
-              .gte('submitted_at', start.toISOString())
-              .lt('submitted_at', end.toISOString());
-
-            return { day, submissions: count ?? 0, error };
-          }),
-        )
-      : Promise.resolve(getLastSevenDays().map(({ day }) => ({ day, submissions: 0, error: null }))),
+      ? supabase
+          .from('exam_attempts')
+          .select('submitted_at')
+          .in('exam_id', examIds)
+          .in('status', ['pending_grading', 'completed'])
+          .gte('submitted_at', earliestStart.toISOString())
+          .lt('submitted_at', latestEnd.toISOString())
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   const queryErrors = [
@@ -204,8 +203,21 @@ export async function getTeacherDashboardData(): Promise<TeacherDashboardData> {
     submissionsResult.error,
     pendingResult.error,
     pendingListResult.error,
-    ...dailyResults.map((item) => item.error),
+    weeklySubmissionsResult.error,
   ].filter(Boolean);
+
+  // Gom nhóm thống kê theo từng ngày in-memory siêu tốc O(N)
+  const submittedRows = (weeklySubmissionsResult.data ?? []) as { submitted_at: string | null }[];
+  const submissionsByDay: SubmissionPoint[] = sevenDaysList.map(({ start, end, day }) => {
+    const sTime = start.getTime();
+    const eTime = end.getTime();
+    const count = submittedRows.filter((r) => {
+      if (!r.submitted_at) return false;
+      const t = new Date(r.submitted_at).getTime();
+      return t >= sTime && t < eTime;
+    }).length;
+    return { day, submissions: count };
+  });
 
   const pendingAttempts: PendingGradingItem[] = ((pendingListResult.data ?? []) as any[]).map((row) => {
     const student = Array.isArray(row.student) ? row.student[0] : row.student;
@@ -236,7 +248,7 @@ export async function getTeacherDashboardData(): Promise<TeacherDashboardData> {
     submissionCount: submissionsResult.count ?? 0,
     pendingGradingCount: pendingResult.count ?? 0,
     pendingAttempts,
-    submissionsByDay: dailyResults.map(({ day, submissions }) => ({ day, submissions })),
+    submissionsByDay,
     errorMessage: queryErrors.length ? 'Một số dữ liệu chưa tải được. Hãy kiểm tra RLS và kết nối Supabase.' : null,
   };
 }

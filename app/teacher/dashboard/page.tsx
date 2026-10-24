@@ -38,11 +38,24 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
 import { getTeacherDashboardData, type TeacherExam } from '@/lib/teacher-dashboard';
-import { SubmissionChart } from '@/components/teacher/submission-chart';
 import { TeacherSidebar } from '@/components/teacher/teacher-sidebar';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { ClassForm } from './class-form';
+
+// Tối ưu UX & Bundle size: Trì hoãn tải thư viện nặng Recharts (~200KB) khỏi luồng chính
+const SubmissionChart = dynamic(
+  () => import('@/components/teacher/submission-chart').then((mod) => mod.SubmissionChart),
+  {
+    loading: () => (
+      <div className="flex h-[250px] w-full items-center justify-center rounded-xl bg-slate-50/60 p-4">
+        <Skeleton className="h-[210px] w-full rounded-xl" />
+      </div>
+    ),
+  }
+);
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
