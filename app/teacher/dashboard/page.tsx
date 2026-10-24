@@ -39,6 +39,7 @@ import {
 import { getTeacherDashboardData, type TeacherExam } from '@/lib/teacher-dashboard';
 import { SubmissionChart } from '@/components/teacher/submission-chart';
 import { TeacherSidebar } from '@/components/teacher/teacher-sidebar';
+import { NotificationBell } from '@/components/layout/notification-bell';
 import { ClassForm } from './class-form';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -254,6 +255,7 @@ export default async function TeacherDashboardPage() {
             </nav>
 
             <div className="ml-auto flex items-center gap-3">
+              <NotificationBell userId={data.teacherId} />
               {!data.errorMessage ? (
                 <Badge
                   variant="outline"

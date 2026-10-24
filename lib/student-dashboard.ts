@@ -44,6 +44,7 @@ export type StudentNotification = {
 };
 
 export type StudentDashboardData = {
+  studentId: string;
   studentName: string;
   studentCode: string | null;
   classes: StudentClass[];
@@ -151,6 +152,7 @@ export async function getStudentDashboardData(): Promise<StudentDashboardData> {
   ];
 
   return {
+    studentId: user.id,
     studentName: profileResult.data?.full_name || user.email || 'Sinh viên',
     studentCode: profileResult.data?.student_code ?? null,
     classes,

@@ -31,6 +31,7 @@ export type SubmissionPoint = {
 };
 
 export type TeacherDashboardData = {
+  teacherId: string;
   teacherName: string;
   classes: TeacherClass[];
   assignedSubjects: TeacherSubject[];
@@ -178,6 +179,7 @@ export async function getTeacherDashboardData(): Promise<TeacherDashboardData> {
   ].filter(Boolean);
 
   return {
+    teacherId: user.id,
     teacherName: profileResult.data?.full_name || user.email || 'Giảng viên',
     classes,
     assignedSubjects,

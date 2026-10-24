@@ -12,6 +12,7 @@ import {
   Trophy,
 } from 'lucide-react';
 import { StudentSidebar } from '@/components/student/student-sidebar';
+import { NotificationBell } from '@/components/layout/notification-bell';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import {
@@ -255,6 +256,10 @@ export default async function StudentDashboardPage() {
               </Link>
             </nav>
             <div className="ml-auto flex items-center gap-3">
+              <NotificationBell
+                userId={data.studentId}
+                initialNotifications={data.notifications}
+              />
               {!data.hasDataError ? (
                 <Badge
                   variant="outline"
