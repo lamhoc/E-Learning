@@ -96,13 +96,18 @@ export function LoginForm() {
       ? await supabase.from('user_roles').select('role').eq('user_id', user.id).maybeSingle()
       : { data: null };
 
-    router.replace(
-      roleRecord?.role === 'teacher'
-        ? '/teacher/dashboard'
-        : roleRecord?.role === 'student'
-          ? '/student/dashboard'
-          : '/subjects',
-    );
+    // Kiểm tra vai trò người dùng (ưu tiên metadata admin, sau đó bảng user_roles)
+    const userRole = (user?.app_metadata?.role as string) || roleRecord?.role;
+
+    if (userRole === 'admin') {
+      router.replace('/admin');
+    } else if (userRole === 'teacher') {
+      router.replace('/teacher/dashboard');
+    } else if (userRole === 'student') {
+      router.replace('/student/dashboard');
+    } else {
+      router.replace('/subjects');
+    }
     router.refresh();
   }
 

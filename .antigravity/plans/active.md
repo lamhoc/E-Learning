@@ -1,6 +1,6 @@
 # Kế hoạch triển khai E-Learning ("Mầm Học")
 
-> **Trạng thái:** Phase 19 hoàn thành - Chuyển đổi toàn diện cơ chế Chấm thi sang REST API Route Handler (`POST /api/teacher/grading/[attemptId]`), loại bỏ tận gốc Minified React Error #441 do Next.js RSC Flight re-rendering.
+> **Trạng thái:** Phase 20 hoàn thành - Đồng bộ cân xứng Metric Cards Teacher Dashboard, Sửa luồng Login Redirection về Admin Hub và Xây dựng trang `/admin/page.tsx`.
 > **Cập nhật:** 2026-10-24
 
 ## Trạng thái đã hoàn thành & Lịch sử Commit (`main`)
@@ -98,6 +98,15 @@
   - `app/teacher/grading/[attemptId]/actions.ts`: Tối giản thành wrapper thuần async function gọi `saveEssayGrades`, đảm bảo tương thích ngược.
   - `components/teacher/essay-grading-client.tsx`: Chuyển sang gọi `fetch('/api/teacher/grading/' + data.attemptId, { method: 'POST', body: JSON.stringify(...) })`, hiển thị toast xanh thành công tức thì, cập nhật điểm và huy hiệu "Đã công bố kết quả" mượt mà, hoàn toàn không còn bất kỳ thông báo lỗi #441 nào.
   - Đã kiểm chứng thành công bằng `npx tsc --noEmit` (0 errors) và `npm run build` (pass 100%).
+- [x] **Phase 20 (Commit `5d78d94`)**: Đồng bộ cân xứng Metric Cards Teacher Dashboard, Sửa luồng Login Redirection Admin & Xây dựng Admin Hub (`/admin`)
+  - **Mục tiêu 1 (Cân xứng giao diện Metric Cards)**: Trong `app/teacher/dashboard/page.tsx`, căn chỉnh 5 Metric Cards (`Lớp đang phụ trách`, `Lượt ghi danh`, `Câu hỏi trong kho`, `Đề đã phát hành`, `Bài chờ chấm`) có chiều cao bằng nhau 100% nhờ cấu trúc `h-full flex flex-col justify-between`, `items-stretch` và `min-h-[32px]` cho phần mô tả, loại bỏ hoàn toàn tình trạng ô thứ 5 bị lệch dài hơn các ô còn lại.
+  - **Mục tiêu 2 (Sửa điều hướng Đăng nhập)**: Trong `app/login/login-form.tsx` và `app/login/page.tsx`, kiểm tra role tài khoản (`user.app_metadata.role` kết hợp `user_roles`). Khi role là `admin`, chuyển hướng chuẩn xác về `/admin` thay vì rơi xuống `/subjects`.
+  - **Mục tiêu 3 (Xây dựng Admin Hub `/admin/page.tsx`)**: Tạo trang trung tâm bảng điều khiển Quản trị viên, gồm Hero banner hiện đại và Grid 2 Thẻ (Card) lớn chuẩn EdTech:
+    - Thẻ 1: "Quản lý Giảng viên" (Icon `GraduationCap` / `Users`) dẫn về `/admin/teacher-access` kèm badge đếm số hồ sơ chờ duyệt `pendingApplicationsCount`.
+    - Thẻ 2: "Quản lý Sinh viên" (Icon `Users` / `UserCheck`) dẫn về `/admin/student-management` kèm số lượng sinh viên hoạt động.
+    - Hiệu ứng hover nổi bật (`hover:shadow-xl`, `hover:-translate-y-1`, `transition-all duration-300`).
+    - Được bảo vệ nghiêm ngặt bởi `app/admin/layout.tsx`.
+  - Đã nghiệm thu thành công bằng `npx tsc --noEmit` (0 errors) và `npm run build` (pass 100%, 23/23 routes).
 
 ---
 

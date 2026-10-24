@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import {
   BookOpen,
   GraduationCap,
+  LayoutDashboard,
   LogOut,
   ShieldCheck,
   Users,
@@ -44,7 +45,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     <div className="min-h-screen bg-[#f3f6f3] text-foreground flex flex-col">
       <header className="sticky top-0 z-40 border-b border-[#dfe7e0] bg-white/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3.5 sm:px-8">
-          <div className="flex items-center gap-3">
+          {/* Logo & Brand Admin Link */}
+          <Link href="/admin" className="flex items-center gap-3 transition hover:opacity-90">
             <span className="grid size-10 place-items-center rounded-xl bg-[#17372e] text-[#c9ed99] shadow-xs">
               <ShieldCheck aria-hidden="true" className="size-5" />
             </span>
@@ -61,10 +63,17 @@ export default async function AdminLayout({ children }: { children: ReactNode })
                 Mầm Học Khảo Thí
               </h1>
             </div>
-          </div>
+          </Link>
 
           {/* Admin Navigation Hub */}
           <nav className="flex items-center gap-1.5 sm:gap-2">
+            <Link
+              href="/admin"
+              className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+            >
+              <LayoutDashboard className="size-4 text-[#17372e]" />
+              <span className="hidden sm:inline">Tổng quan</span>
+            </Link>
             <Link
               href="/admin/teacher-access"
               className={buttonVariants({ variant: 'ghost', size: 'sm' })}

@@ -100,20 +100,26 @@ function MetricCard({
   };
 
   return (
-    <Card className="group transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-      <CardContent className="flex min-h-[128px] items-start justify-between gap-4 p-5">
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-          <p className={`mt-3 text-3xl font-bold tabular-nums tracking-tight ${valueTone[tone]}`}>
+    <Card className="group h-full border-slate-200 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+      <CardContent className="flex h-full flex-col justify-between p-5">
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 line-clamp-1">
+            {label}
+          </p>
+          <span
+            className={`grid size-10 shrink-0 place-items-center rounded-xl ${toneClasses[tone]}`}
+          >
+            <Icon aria-hidden="true" className="size-5" />
+          </span>
+        </div>
+        <div className="mt-3">
+          <p className={`text-3xl font-bold tabular-nums tracking-tight ${valueTone[tone]}`}>
             {value}
           </p>
-          <p className="mt-1 text-xs text-slate-400">{detail}</p>
+          <p className="mt-1 text-xs leading-4 text-slate-400 line-clamp-2 min-h-[32px] flex items-center">
+            {detail}
+          </p>
         </div>
-        <span
-          className={`grid size-10 shrink-0 place-items-center rounded-xl ${toneClasses[tone]}`}
-        >
-          <Icon aria-hidden="true" className="size-5" />
-        </span>
       </CardContent>
     </Card>
   );
@@ -389,7 +395,7 @@ export default async function TeacherDashboardPage() {
           </section>
 
           {/* ── Metric cards (Bento Grid) ── */}
-          <section aria-label="Chỉ số giảng dạy" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <section aria-label="Chỉ số giảng dạy" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5 items-stretch">
             <MetricCard
               label="Lớp đang phụ trách"
               value={data.classCount.toLocaleString('vi-VN')}
@@ -404,7 +410,7 @@ export default async function TeacherDashboardPage() {
               icon={Users}
               tone="orange"
             />
-            <Link href="/teacher/questions" className="block transition hover:opacity-95">
+            <Link href="/teacher/questions" className="block h-full transition hover:opacity-95">
               <MetricCard
                 label="Câu hỏi trong kho"
                 value={data.questionCount.toLocaleString('vi-VN')}
@@ -420,7 +426,7 @@ export default async function TeacherDashboardPage() {
               icon={ClipboardList}
               tone="yellow"
             />
-            <Link href="/teacher/grading" className="block transition hover:opacity-95">
+            <Link href="/teacher/grading" className="block h-full transition hover:opacity-95">
               <MetricCard
                 label="Bài chờ chấm"
                 value={data.pendingGradingCount.toLocaleString('vi-VN')}

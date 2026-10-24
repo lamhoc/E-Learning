@@ -42,7 +42,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         .maybeSingle(),
     ]);
 
-    if (roleRecord?.role === 'teacher') redirect('/teacher/dashboard');
+    const userRole = (user.app_metadata?.role as string) || roleRecord?.role;
+
+    if (userRole === 'admin') redirect('/admin');
+    if (userRole === 'teacher') redirect('/teacher/dashboard');
+    if (userRole === 'student') redirect('/student/dashboard');
     if (application) redirect('/register/teacher/pending');
     redirect('/subjects');
   }
