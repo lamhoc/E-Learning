@@ -1,6 +1,6 @@
 # Kế hoạch triển khai E-Learning ("Mầm Học")
 
-> **Trạng thái:** Phase 21 hoàn thành - Tối ưu hóa hiệu năng toàn diện (Triệt tiêu N+1 query, Streaming Skeleton loading.tsx, Dynamic import Recharts và Memoize KaTeX).
+> **Trạng thái:** Đang thực hiện Phase 22 - Đồng bộ trang Danh sách môn học vào layout Giảng viên (`app/teacher/subjects/page.tsx`), tích hợp TeacherSidebar và chuẩn hóa giao diện EdTech.
 > **Cập nhật:** 2026-10-24
 
 ## Trạng thái đã hoàn thành & Lịch sử Commit (`main`)
@@ -107,12 +107,17 @@
     - Hiệu ứng hover nổi bật (`hover:shadow-xl`, `hover:-translate-y-1`, `transition-all duration-300`).
     - Được bảo vệ nghiêm ngặt bởi `app/admin/layout.tsx`.
   - Đã nghiệm thu thành công bằng `npx tsc --noEmit` (0 errors) và `npm run build` (pass 100%, 23/23 routes).
-- [x] **Phase 21 (Commit `241080d`)**: Tối ưu hóa hiệu năng toàn diện (Performance & UX Optimization)
+- [x] **Phase 21 (Commit `1da33a6`)**: Tối ưu hóa hiệu năng toàn diện (Performance & UX Optimization)
   - **Mục tiêu 1 (Triệt tiêu N+1 Query & Waterfall)**: Refactor `lib/teacher-dashboard.ts`, thay thế 7 query riêng lẻ lấy số lượng bài nộp 7 ngày bằng 1 query duy nhất gom nhóm in-memory, tiết kiệm 6 HTTP network roundtrips.
   - **Mục tiêu 2 (Hệ thống Streaming & Suspense)**: Bổ sung 6 file `loading.tsx` chuẩn Skeleton Screen EdTech cho các route chính (`/student/dashboard`, `/teacher/grading`, `/teacher/grading/[attemptId]`, `/admin`, `/admin/student-management`, `/teacher/exams/[examId]`), xóa bỏ hoàn toàn cảm giác "đứng hình" khi click chuyển trang.
   - **Mục tiêu 3 (Dynamic Imports Recharts)**: Dùng `next/dynamic` với Skeleton fallback cho `SubmissionChart` và `ExamScoreChart`, loại bỏ ~200KB JS khỏi initial bundle.
   - **Mục tiêu 4 (Tối ưu KaTeX Math Rendering)**: Bọc `React.memo` cho `MathText` trong `components/ui/math-text.tsx` để tránh re-parse công thức toán khi re-render UI.
   - Đã nghiệm thu thành công bằng `npx tsc --noEmit` (0 errors) và `npm run build` (pass 100%, 23/23 routes).
+- [x] **Phase 22 (Đã hoàn thành)**: Đồng bộ layout trang Danh sách môn học vào bộ khung Giảng viên (`/teacher/subjects`)
+  - **Mục tiêu 1 (Cấu trúc thư mục & Layout)**: Xây dựng route mới `app/teacher/subjects/page.tsx` và `app/teacher/subjects/loading.tsx`, kế thừa trọn vẹn bộ khung Giảng viên với `TeacherSidebar (activeRoute="subjects")`, Topbar dính với ngày giờ tiếng Việt, NotificationBell, và Container `max-w-[1440px]` đồng bộ với "Chấm bài thi" & "Ngân hàng câu hỏi".
+  - **Mục tiêu 2 (Refactor UI trang Môn học)**: Loại bỏ thanh Header cũ (nút đăng xuất/dashboard trùng lặp), thiết kế lại khối danh sách môn học bằng hệ thống Shadcn `Card`, `Badge` hiện đại. Bổ sung Quick Metrics Bar (Môn phụ trách, Lớp đang mở, Câu hỏi trong kho) và thẻ môn học kèm thống kê số lớp, câu hỏi, đề thi và các liên kết nhanh (Kho câu hỏi, Mở thêm lớp).
+  - **Mục tiêu 3 (Cập nhật Navigation & Backward Compatibility)**: Cập nhật liên kết trong `TeacherSidebar`, `app/admin/layout.tsx` và `app/teacher/dashboard/page.tsx` trỏ trực tiếp về `/teacher/subjects`. Trang `/subjects` cũ tự động chuyển hướng theo role (Giảng viên/Admin -> `/teacher/subjects`, Sinh viên -> `/student/dashboard`).
+  - Đã nghiệm thu thành công bằng `cmd /c npx tsc --noEmit` (0 errors) và `cmd /c npm run build` (pass 100%, 24/24 routes).
 
 ---
 

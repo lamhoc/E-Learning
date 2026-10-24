@@ -89,7 +89,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
               <span className="hidden md:inline">Tài khoản Sinh viên</span>
             </Link>
             <Link
-              href="/subjects"
+              href="/teacher/subjects"
               className={buttonVariants({ variant: 'ghost', size: 'sm' })}
             >
               <BookOpen className="size-4 text-slate-600" />

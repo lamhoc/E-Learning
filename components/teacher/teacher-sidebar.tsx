@@ -50,7 +50,7 @@ export function TeacherSidebar({ activeRoute, teacherName }: TeacherSidebarProps
     {
       id: 'subjects',
       label: 'Môn học',
-      href: '/subjects',
+      href: '/teacher/subjects',
       icon: BookOpen,
       active: activeRoute === 'subjects',
     },

@@ -118,7 +118,9 @@ export async function approveTeacher(userId: string) {
 
     revalidatePath('/admin/teacher-access');
     revalidatePath('/teacher/dashboard');
-    revalidatePath('/subjects');
+    revalidatePath('/teacher/subjects');
+    revalidatePath('/teacher/subjects');
+  revalidatePath('/subjects');
     return { success: true };
   } catch (err) {
     console.error('Lỗi khi phê duyệt giáo viên:', err);
@@ -216,7 +218,9 @@ export async function assignSubject(teacherId: string, subjectId: string) {
 
     revalidatePath('/admin/teacher-access');
     revalidatePath('/teacher/dashboard');
-    revalidatePath('/subjects');
+    revalidatePath('/teacher/subjects');
+    revalidatePath('/teacher/subjects');
+  revalidatePath('/subjects');
     return { success: true };
   } catch (err) {
     console.error('Lỗi khi phân công môn học:', err);
@@ -252,7 +256,9 @@ export async function unassignSubject(teacherId: string, subjectId: string) {
 
     revalidatePath('/admin/teacher-access');
     revalidatePath('/teacher/dashboard');
-    revalidatePath('/subjects');
+    revalidatePath('/teacher/subjects');
+    revalidatePath('/teacher/subjects');
+  revalidatePath('/subjects');
     return { success: true };
   } catch (err) {
     console.error('Lỗi khi gỡ phân công môn học:', err);
@@ -287,6 +293,7 @@ export async function createSubject(formData: FormData) {
   }
 
   revalidatePath('/admin/teacher-access');
+  revalidatePath('/teacher/subjects');
   revalidatePath('/subjects');
   redirect('/admin/teacher-access?success=subject-created');
 }
@@ -346,6 +353,7 @@ export async function assignClassTeacher(formData: FormData) {
 
   revalidatePath('/admin/teacher-access');
   revalidatePath('/teacher/dashboard');
+  revalidatePath('/teacher/subjects');
   revalidatePath('/subjects');
   redirect('/admin/teacher-access?success=class-assigned');
 }

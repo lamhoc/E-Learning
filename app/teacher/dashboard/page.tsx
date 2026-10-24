@@ -147,7 +147,7 @@ function EmptyPanel({ title, description }: { title: string; description: string
       <h3 className="mt-3 text-sm font-semibold text-slate-700">{title}</h3>
       <p className="mt-1 max-w-sm text-sm leading-6 text-slate-400">{description}</p>
       <Link
-        href="/subjects"
+        href="/teacher/subjects"
         className={buttonVariants({ variant: 'outline', size: 'sm', className: 'mt-4' })}
       >
         Mở danh sách môn học <ArrowRight data-icon="inline-end" />
@@ -275,7 +275,7 @@ export default async function TeacherDashboardPage() {
                 <span className="hidden sm:inline">Câu hỏi</span>
               </Link>
               <Link
-                href="/subjects"
+                href="/teacher/subjects"
                 className={buttonVariants({ variant: 'ghost', size: 'sm' })}
               >
                 <BookOpen className="size-3.5" />
@@ -353,7 +353,7 @@ export default async function TeacherDashboardPage() {
                 <LibraryBig data-icon="inline-start" /> Ngân hàng câu hỏi
               </Link>
               <Link
-                href="/subjects"
+                href="/teacher/subjects"
                 className={buttonVariants({ className: 'gap-2 shadow-xs bg-[#17372e] hover:bg-[#20493e] text-white' })}
               >
                 <BookOpen data-icon="inline-start" /> Môn học
@@ -541,7 +541,7 @@ export default async function TeacherDashboardPage() {
                 </div>
               </div>
               <Link
-                href="/subjects"
+                href="/teacher/subjects"
                 className={buttonVariants({
                   variant: 'outline',
                   className: 'shrink-0 gap-2 border-emerald-200 bg-white hover:bg-emerald-50',
@@ -641,7 +641,7 @@ export default async function TeacherDashboardPage() {
                     ))}
                     <Separator className="my-2" />
                     <Link
-                      href="/subjects"
+                      href="/teacher/subjects"
                       className="inline-flex items-center gap-1 px-2 py-2 text-sm font-medium text-emerald-700 hover:underline"
                     >
                       Xem môn học <ArrowRight aria-hidden="true" className="size-4" />

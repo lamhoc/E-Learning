@@ -60,6 +60,7 @@ export async function createTeacherClass(
   }
 
   revalidatePath('/teacher/dashboard');
+  revalidatePath('/teacher/subjects');
   revalidatePath('/subjects');
   return { status: 'success', message: 'Đã tạo lớp học.' };
 }
