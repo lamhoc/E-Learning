@@ -172,3 +172,4 @@ export async function getTeacherSubjectsData(): Promise<TeacherSubjectsData> {
     errorMessage: lookupError,
   };
 }
+
