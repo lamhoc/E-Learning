@@ -88,7 +88,7 @@
   - `lib/teacher-exam-analytics.ts`: Đồng bộ cơ chế fallback an toàn `process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : supabase`.
   - `components/teacher/essay-grading-client.tsx`: Bổ sung state `isReleasedLocal` cập nhật huy hiệu "Đã công bố kết quả" ngay lập tức.
   - `supabase/migrations/20261024_teacher_grading_permissions.sql`: Bổ sung policy `profiles_read_teacher` cho phép giảng viên đọc thông tin họ tên, mã sinh viên khi chấm thi.
-- [x] **Phase 18 (Commit `pending`)**: Chuyển Server Action sang Pure JSON Architecture (Loại bỏ hoàn toàn revalidatePath)
+- [x] **Phase 18 (Commit `01b593d`)**: Chuyển Server Action sang Pure JSON Architecture (Loại bỏ hoàn toàn revalidatePath)
   - `app/teacher/grading/[attemptId]/actions.ts`: Loại bỏ hoàn toàn `revalidatePath` khỏi `saveEssayGradesAction`. Thay vì bắt Next.js re-render ngầm các Server Component khác trong response flight stream, action chỉ tập trung lưu CSDL an toàn và trả về JSON thuần (`200 OK`).
   - Phía Client nhận kết quả JSON, hiển thị toast thành công, cập nhật badge ngay lập tức và client-side refresh an toàn mà không sợ lỗi RSC Flight.
 
