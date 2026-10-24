@@ -1,7 +1,7 @@
 # Kế hoạch triển khai E-Learning ("Mầm Học")
 
-> **Trạng thái:** Nhiệm vụ 3 đã triển khai và build/type-check thành công; runtime smoke test chờ cấu hình Supabase và Groq.
-> **Cập nhật:** 2026-10-23
+> **Trạng thái:** Phase 15 hoàn thành - Đã sửa lỗi Server Action chấm tự luận, bảo vệ toàn diện luồng lưu điểm và cập nhật kế hoạch.
+> **Cập nhật:** 2026-10-24
 
 ## Trạng thái đã hoàn thành & Đã Push lên Remote (`main`)
 
@@ -20,11 +20,10 @@
   - Giao diện làm bài thi `/student/exams/[examId]`: Timer đếm ngược, tự động nộp bài khi hết giờ, Palette câu hỏi, KaTeX, auto-save, auto-grading trắc nghiệm.
 - [x] **Phase 7 - Nhiệm vụ 1 (Commit `e989f76`)**: Màn hình Tạo Đề Thi cho Giáo viên (`/teacher/exams/create`)
   - Form cấu hình đề, gán lớp, chọn câu hỏi ngân hàng, KaTeX, chia đều 10 điểm, Server Action snapshot & `publish_exam`.
-- [x] **Phase 7 - Nhiệm vụ 2 (Commit `8613063`)**: Màn hình Chấm thi Tự luận (`/teacher/grading/[attemptId]`)
+- [x] **Phase 7 - Nhiệm vụ 2 (Commit `8613063` & `236cb38`)**: Màn hình Chấm thi Tự luận (`/teacher/grading/[attemptId]`)
   - `lib/teacher-grading.ts`: Server Data Fetching chi tiết bài thi, sinh viên, đáp án mẫu, rubric, bài làm học sinh, điểm trắc nghiệm tự động.
   - `components/teacher/essay-grading-client.tsx`: Split View chuẩn EdTech (cột trái: Đề bài + Đáp án mẫu KaTeX + Rubric; cột phải: Bài làm sinh viên + Form chấm điểm + Điểm nhanh 0%, 50%, 75%, 100% + Feedback).
-  - `app/teacher/grading/[attemptId]/actions.ts`: Server Action `saveEssayGradesAction` tính tổng điểm, cập nhật `student_answer_grades`, `attempt_results.released_at`, `exam_attempts.status = 'completed'` và gửi `notifications` cho học sinh.
-  - `app/teacher/grading/[attemptId]/page.tsx`: Server Component bọc Layout chuẩn `TeacherSidebar`.
+  - Tích hợp `react-hook-form` + `zod` + `@hookform/resolvers/zod` validate điểm số và feedback.
 - [x] **Phase 7 - Nhiệm vụ 3 (Commit `d776fa0`)**: Gia sư AI Chữa đề (AI Exam Tutor) với Groq SDK (`openai/gpt-oss-120b`)
   - `lib/ai-exam-tutor.ts`: Kiểm tra quyền lượt thi, kết quả đã công bố (`released_at`), tổng hợp RAG context câu sai, đáp án mẫu, rubric và feedback.
   - `app/api/student/exam-tutor/route.ts`: API Route Handler khởi tạo session hội thoại `ai_tutor_conversations`, lưu tin nhắn `ai_tutor_messages`, streaming phản hồi qua Groq SDK.
@@ -37,69 +36,72 @@
   - `app/admin/teacher-access/actions.ts`: Server Actions `approveTeacher` (Supabase Admin update user metadata & user_roles & teacher_applications), `rejectTeacher`, `assignSubject`, `unassignSubject`.
   - `app/admin/teacher-access/teacher-subject-manager.tsx`: Trình quản lý giáo viên & click chọn gán/hủy môn học tức thì.
 - [x] **Phase 9: Quản lý Tài khoản Sinh viên cho Admin (`/admin/student-management`)**:
-  - [x] Cập nhật navigation trong `app/admin/layout.tsx` liên kết tới trang quản lý sinh viên.
-  - [x] `app/admin/student-management/actions.ts`: Server Action `toggleStudentStatus(userId, isBlocked)` sử dụng `@supabase/supabase-js` service role (`createAdminClient`) cập nhật `ban_duration` và metadata, chặn quyền đăng nhập.
-  - [x] `components/admin/student-table-client.tsx`: Data Table Shadcn hiển thị danh sách sinh viên: Tên, Email, Mã sinh viên, Ngày tạo, Trạng thái (Hoạt động / Bị khóa) kèm Action menu (Khóa / Mở khóa) có tìm kiếm và bộ lọc.
-  - [x] `app/admin/student-management/page.tsx`: Server Component truy vấn dữ liệu sinh viên từ Supabase Admin & DB profiles.
-  - [x] Nghiệm thu tĩnh: `npx tsc --noEmit` & `npm run build` pass 100%.
+  - Cập nhật navigation trong `app/admin/layout.tsx` liên kết tới trang quản lý sinh viên.
+  - `app/admin/student-management/actions.ts`: Server Action `toggleStudentStatus(userId, isBlocked)` sử dụng `@supabase/supabase-js` service role (`createAdminClient`) cập nhật `ban_duration` và metadata, chặn quyền đăng nhập.
+  - `components/admin/student-table-client.tsx`: Data Table Shadcn hiển thị danh sách sinh viên: Tên, Email, Mã sinh viên, Ngày tạo, Trạng thái (Hoạt động / Bị khóa) kèm Action menu (Khóa / Mở khóa) có tìm kiếm và bộ lọc.
+  - `app/admin/student-management/page.tsx`: Server Component truy vấn dữ liệu sinh viên từ Supabase Admin & DB profiles.
 - [x] **Phase 10: Thống kê & Xuất điểm thi cho Giảng viên (`/teacher/exams/[examId]`)**:
-  - [x] `lib/teacher-exam-analytics.ts`: Server-side data fetching & transform logic tính toán điểm trắc nghiệm, điểm tự luận, tổng điểm, phân bố phổ điểm 5 khoảng (0-2, 3-4, 5-6, 7-8, 9-10).
-  - [x] `components/teacher/exam-score-chart.tsx`: Biểu đồ phổ điểm Recharts (`BarChart`) hiển thị phân bố điểm số sinh viên.
-  - [x] `components/teacher/exam-analytics-client.tsx`: Giao diện Tabs (Biểu đồ phổ điểm & Bảng điểm chi tiết) tích hợp xuất file `.csv` UTF-8 BOM qua `papaparse`.
-  - [x] `app/teacher/exams/[examId]/page.tsx`: Server Component cho route thống kê đề thi bọc trong `TeacherSidebar`.
-  - [x] `app/teacher/dashboard/page.tsx`: Thêm liên kết từ bảng đề thi tới trang `/teacher/exams/[examId]`.
-  - [x] Nghiệm thu tĩnh: `npx tsc --noEmit` & `npm run build` pass 100%.
-  - [x] Push code lên GitHub sau khi hoàn thành theo yêu cầu của user.
+  - `lib/teacher-exam-analytics.ts`: Server-side data fetching & transform logic tính toán điểm trắc nghiệm, điểm tự luận, tổng điểm, phân bố phổ điểm 5 khoảng (0-2, 3-4, 5-6, 7-8, 9-10).
+  - `components/teacher/exam-score-chart.tsx`: Biểu đồ phổ điểm Recharts (`BarChart`) hiển thị phân bố điểm số sinh viên.
+  - `components/teacher/exam-analytics-client.tsx`: Giao diện Tabs (Biểu đồ phổ điểm & Bảng điểm chi tiết) tích hợp xuất file `.csv` UTF-8 BOM qua `papaparse`.
+  - `app/teacher/exams/[examId]/page.tsx`: Server Component cho route thống kê đề thi bọc trong `TeacherSidebar`.
 - [x] **Phase 11: Cơ chế Phát hiện Chuyển Tab & Giám sát Phòng thi Trực tuyến (`/student/exams/[examId]`)**:
-  - [x] `hooks/use-tab-switch-detection.ts`: React Hook lắng nghe sự kiện `visibilitychange` và `blur` với cơ chế chống kích hoạt kép (debounce window 1500ms), quản lý state vi phạm `tabSwitchCount`, tự động kích hoạt callback `onAutoSubmit` khi vượt ngưỡng tối đa (mặc định 3 lần).
-  - [x] `components/ui/alert-dialog.tsx`: Hộp thoại Alert Dialog chuẩn Shadcn (AlertDialog, Content, Header, Title, Description, Footer, Action) với lớp nền mờ và hiệu ứng mượt mà.
-  - [x] `components/student/exam-taking-client.tsx`: Tích hợp hook giám sát vào phòng thi sinh viên, hiển thị huy hiệu cảnh báo vi phạm trên thanh công cụ và bật Alert Dialog cảnh báo / đình chỉ thi.
-  - [x] `app/student/exams/[examId]/actions.ts`: Bổ sung Server Action `logExamTabViolationAction` ghi log vi phạm vào bảng phụ `exam_proctoring_logs` và dự phòng `notifications`.
-  - [x] `supabase/migrations/20261024_exam_proctoring_logs.sql`: File migration tạo bảng `exam_proctoring_logs` kèm chỉ mục và chính sách RLS an toàn.
-  - [x] `lib/teacher-grading.ts` & `components/teacher/essay-grading-client.tsx`: Bổ sung dữ liệu vi phạm vào trang chấm bài của giáo viên kèm Banner cảnh báo nếu thí sinh đã rời tab làm bài.
-  - [x] Nghiệm thu tĩnh: `npx tsc --noEmit` & `npm run build` pass 100%.
+  - `hooks/use-tab-switch-detection.ts`: React Hook lắng nghe sự kiện `visibilitychange` và `blur` với cơ chế chống kích hoạt kép (debounce window 1500ms), quản lý state vi phạm `tabSwitchCount`, tự động kích hoạt callback `onAutoSubmit` khi vượt ngưỡng tối đa (mặc định 3 lần).
+  - `components/ui/alert-dialog.tsx`: Hộp thoại Alert Dialog chuẩn Shadcn (AlertDialog, Content, Header, Title, Description, Footer, Action) với lớp nền mờ và hiệu ứng mượt mà.
+  - `components/student/exam-taking-client.tsx`: Tích hợp hook giám sát vào phòng thi sinh viên, hiển thị huy hiệu cảnh báo vi phạm trên thanh công cụ và bật Alert Dialog cảnh báo / đình chỉ thi.
+  - `app/student/exams/[examId]/actions.ts`: Bổ sung Server Action `logExamTabViolationAction` ghi log vi phạm vào bảng phụ `exam_proctoring_logs` và dự phòng `notifications`.
+  - `supabase/migrations/20261024_exam_proctoring_logs.sql`: File migration tạo bảng `exam_proctoring_logs` kèm chỉ mục và chính sách RLS an toàn.
+  - `lib/teacher-grading.ts` & `components/teacher/essay-grading-client.tsx`: Bổ sung dữ liệu vi phạm vào trang chấm bài của giáo viên kèm Banner cảnh báo nếu thí sinh đã rời tab làm bài.
 - [x] **Phase 12: Hệ thống Thông báo Thời gian thực (Realtime Notifications via Supabase Channels)**:
-  - [x] `hooks/use-realtime-notifications.ts`: Custom Hook kết nối Supabase channel lắng nghe sự kiện `INSERT` trên bảng `notifications` lọc theo `user_id`, tự động tăng số lượng badge chưa đọc, kích hoạt Toast popup và dọn dẹp (unsubscribe) khi unmount.
-  - [x] `components/layout/notification-bell.tsx`: Chuông thông báo (Bell icon) với Badge đếm unreadCount, Dropdown Popover cuộn danh sách thông báo, nút đánh dấu tất cả đã đọc, và Floating Toast popup góc màn hình.
-  - [x] `components/layout/header.tsx`: Header component chung tích hợp sẵn `NotificationBell`, avatar người dùng và điều hướng.
-  - [x] `app/student/dashboard/page.tsx` & `app/teacher/dashboard/page.tsx`: Tích hợp trực tiếp `NotificationBell` vào thanh Header.
-  - [x] `supabase/migrations/20261024_enable_notifications_realtime.sql`: File migration kích hoạt publication Supabase Realtime trên bảng `notifications`.
-  - [x] Nghiệm thu tĩnh: `npx tsc --noEmit` & `npm run build` pass 100%.
+  - `hooks/use-realtime-notifications.ts`: Custom Hook kết nối Supabase channel lắng nghe sự kiện `INSERT` trên bảng `notifications` lọc theo `user_id`, tự động tăng số lượng badge chưa đọc, kích hoạt Toast popup và dọn dẹp (unsubscribe) khi unmount.
+  - `components/layout/notification-bell.tsx`: Chuông thông báo (Bell icon) với Badge đếm unreadCount, Dropdown Popover cuộn danh sách thông báo, nút đánh dấu tất cả đã đọc, và Floating Toast popup góc màn hình.
+  - `components/layout/header.tsx`: Header component chung tích hợp sẵn `NotificationBell`, avatar người dùng và điều hướng.
+  - `app/student/dashboard/page.tsx` & `app/teacher/dashboard/page.tsx`: Tích hợp trực tiếp `NotificationBell` vào thanh Header.
+  - `supabase/migrations/20261024_enable_notifications_realtime.sql`: File migration kích hoạt publication Supabase Realtime trên bảng `notifications`.
 - [x] **Phase 13: Upload và Quản lý Tài liệu Học tập cho Lớp học (`/teacher/classes/[classId]/materials`)**:
-  - [x] `supabase/migrations/20261024_class_materials_and_storage.sql`: Schema bảng `class_materials` lưu URL, tên file, dung lượng, tuần học, kèm Storage bucket `course_materials` và policies RLS.
-  - [x] `lib/class-materials.ts`: Types và utilities fetch/transform tài liệu gom nhóm theo Tuần học.
-  - [x] `app/teacher/classes/[classId]/materials/actions.ts`: Server Actions `uploadClassMaterialAction` và `deleteClassMaterialAction` upload lên Supabase Storage và lưu vào CSDL.
-  - [x] `components/teacher/class-material-upload-form.tsx`: Component form upload file (PDF, DOCX) hoặc dán link Video bài giảng phân loại theo tuần học.
-  - [x] `components/teacher/class-material-list.tsx`: Component danh sách tài liệu theo tuần học với filter, xem/tải về và xóa.
-  - [x] `app/teacher/classes/[classId]/materials/page.tsx`: Server Component cho route quản lý tài liệu của giáo viên.
-  - [x] `components/student/student-class-materials.tsx`: Component phía sinh viên hiển thị kho tài liệu theo lớp và tuần học kèm tính năng tải về.
-  - [x] `app/student/dashboard/page.tsx` & `components/student/student-sidebar.tsx`: Bổ sung khu vực/tab "Tài liệu" trên Dashboard sinh viên.
-  - [x] Nghiệm thu tĩnh: `npx tsc --noEmit` & `npm run build` pass 100%.
+  - `supabase/migrations/20261024_class_materials_and_storage.sql`: Schema bảng `class_materials` lưu URL, tên file, dung lượng, tuần học, kèm Storage bucket `course_materials` và policies RLS.
+  - `lib/class-materials.ts`: Types và utilities fetch/transform tài liệu gom nhóm theo Tuần học.
+  - `app/teacher/classes/[classId]/materials/actions.ts`: Server Actions `uploadClassMaterialAction` và `deleteClassMaterialAction` upload lên Supabase Storage và lưu vào CSDL.
+  - `components/teacher/class-material-upload-form.tsx`: Component form upload file (PDF, DOCX) hoặc dán link Video bài giảng phân loại theo tuần học.
+  - `components/teacher/class-material-list.tsx`: Component danh sách tài liệu theo tuần học với filter, xem/tải về và xóa.
+  - `app/teacher/classes/[classId]/materials/page.tsx`: Server Component cho route quản lý tài liệu của giáo viên.
+  - `components/student/student-class-materials.tsx`: Component phía sinh viên hiển thị kho tài liệu theo lớp và tuần học kèm tính năng tải về.
+  - `app/student/dashboard/page.tsx` & `components/student/student-sidebar.tsx`: Bổ sung khu vực/tab "Tài liệu" trên Dashboard sinh viên.
+- [x] **Phase 14 (Commit `c5e52e0` - Đã Push `origin/main`)**: Quản lý Chấm thi Tập trung & Entry Points cho Giảng viên:
+  - `components/teacher/teacher-sidebar.tsx`: Thêm mục điều hướng "Chấm bài thi" (`/teacher/grading`) với icon `FileCheck`.
+  - `app/teacher/dashboard/page.tsx`: Thêm Quick Action "Chấm bài thi", Metric card "Bài chờ chấm", nút truy cập trên Hero Header và bảng "Bài thi chờ chấm tự luận" trực tiếp trên Dashboard.
+  - `lib/teacher-dashboard.ts`: Mở rộng `getTeacherDashboardData()` truy vấn `pendingAttempts` bài thi tự luận chờ chấm.
+  - `lib/teacher-grading.ts`: Viết hàm `getTeacherGradingQueue()` phân loại bài thi `pending_grading` và `completed`.
+  - `app/teacher/grading/page.tsx` & `components/teacher/grading-queue-client.tsx`: Trang quản lý chấm thi 2 tab "Chờ chấm điểm" và "Đã chấm xong" kèm tìm kiếm và xem cảnh báo gian lận tab-switch.
 
 ---
 
-## Phase 7: Hoàn Thiện Chu Trình Khảo Thí & Chữa Đề AI
+## Phase 15: Sửa lỗi Server Action Chấm thi Tự luận & Hoàn thiện Luồng Lưu Điểm / Công bố Kết quả
 
-### Nhiệm vụ 1: Màn hình Tạo Đề Thi cho Giáo viên (`/teacher/exams/create`) ✅ ĐÃ HOÀN THÀNH
+### Bối cảnh & Hiện tượng lỗi (Bug Description)
+* Khi giáo viên truy cập màn hình chấm tự luận `/teacher/grading/[attemptId]` và nhấn nút **"Lưu tạm điểm"** hoặc **"Chốt điểm & Công bố kết quả"**, giao diện xuất hiện thanh thông báo màu đỏ:
+  `"Đã có lỗi bất ngờ xảy ra khi lưu điểm."`
 
-### Nhiệm vụ 2: Màn hình Chấm thi Tự luận cho Giảng viên (`/teacher/grading/[attemptId]`) ✅ ĐÃ NÂNG CẤP REACT HOOK FORM + ZOD
-- Tích hợp `react-hook-form` và `zod` với `@hookform/resolvers/zod` để bắt lỗi nhập điểm (không âm, không vượt quá điểm tối đa của câu hỏi).
-- Cụm nút gán điểm nhanh 0%, 50%, 75%, 100% kết nối trực tiếp với form state và trigger validate Zod.
-- Server Action `saveEssayGradesAction` xác thực Zod schema chặt chẽ, tính tổng điểm và cập nhật `attempt_results.released_at` cùng `status = 'completed'`.
+### Nguyên nhân gốc rễ (Root Cause Analysis)
+1. **Khối bắt lỗi ngoài ý muốn**: Trong `app/teacher/grading/[attemptId]/actions.ts`, toàn bộ phần khởi tạo kiểm tra đăng nhập, `user_roles`, `createAdminClient()`, và truy vấn `exams`/`exam_questions` (dòng 44-105) nằm NGOÀI khối `try/catch`. Khi client admin thiếu cấu hình hoặc gặp ngoại lệ ngoài ý muốn, lỗi unhandled bị Next.js che giấu và ném sang phía client.
+2. **Che giấu lỗi ở Client**: Tại `components/teacher/essay-grading-client.tsx`, khối `catch { ... }` không nhận tham số lỗi `(err)` mà chỉ gán cứng thông báo `'Đã có lỗi bất ngờ xảy ra khi lưu điểm.'`, khiến người dùng và lập trình viên không nhìn thấy chi tiết lỗi thực sự.
+3. **Nguy cơ ghi đè câu trả lời tự luận**: Thao tác `adminClient.from('student_answers').upsert(...)` thiếu trường `answer_text` có thể làm trắng nội dung bài làm tự luận của sinh viên đã nộp.
+4. **Lỗi tính tổng điểm bài thi**: Khi chấm câu tự luận, hàm chỉ tính tổng điểm từ `student_answer_grades` mà bỏ qua điểm trắc nghiệm (vốn được chấm tự động từ `student_answers` so với `exam_answer_keys`), dẫn đến `total_score` bị tính sai (chỉ ra điểm tự luận mà mất điểm trắc nghiệm).
+5. **Cơ chế Fallback Client**: Nếu môi trường runtime chưa nạp kịp `SUPABASE_SERVICE_ROLE_KEY`, `createAdminClient()` sẽ ném lỗi runtime. Cần cơ chế fallback linh hoạt sang client phiên xác thực của giáo viên `createClient()`.
 
-### Nhiệm vụ 3: Tích hợp Gia sư AI Chữa đề (AI Exam Tutor) ✅ ĐÃ TRIỂN KHAI
-- Nút "Hỏi gia sư AI về bài thi này" trên trang kết quả thi của sinh viên.
-- Nạp ngữ cảnh (câu sai, đáp án đúng) kết nối với Groq SDK.
-- Ghi log hội thoại vào bảng `ai_tutor_conversations` và `ai_tutor_messages`.
-- [x] Thêm API Route xác thực quyền sở hữu lượt thi/kết quả đã công bố, khởi tạo hội thoại theo `attempt_id`, lưu tin nhắn và stream Groq.
-- [x] Tạo drawer chat trên trang lịch sử/kết quả thi, render câu trả lời bằng KaTeX và thêm trạng thái lỗi/loading.
-- [x] Chỉ truy vấn đáp án chuẩn phía server bằng service-role client; không gửi answer key thô xuống trình duyệt.
-- [x] Xác minh bằng `npx tsc --noEmit`, `npm run build` và lint các file mới; không thay đổi schema.
-- [ ] Runtime smoke test: chưa có `.env.local`/biến môi trường Supabase và Groq trong workspace.
-
----
-
-## Kết quả nghiệm thu tĩnh
-- `npx tsc --noEmit`: Exit code 0 (Pass 100%).
-- `npm run build`: Exit code 0; route `/api/student/exam-tutor` đã được biên dịch.
-- ESLint trên các file triển khai mới: Exit code 0.
+### Các bước thực thi & Khắc phục (Action Plan)
+- [x] **Bước 1**: Tái cấu trúc `app/teacher/grading/[attemptId]/actions.ts`:
+  - Bọc toàn bộ logic trong `try / catch`.
+  - Thêm hàm trợ lực `getDbClient(supabase)` linh hoạt dùng `createAdminClient()` hoặc fallback sang `supabase`.
+  - Sửa thao tác với `student_answers`: Chỉ insert bản ghi mới nếu câu trả lời chưa tồn tại, tuyệt đối không ghi đè `answer_text`.
+  - Tính toán tổng điểm chính xác: `mcAwardedScore` (trắc nghiệm) + `essayScore` (tự luận).
+  - Cập nhật an toàn vào `attempt_results`, `exam_attempts` và gửi `notifications`.
+  - Bọc `revalidatePath` trong `try/catch` bảo vệ.
+- [x] **Bước 2**: Nâng cấp `components/teacher/essay-grading-client.tsx`:
+  - Kiểm tra `res && res.status === 'success'` trước khi xử lý.
+  - Hiển thị thông điệp lỗi chính xác từ `res.message` hoặc `err.message`.
+  - Tránh lỗi NaN khi giá trị điểm bị bỏ trống trong input.
+- [x] **Bước 3**: Kiểm tra & Xác minh:
+  - Chạy `npx tsc --noEmit` đạt 0 lỗi.
+  - Chạy `npm run build` đạt 0 lỗi.
+- [x] **Bước 4**: Tạo commit cục bộ và báo cáo kết quả chi tiết.

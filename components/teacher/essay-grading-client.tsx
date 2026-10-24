@@ -45,12 +45,19 @@ type EssayGradingClientProps = {
   data: TeacherGradingPageData;
 };
 
+type FormValues = {
+  grades: Record<string, { points: number; feedback?: string }>;
+};
+
 // Hàm khởi tạo Schema Zod linh hoạt dựa trên danh sách câu hỏi tự luận và điểm tối đa của từng câu
 function createGradingZodSchema(essayQuestions: EssayQuestionGradingItem[]) {
-  const shape: Record<string, z.ZodObject<{
-    points: z.ZodNumber;
-    feedback: z.ZodOptional<z.ZodString>;
-  }>> = {};
+  const shape: Record<
+    string,
+    z.ZodObject<{
+      points: z.ZodNumber;
+      feedback: z.ZodOptional<z.ZodString>;
+    }>
+  > = {};
 
   essayQuestions.forEach((q) => {
     shape[q.questionId] = z.object({
@@ -76,8 +83,6 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
     return createGradingZodSchema(data.essayQuestions);
   }, [data.essayQuestions]);
 
-  type FormValues = z.infer<typeof gradingSchema>;
-
   // Giá trị khởi tạo
   const defaultValues: FormValues = useMemo(() => {
     const initialGrades: Record<string, { points: number; feedback?: string }> = {};
@@ -87,7 +92,7 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
         feedback: q.currentFeedback || '',
       };
     });
-    return { grades: initialGrades as FormValues['grades'] };
+    return { grades: initialGrades };
   }, [data.essayQuestions]);
 
   // Khởi tạo React Hook Form kết hợp Zod Resolver
@@ -98,13 +103,13 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
     watch,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
-    resolver: zodResolver(gradingSchema),
+    resolver: zodResolver(gradingSchema) as never,
     defaultValues,
     mode: 'onChange',
   });
 
   // Watch grades để tự động cập nhật tổng điểm trực tiếp (Live Calculation)
-  const watchedGrades = watch('grades');
+  const watchedGrades = watch('grades') as Record<string, { points?: number; feedback?: string }> | undefined;
 
   const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -112,7 +117,7 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
   // Tính tổng điểm phần tự luận đang chấm
   const currentEssayAwardedScore = useMemo(() => {
     if (!watchedGrades) return 0;
-    const sum = Object.values(watchedGrades).reduce((acc, item) => {
+    const sum = Object.values(watchedGrades).reduce((acc: number, item) => {
       const val = typeof item?.points === 'number' && !isNaN(item.points) ? item.points : 0;
       return acc + val;
     }, 0);
@@ -143,10 +148,11 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
     setToastMsg(null);
 
     const gradesPayload = data.essayQuestions.map((q) => {
-      const item = values.grades[q.questionId];
+      const item = values.grades?.[q.questionId];
+      const pts = typeof item?.points === 'number' && !isNaN(item.points) ? item.points : 0;
       return {
         questionId: q.questionId,
-        awardedPoints: typeof item?.points === 'number' ? item.points : 0,
+        awardedPoints: pts,
         feedback: item?.feedback?.trim() || null,
       };
     });
@@ -160,17 +166,22 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
         releaseResult,
       });
 
-      if (res.status === 'success') {
+      if (res && res.status === 'success') {
         setToastMsg({ type: 'success', text: res.message });
         startTransition(() => {
           router.refresh();
         });
       } else {
-        setServerError(res.message);
-        setToastMsg({ type: 'error', text: res.message });
+        const errorText = res?.message || 'Có lỗi xảy ra khi lưu điểm từ máy chủ.';
+        setServerError(errorText);
+        setToastMsg({ type: 'error', text: errorText });
       }
-    } catch {
-      setServerError('Đã có lỗi bất ngờ xảy ra khi lưu điểm.');
+    } catch (err: unknown) {
+      console.error('Lỗi khi lưu điểm:', err);
+      const errorMsg =
+        err instanceof Error ? err.message : 'Đã có lỗi bất ngờ xảy ra khi lưu điểm.';
+      setServerError(errorMsg);
+      setToastMsg({ type: 'error', text: errorMsg });
     }
   };
 
@@ -221,10 +232,10 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Link
-            href="/teacher/dashboard"
+            href="/teacher/grading"
             className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-emerald-800 transition shadow-2xs"
           >
-            <ArrowLeft className="size-3.5" /> Bảng điều khiển
+            <ArrowLeft className="size-3.5" /> Danh sách bài thi
           </Link>
           <span className="text-slate-300">/</span>
           <span className="text-xs font-bold text-slate-600 truncate max-w-[240px] sm:max-w-none">
@@ -531,7 +542,7 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
                                 size="xs"
                                 variant="outline"
                                 onClick={() => handleQuickPoints(q.questionId, 1, q.points)}
-                                className="h-8 rounded-lg text-xs font-semibold text-emerald-800 border-emerald-300 hover:bg-emerald-50"
+                                className="h-8 rounded-lg text-xs hover:bg-slate-100"
                                 title="100% điểm"
                               >
                                 100%
@@ -539,19 +550,19 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
                             </div>
                           </div>
 
-                          {/* Hiển thị lỗi Zod nếu vượt quá điểm tối đa */}
+                          {/* Error Message */}
                           {fieldError && (
-                            <p className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-red-600">
-                              <AlertCircle className="size-3.5" />
-                              <span>{fieldError}</span>
+                            <p className="mt-1 text-xs text-red-600 font-semibold flex items-center gap-1">
+                              <AlertCircle className="size-3 shrink-0" />
+                              {fieldError}
                             </p>
                           )}
                         </div>
 
-                        {/* Ô nhập nhận xét / feedback */}
+                        {/* Ô Nhập Nhận Xét (Feedback) */}
                         <div>
-                          <Label className="text-xs font-semibold text-slate-700 mb-1 block">
-                            Nhận xét & Góp ý cho thí sinh:
+                          <Label className="text-xs font-bold text-slate-700 block mb-1">
+                            Nhận xét / Lời khuyên cho câu này:
                           </Label>
                           <textarea
                             rows={2}
@@ -569,14 +580,14 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
           })
         )}
 
-        {/* BOTTOM ACTION BAR */}
-        <div className="sticky bottom-4 z-20 flex flex-col items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-xl backdrop-blur-md sm:flex-row">
+        {/* BOTTOM ACTION BAR (STICKY) */}
+        <div className="sticky bottom-4 z-20 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-lg backdrop-blur-md">
           <div className="flex items-center gap-3">
-            <span className="grid size-10 place-items-center rounded-xl bg-emerald-100 text-emerald-800 font-bold">
+            <span className="grid size-10 place-items-center rounded-xl bg-emerald-50 text-emerald-800">
               <Trophy className="size-5" />
             </span>
             <div>
-              <p className="text-xs text-slate-500">Tổng kết quả chấm:</p>
+              <p className="text-xs text-slate-400">Tổng kết quả chấm:</p>
               <p className="text-base font-extrabold text-slate-900">
                 {totalScorePreview}{' '}
                 <span className="text-xs font-normal text-slate-500">
