@@ -546,7 +546,8 @@ export default async function TeacherDashboardPage() {
                         <TableHead className="text-center">Câu hỏi</TableHead>
                         <TableHead className="text-center">Lớp</TableHead>
                         <TableHead>Trạng thái</TableHead>
-                        <TableHead className="pr-5 text-right">Ngày tạo</TableHead>
+                        <TableHead>Ngày tạo</TableHead>
+                        <TableHead className="pr-5 text-right">Thao tác</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -555,9 +556,12 @@ export default async function TeacherDashboardPage() {
                         return (
                           <TableRow key={exam.id} className="transition-colors hover:bg-slate-50/70">
                             <TableCell className="max-w-[300px] pl-5">
-                              <span className="block truncate font-medium text-slate-800">
+                              <Link
+                                href={`/teacher/exams/${exam.id}`}
+                                className="block truncate font-semibold text-slate-900 hover:text-emerald-800 hover:underline"
+                              >
                                 {exam.title}
-                              </span>
+                              </Link>
                               <span className="mt-0.5 block text-xs text-slate-400">
                                 {exam.duration_minutes} phút
                               </span>
@@ -576,8 +580,16 @@ export default async function TeacherDashboardPage() {
                                 {status.label}
                               </Badge>
                             </TableCell>
-                            <TableCell className="pr-5 text-right text-slate-400">
+                            <TableCell className="text-slate-400">
                               {formatDate(exam.created_at)}
+                            </TableCell>
+                            <TableCell className="pr-5 text-right">
+                              <Link
+                                href={`/teacher/exams/${exam.id}`}
+                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-emerald-800 transition shadow-2xs"
+                              >
+                                <span>Thống kê</span>
+                              </Link>
                             </TableCell>
                           </TableRow>
                         );

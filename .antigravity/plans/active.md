@@ -42,6 +42,14 @@
   - [x] `components/admin/student-table-client.tsx`: Data Table Shadcn hiển thị danh sách sinh viên: Tên, Email, Mã sinh viên, Ngày tạo, Trạng thái (Hoạt động / Bị khóa) kèm Action menu (Khóa / Mở khóa) có tìm kiếm và bộ lọc.
   - [x] `app/admin/student-management/page.tsx`: Server Component truy vấn dữ liệu sinh viên từ Supabase Admin & DB profiles.
   - [x] Nghiệm thu tĩnh: `npx tsc --noEmit` & `npm run build` pass 100%.
+- [x] **Phase 10: Thống kê & Xuất điểm thi cho Giảng viên (`/teacher/exams/[examId]`)**:
+  - [x] `lib/teacher-exam-analytics.ts`: Server-side data fetching & transform logic tính toán điểm trắc nghiệm, điểm tự luận, tổng điểm, phân bố phổ điểm 5 khoảng (0-2, 3-4, 5-6, 7-8, 9-10).
+  - [x] `components/teacher/exam-score-chart.tsx`: Biểu đồ phổ điểm Recharts (`BarChart`) hiển thị phân bố điểm số sinh viên.
+  - [x] `components/teacher/exam-analytics-client.tsx`: Giao diện Tabs (Biểu đồ phổ điểm & Bảng điểm chi tiết) tích hợp xuất file `.csv` UTF-8 BOM qua `papaparse`.
+  - [x] `app/teacher/exams/[examId]/page.tsx`: Server Component cho route thống kê đề thi bọc trong `TeacherSidebar`.
+  - [x] `app/teacher/dashboard/page.tsx`: Thêm liên kết từ bảng đề thi tới trang `/teacher/exams/[examId]`.
+  - [x] Nghiệm thu tĩnh: `npx tsc --noEmit` & `npm run build` pass 100%.
+  - [x] Push code lên GitHub sau khi hoàn thành theo yêu cầu của user.
 
 ---
 
