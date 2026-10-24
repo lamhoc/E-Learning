@@ -1,6 +1,6 @@
 # Kế hoạch triển khai E-Learning ("Mầm Học")
 
-> **Trạng thái:** Phase 16 hoàn thành - Đã xử lý triệt để Minified React Error #441 trong luồng chấm thi tự luận, bổ sung fallback Supabase client an toàn và migration quyền RLS.
+> **Trạng thái:** Phase 17 hoàn thành - Loại bỏ triệt để xung đột RevalidatePath chéo vai trò gây Error #441, chuẩn hóa RLS Profiles và phản hồi trực quan trên Client.
 > **Cập nhật:** 2026-10-24
 
 ## Trạng thái đã hoàn thành & Lịch sử Commit (`main`)
@@ -77,32 +77,34 @@
   - `app/teacher/grading/[attemptId]/actions.ts`: Bọc toàn bộ hàm `saveEssayGradesAction` trong khối `try/catch`, thêm hàm trợ lực `getDbClient(supabase)` linh hoạt, sửa logic kiểm tra `student_answers` không ghi đè bài làm, và tính toán chuẩn xác `totalScore = mcAwardedScore + essayScore`.
   - `components/teacher/essay-grading-client.tsx`: Hiển thị thông điệp lỗi chính xác từ `res.message` hoặc `err.message`, xử lý an toàn input rỗng / `NaN`.
   - Đã nghiệm thu bằng `npx tsc --noEmit` (0 lỗi) và `npm run build` (pass 100%).
-- [x] **Phase 16 (Commit `5e3bc5d`)**: Xử lý triệt để "Minified React Error #441", cơ chế Supabase Admin Fallback an toàn & Migration phân quyền RLS chấm thi
-  - `lib/supabase/admin.ts`: Thêm graceful fallback sang `NEXT_PUBLIC_SUPABASE_ANON_KEY` nếu thiếu `SUPABASE_SERVICE_ROLE_KEY`, tuyệt đối không quăng ngoại lệ làm sập RSC render stream.
-  - `lib/teacher-grading.ts`: Chuyển đổi linh hoạt `process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : supabase` cho cả `getTeacherGradingData` và `getTeacherGradingQueue`.
-  - `app/teacher/grading/[attemptId]/page.tsx`: Gỡ bỏ bọc `<Suspense>` dư thừa quanh `<EssayGradingClient>` giúp đồng bộ rendering React 19 mượt mà.
-  - `app/teacher/grading/[attemptId]/actions.ts`: Bảo vệ thao tác insert câu trả lời trống và điều hướng revalidation.
-  - `supabase/migrations/20261024_teacher_grading_permissions.sql`: Cấp quyền và RLS policy toàn diện cho giảng viên quản lý điểm số trên `student_answer_grades`, `attempt_results`, `exam_attempts`, và `student_answers`.
+- [x] **Phase 16 (Commit `5e3bc5d` & `5135d7e`)**: Khắc phục Minified React Error #441 (Cơ chế fallback Supabase Admin & Gỡ bỏ Suspense dư thừa)
+  - `lib/supabase/admin.ts`: Thêm graceful fallback sang `NEXT_PUBLIC_SUPABASE_ANON_KEY` nếu thiếu `SUPABASE_SERVICE_ROLE_KEY`.
+  - `lib/teacher-grading.ts`: Chuyển đổi linh hoạt `process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : supabase`.
+  - `app/teacher/grading/[attemptId]/page.tsx`: Gỡ bỏ thẻ `<Suspense>` dư thừa quanh `<EssayGradingClient>`.
+  - `supabase/migrations/20261024_teacher_grading_permissions.sql`: Cấp quyền RLS cho giảng viên trên `student_answer_grades`, `attempt_results`, `exam_attempts`.
+- [x] **Phase 17 (Commit `pending`)**: Xử lý triệt để nguyên nhân sâu xa của React Error #441 (Loại bỏ RevalidatePath chéo vai trò & Chuẩn hóa RLS Profiles)
+  - `app/teacher/grading/[attemptId]/actions.ts`: Gỡ bỏ toàn bộ lệnh `revalidatePath('/student/dashboard')` và `revalidatePath('/student/exams/...')`. Các route này có logic kiểm tra quyền sinh viên (`role !== 'student' -> redirect('/subjects')`), khi Next.js revalidate chúng dưới phiên giáo viên sẽ ném `NEXT_REDIRECT` làm sập luồng RSC flight response (chính là nguồn gốc phát sinh Error #441).
+  - `lib/teacher-grading.ts`: Thay thế `redirect('/teacher/dashboard')` bằng `notFound()` từ `next/navigation` khi không tìm thấy lượt thi, tránh việc ném chuyển hướng bất ngờ trong RSC stream.
+  - `lib/teacher-exam-analytics.ts`: Đồng bộ cơ chế fallback an toàn `process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : supabase`.
+  - `components/teacher/essay-grading-client.tsx`: Bổ sung state `isReleasedLocal` cập nhật huy hiệu "Đã công bố kết quả" ngay lập tức, chuyển đổi thông điệp lỗi thân thiện tiếng Việt nếu gặp sự cố kết nối máy chủ.
+  - `supabase/migrations/20261024_teacher_grading_permissions.sql`: Bổ sung policy `profiles_read_teacher` cho phép giảng viên đọc thông tin họ tên, mã sinh viên khi chấm thi.
 
 ---
 
-## Chi tiết kỹ thuật Phase 16: Khắc phục Minified React Error #441
+## Chi tiết kỹ thuật Phase 17: Bản chất kỹ thuật của lỗi Minified React #441
 
-### 1. Hiện tượng & Bản chất lỗi
-* Người dùng gặp thông báo lỗi:
-  `"Minified React error #441; visit https://react.dev/errors/441 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."`
-* **Giải mã lỗi theo tài liệu React 19**:
-  `"An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error."`
+### 1. Cơ chế kích hoạt lỗi ngầm (Hidden Trigger Mechanism)
+Trong Next.js 15 & 16 (App Router):
+1. Khi Server Action gọi `revalidatePath('/student/dashboard')` hoặc `revalidatePath('/student/exams/[examId]')`: Next.js không chỉ xóa cache mà còn lên lịch re-render các route này ngay trong luồng HTTP Response của Server Action.
+2. Các route của sinh viên (`/student/dashboard`) có guard:
+   ```ts
+   if (roleError || roleRecord?.role !== 'student') redirect('/subjects');
+   ```
+3. Vì Server Action đang được gọi bởi **Giảng viên** (`role === 'teacher'`), component sinh viên kiểm tra thấy `role !== 'student'` và gọi `redirect('/subjects')`.
+4. Trong Next.js, `redirect()` hoạt động bằng cách ném ngoại lệ nội bộ `NEXT_REDIRECT`.
+5. Khi ngoại lệ `NEXT_REDIRECT` bị ném ra trong quá trình revalidate một route khác của Server Action, giao thức Flight của React Server Actions bị phá vỡ (aborted), và trong bản build production, React mã hóa sự cố này thành **Minified React Error #441**.
+6. Client nhận được rejection từ Server Action và hiển thị Error #441 lên màn hình.
 
-### 2. Chuỗi kích hoạt (Trigger Chain)
-1. Người dùng bấm "Lưu tạm điểm" hoặc "Chốt điểm & Công bố kết quả" -> gọi `saveEssayGradesAction`.
-2. Trong Server Action, khi `revalidatePath('/teacher/grading/[attemptId]')` được kích hoạt, Next.js tiến hành re-render Server Component `TeacherGradingPage` trên máy chủ để trả về payload RSC cập nhật.
-3. Trong `TeacherGradingPage`, hàm `getTeacherGradingData` gọi `createAdminClient()`.
-4. Trong `lib/supabase/admin.ts`, nếu biến môi trường `SUPABASE_SERVICE_ROLE_KEY` không có trong môi trường runtime, `createAdminClient()` ném ra `throw new Error('Missing server-side Supabase admin configuration.')`.
-5. Ngoại lệ này xảy ra ngay trong luồng render Server Component, dẫn đến việc React 19 production mã hóa nó thành `Minified React error #441` và trả về client dưới dạng Promise rejection.
-
-### 3. Biện pháp đã thực hiện
-1. **Fallback an toàn trong `lib/supabase/admin.ts`**: Fallback sang `NEXT_PUBLIC_SUPABASE_ANON_KEY` khi không có `SUPABASE_SERVICE_ROLE_KEY`.
-2. **Ưu tiên client có phiên trong `lib/teacher-grading.ts`**: Chỉ dùng `createAdminClient()` khi có service key, còn lại dùng `supabase` mang JWT của giáo viên đang đăng nhập.
-3. **Loại bỏ Suspense dư thừa**: Tinh gọn cây Server Component tại `app/teacher/grading/[attemptId]/page.tsx`.
-4. **Cập nhật SQL Migration**: Cung cấp `supabase/migrations/20261024_teacher_grading_permissions.sql` mở toàn diện quyền RLS cho giáo viên khi chấm điểm.
+### 2. Giải pháp khắc phục
+* **Nguyên tắc phân lập ngữ cảnh**: Server Action của giảng viên chỉ revalidate các trang thuộc ngữ cảnh của giảng viên (`/teacher/grading`), tuyệt đối không revalidate các trang của sinh viên có guard redirect.
+* **Cập nhật Client UI tức thì**: Sử dụng local state `isReleasedLocal` và `router.refresh()` cục bộ để cập nhật giao diện ngay lập tức mà không cần phụ thuộc vào flight revalidation chéo route.

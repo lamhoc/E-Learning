@@ -85,7 +85,7 @@ export async function getTeacherExamAnalytics(examId: string): Promise<TeacherEx
 
   const teacherName = teacherProfile?.full_name ?? user.email ?? 'Giảng viên';
 
-  const adminClient = createAdminClient();
+  const adminClient = process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : supabase;
 
   // 1. Lấy thông tin chi tiết đề thi
   const { data: examRecord, error: examError } = await adminClient

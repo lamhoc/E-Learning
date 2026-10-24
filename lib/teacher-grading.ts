@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { redirect } from 'next/navigation';
+import { redirect, notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
@@ -113,7 +113,7 @@ export async function getTeacherGradingData(attemptId: string): Promise<TeacherG
 
   if (attemptError || !attempt) {
     console.error('Failed to load attempt for grading:', attemptError);
-    redirect('/teacher/dashboard');
+    notFound();
   }
 
   const examRecord = Array.isArray(attempt.exam) ? attempt.exam[0] : attempt.exam;

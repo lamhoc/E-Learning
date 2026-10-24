@@ -249,13 +249,11 @@ export async function saveEssayGradesAction(
       }
     }
 
+    // Chỉ revalidate các trang quản lý của giáo viên
+    // Tuyệt đối không gọi revalidatePath('/student/dashboard') hay route của sinh viên
+    // vì khi Next.js re-render chúng dưới phiên giáo viên sẽ kích hoạt redirect() làm sập luồng Server Action (Error #441).
     try {
-      revalidatePath(`/teacher/grading/${attemptId}`);
       revalidatePath('/teacher/grading');
-      revalidatePath('/teacher/dashboard');
-      revalidatePath(`/teacher/exams/${examId}`);
-      revalidatePath(`/student/exams/${examId}`);
-      revalidatePath('/student/dashboard');
     } catch (revalErr) {
       console.warn('Revalidation warning:', revalErr);
     }

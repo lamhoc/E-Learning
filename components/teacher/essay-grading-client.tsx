@@ -113,6 +113,7 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
 
   const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [isReleasedLocal, setIsReleasedLocal] = useState<boolean>(Boolean(data.releasedAt));
 
   // Tính tổng điểm phần tự luận đang chấm
   const currentEssayAwardedScore = useMemo(() => {
@@ -168,6 +169,10 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
 
       if (res && res.status === 'success') {
         setToastMsg({ type: 'success', text: res.message });
+        setServerError(null);
+        if (res.isReleased) {
+          setIsReleasedLocal(true);
+        }
         startTransition(() => {
           router.refresh();
         });
@@ -178,15 +183,18 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
       }
     } catch (err: unknown) {
       console.error('Lỗi khi lưu điểm:', err);
-      const errorMsg =
-        err instanceof Error ? err.message : 'Đã có lỗi bất ngờ xảy ra khi lưu điểm.';
+      const rawMsg = err instanceof Error ? err.message : '';
+      const isReact441 = rawMsg.includes('441') || rawMsg.includes('Server Components render');
+      const errorMsg = isReact441
+        ? 'Dữ liệu đã được tiếp nhận nhưng việc đồng bộ giao diện gặp trục trặc (Lỗi render RSC #441). Vui lòng tải lại trang để kiểm tra kết quả.'
+        : rawMsg || 'Đã có lỗi bất ngờ xảy ra khi lưu điểm.';
       setServerError(errorMsg);
       setToastMsg({ type: 'error', text: errorMsg });
     }
   };
 
   const getStatusBadge = () => {
-    if (data.releasedAt) {
+    if (isReleasedLocal || data.releasedAt) {
       return (
         <Badge className="border-emerald-200 bg-emerald-50 text-emerald-800 text-xs font-semibold">
           <CheckCircle2 className="size-3.5 mr-1" /> Đã công bố kết quả

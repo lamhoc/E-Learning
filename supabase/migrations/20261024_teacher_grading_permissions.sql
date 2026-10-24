@@ -4,6 +4,16 @@ GRANT INSERT, UPDATE, DELETE ON public.attempt_results TO authenticated;
 GRANT UPDATE ON public.exam_attempts TO authenticated;
 GRANT INSERT, UPDATE ON public.student_answers TO authenticated;
 
+-- Policies cho profiles: cho phép giảng viên đọc thông tin họ tên, mã sinh viên khi chấm thi
+DROP POLICY IF EXISTS profiles_read_teacher ON public.profiles;
+CREATE POLICY profiles_read_teacher ON public.profiles
+  FOR SELECT TO authenticated
+  USING (
+    id = (SELECT auth.uid())
+    OR public.has_role('admin')
+    OR public.has_role('teacher')
+  );
+
 -- Policies cho student_answers (cho phép giảng viên tạo bản ghi câu trả lời nếu thí sinh chưa tạo nhằm đáp ứng foreign key student_answer_grades)
 DROP POLICY IF EXISTS answers_staff_manage ON public.student_answers;
 CREATE POLICY answers_staff_manage ON public.student_answers
