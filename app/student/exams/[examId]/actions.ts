@@ -344,3 +344,81 @@ export async function submitExamAttemptAction(
     isFullyGraded: !hasEssay,
   };
 }
+
+export type LogViolationResult = {
+  status: 'success' | 'error';
+  message: string;
+};
+
+/**
+ * Server Action ghi nhận vi phạm rời khỏi tab thi (hoặc mất focus) của sinh viên.
+ */
+export async function logExamTabViolationAction(
+  attemptId: string,
+  examId: string,
+  violationCount: number,
+  reason: string = 'tab_switch',
+): Promise<LogViolationResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { status: 'error', message: 'Phiên đăng nhập đã hết hạn.' };
+  }
+
+  const adminClient = createAdminClient();
+
+  // 1. Kiểm tra lượt thi có thuộc sinh viên và đang in_progress không
+  const { data: attempt, error: attemptError } = await adminClient
+    .from('exam_attempts')
+    .select('id, student_id, exam_id, status')
+    .eq('id', attemptId)
+    .eq('student_id', user.id)
+    .eq('exam_id', examId)
+    .maybeSingle();
+
+  if (attemptError || !attempt || attempt.status !== 'in_progress') {
+    return { status: 'error', message: 'Lượt thi không khả dụng để ghi log.' };
+  }
+
+  // 2. Thử ghi log vào bảng chuyên trách exam_proctoring_logs
+  try {
+    await adminClient.from('exam_proctoring_logs').insert({
+      attempt_id: attemptId,
+      exam_id: examId,
+      student_id: user.id,
+      violation_type: reason,
+      switch_count: violationCount,
+      details: {
+        timestamp: new Date().toISOString(),
+      },
+    });
+  } catch (logErr) {
+    console.warn('Could not insert into exam_proctoring_logs, continuing with notification fallback:', logErr);
+  }
+
+  // 3. Ghi log bổ sung vào bảng notifications để đảm bảo luôn lưu vết bền vững
+  try {
+    await adminClient.from('notifications').insert({
+      user_id: user.id,
+      title: 'Cảnh báo vi phạm quy chế thi',
+      message: `Thí sinh đã rời khỏi tab làm bài lần thứ ${violationCount} (Lý do: ${reason}).`,
+      data: {
+        type: 'exam_proctoring_violation',
+        attempt_id: attemptId,
+        exam_id: examId,
+        student_id: user.id,
+        switch_count: violationCount,
+        violated_at: new Date().toISOString(),
+      },
+    });
+  } catch (notifErr) {
+    console.warn('Could not record violation notification:', notifErr);
+  }
+
+  return { status: 'success', message: 'Đã lưu log vi phạm thành công.' };
+}
+

@@ -12,12 +12,27 @@ import {
   HelpCircle,
   LoaderCircle,
   Send,
+  ShieldAlert,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { MathText } from '@/components/ui/math-text';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  DEFAULT_MAX_TAB_SWITCHES,
+  useTabSwitchDetection,
+} from '@/hooks/use-tab-switch-detection';
+import {
+  logExamTabViolationAction,
   saveStudentAnswerAction,
   submitExamAttemptAction,
 } from '@/app/student/exams/[examId]/actions';
@@ -62,6 +77,15 @@ export function ExamTakingClient({
     return Math.max(0, ends - Date.now());
   });
 
+  const handleForceSubmit = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    await submitExamAttemptAction(activeAttempt.id, exam.id);
+    startTransition(() => {
+      router.refresh();
+    });
+  };
+
   // Timer Tick & Auto-submit on Expiry
   useEffect(() => {
     const interval = setInterval(() => {
@@ -78,7 +102,8 @@ export function ExamTakingClient({
     return () => clearInterval(interval);
   }, [activeAttempt.ends_at]);
 
-  const handleForceSubmit = async () => {
+  // Tab switch detection & Proctoring
+  const handleAutoSubmitOnTabViolation = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
     await submitExamAttemptAction(activeAttempt.id, exam.id);
@@ -86,6 +111,25 @@ export function ExamTakingClient({
       router.refresh();
     });
   };
+
+  const handleTabViolationLog = async (violationCount: number) => {
+    await logExamTabViolationAction(activeAttempt.id, exam.id, violationCount, 'tab_switch');
+  };
+
+  const {
+    tabSwitchCount,
+    isWarningOpen,
+    isTerminated,
+    remainingChances,
+    maxViolations,
+    dismissWarning,
+  } = useTabSwitchDetection({
+    maxViolations: DEFAULT_MAX_TAB_SWITCHES,
+    onAutoSubmit: handleAutoSubmitOnTabViolation,
+    onViolation: handleTabViolationLog,
+    enabled: !isSubmitting,
+    initialCount: activeAttempt.tabSwitchCount ?? 0,
+  });
 
   const handleSelectOption = async (questionId: string, optionKey: 'A' | 'B' | 'C' | 'D') => {
     // Optimistic local update
@@ -217,6 +261,21 @@ export function ExamTakingClient({
               )}
             </div>
 
+            {/* Tab Switch Violation Indicator */}
+            {tabSwitchCount > 0 && (
+              <div
+                className={`hidden items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-bold transition sm:flex ${
+                  tabSwitchCount >= maxViolations
+                    ? 'border border-red-300 bg-red-100 text-red-700 animate-pulse'
+                    : 'border border-amber-200 bg-amber-50 text-amber-800'
+                }`}
+                title={`Đã rời khỏi tab bài thi ${tabSwitchCount}/${maxViolations} lần`}
+              >
+                <ShieldAlert className="size-3.5 text-amber-600" />
+                <span>Rời tab: {tabSwitchCount}/{maxViolations}</span>
+              </div>
+            )}
+
             {/* Countdown Clock */}
             <div
               className={`flex items-center gap-2 rounded-xl px-3.5 py-1.5 font-mono text-sm font-bold transition shadow-xs ${
@@ -282,47 +341,46 @@ export function ExamTakingClient({
                         >
                           {idx + 1}
                         </span>
-                        <span className="text-xs font-semibold text-slate-500">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                           {isMC ? 'Trắc nghiệm' : 'Tự luận'}
                         </span>
                       </div>
-                      <Badge variant="outline" className="text-xs font-medium text-slate-500">
+                      <Badge variant="outline" className="border-slate-200 text-slate-600 font-semibold text-xs">
                         {q.points} điểm
                       </Badge>
                     </div>
 
-                    {/* Question Body */}
+                    {/* Question Body with KaTeX */}
                     <div className="text-sm font-medium leading-relaxed text-slate-900 sm:text-base">
                       <MathText content={q.question_text} />
                     </div>
 
-                    {/* Multiple Choice Options */}
-                    {isMC && q.options && (
-                      <div className="grid gap-2.5 sm:grid-cols-2 pt-1">
+                    {/* Options (Multiple Choice) */}
+                    {isMC && q.options && q.options.length > 0 && (
+                      <div className="mt-4 space-y-2.5">
                         {q.options.map((opt) => {
                           const isSelected = currentAns?.selected_option === opt.key;
-
                           return (
                             <button
                               key={opt.key}
                               type="button"
                               onClick={() => handleSelectOption(q.id, opt.key)}
-                              className={`flex items-start gap-3 rounded-xl border p-3.5 text-left text-xs transition select-none sm:text-sm ${
+                              className={`flex w-full items-start gap-3 rounded-xl border p-3.5 text-left text-sm transition ${
                                 isSelected
-                                  ? 'border-emerald-600 bg-emerald-50/80 text-emerald-950 ring-1 ring-emerald-500 shadow-2xs'
-                                  : 'border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50'
+                                  ? 'border-emerald-600 bg-emerald-50/70 text-emerald-950 font-medium ring-1 ring-emerald-600 shadow-2xs'
+                                  : 'border-slate-200 bg-slate-50/50 text-slate-700 hover:border-slate-300 hover:bg-slate-100/70'
                               }`}
                             >
                               <span
-                                className={`flex size-6 shrink-0 items-center justify-center rounded-full font-bold transition ${
+                                className={`flex size-6 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
                                   isSelected
                                     ? 'bg-emerald-600 text-white'
-                                    : 'bg-slate-100 text-slate-600'
+                                    : 'border border-slate-300 bg-white text-slate-700'
                                 }`}
                               >
                                 {opt.key}
                               </span>
-                              <div className="min-w-0 flex-1 leading-relaxed">
+                              <div className="flex-1 pt-0.5 leading-normal">
                                 <MathText content={opt.text} />
                               </div>
                             </button>
@@ -331,20 +389,24 @@ export function ExamTakingClient({
                       </div>
                     )}
 
-                    {/* Essay Answer Textarea */}
+                    {/* Essay Text Area */}
                     {!isMC && (
-                      <div className="space-y-1.5 pt-1">
-                        <label className="text-xs font-semibold text-slate-600">
-                          Bài giải của bạn (tự động lưu khi rời ô nhập):
+                      <div className="mt-4 space-y-2">
+                        <label className="block text-xs font-semibold text-slate-700">
+                          Bài làm tự luận của bạn:
                         </label>
                         <textarea
                           rows={6}
                           value={currentAns?.answer_text || ''}
                           onChange={(e) => handleEssayChange(q.id, e.target.value)}
                           onBlur={() => handleEssayBlur(q.id)}
-                          placeholder="Nhập nội dung trình bày bài giải của bạn tại đây..."
-                          className="w-full rounded-xl border border-slate-200 bg-slate-50/50 p-3.5 text-sm text-slate-900 focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          placeholder="Nhập nội dung bài làm hoặc các bước giải toán tại đây (hỗ trợ $công thức$ nếu cần)..."
+                          className="w-full rounded-xl border border-slate-200 bg-white p-3.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 shadow-2xs"
                         />
+                        <div className="flex items-center justify-between text-[11px] text-slate-400">
+                          <span>Dữ liệu được tự động lưu khi bạn rời khỏi ô nhập liệu (blur).</span>
+                          <span>{(currentAns?.answer_text || '').length} ký tự</span>
+                        </div>
                       </div>
                     )}
                   </CardContent>
@@ -432,7 +494,7 @@ export function ExamTakingClient({
         </div>
       </div>
 
-      {/* Submit Confirmation Dialog */}
+      {/* Manual Submit Confirmation Dialog */}
       {isSubmitModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-in fade-in">
           <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
@@ -495,6 +557,84 @@ export function ExamTakingClient({
           </div>
         </div>
       )}
+
+      {/* Proctoring Tab Switch Alert Dialog */}
+      <AlertDialog open={isWarningOpen} onOpenChange={dismissWarning}>
+        <AlertDialogContent className="border-red-200 max-w-lg">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <span
+                className={`grid size-11 shrink-0 place-items-center rounded-2xl ${
+                  isTerminated
+                    ? 'bg-red-600 text-white animate-bounce'
+                    : 'bg-red-100 text-red-700'
+                }`}
+              >
+                <ShieldAlert className="size-6" />
+              </span>
+              <div>
+                <AlertDialogTitle className={isTerminated ? 'text-red-700 font-bold' : 'text-slate-900 font-bold'}>
+                  {isTerminated
+                    ? 'Đình chỉ làm bài do vi phạm quy chế'
+                    : 'Cảnh báo: Phát hiện rời khỏi tab bài thi!'}
+                </AlertDialogTitle>
+                <p className="text-xs text-slate-500">
+                  {isTerminated
+                    ? 'Hệ thống đã tự động khóa và nộp bài làm của bạn'
+                    : 'Hệ thống giám sát thi cử trực tuyến tự động'}
+                </p>
+              </div>
+            </div>
+
+            <AlertDialogDescription className="mt-3 text-slate-700">
+              {isTerminated ? (
+                <div className="space-y-2">
+                  <p className="font-semibold text-red-700">
+                    Bạn đã chuyển tab / rời khỏi màn hình bài thi quá {maxViolations} lần cho phép.
+                  </p>
+                  <p className="text-xs text-slate-600">
+                    Theo quy chế thi, bài làm của bạn đang được hệ thống <strong>tự động nộp ngay lập tức</strong>. Toàn bộ số lần vi phạm đã được lưu vết vào cơ sở dữ liệu để giáo viên đối chiếu khi chấm bài.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p>
+                    Hệ thống ghi nhận bạn vừa chuyển sang ứng dụng khác hoặc tab khác trong lúc đang làm bài thi.
+                  </p>
+                  <div className="rounded-xl border border-amber-200 bg-amber-50/90 p-3.5 text-xs">
+                    <div className="flex justify-between font-bold text-amber-950">
+                      <span>Số lần vi phạm đã ghi nhận:</span>
+                      <span className="text-red-600 font-extrabold">{tabSwitchCount} / {maxViolations} lần</span>
+                    </div>
+                    <div className="mt-1.5 text-amber-900">
+                      Bạn chỉ còn <strong>{remainingChances}</strong> cơ hội trước khi bài thi bị <strong>TỰ ĐỘNG NỘP BẮT BUỘC</strong> và kết thúc phiên làm bài!
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-500 italic">
+                    Vui lòng tập trung cao độ, giữ nguyên màn hình bài thi và không mở các cửa sổ tra cứu tài liệu.
+                  </p>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            {isTerminated ? (
+              <div className="flex items-center gap-2 text-xs font-semibold text-red-700">
+                <LoaderCircle className="size-4 animate-spin" />
+                <span>Đang tự động nộp bài thi lên hệ thống...</span>
+              </div>
+            ) : (
+              <AlertDialogAction
+                onClick={dismissWarning}
+                className="w-full bg-emerald-700 text-white hover:bg-emerald-800 sm:w-auto"
+              >
+                Tôi đã hiểu và cam kết tập trung
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -58,6 +58,10 @@ export type TeacherGradingPageData = {
   essayMaxScore: number;
   currentTotalScore: number | null;
   releasedAt: string | null;
+  proctoring?: {
+    tabSwitchCount: number;
+    hasViolations: boolean;
+  };
 };
 
 export async function getTeacherGradingData(attemptId: string): Promise<TeacherGradingPageData> {
@@ -214,6 +218,47 @@ export async function getTeacherGradingData(attemptId: string): Promise<TeacherG
     }
   }
 
+  // 6. Proctoring logs
+  let proctoring = {
+    tabSwitchCount: 0,
+    hasViolations: false,
+  };
+
+  try {
+    const { data: procLogs } = await adminClient
+      .from('exam_proctoring_logs')
+      .select('switch_count')
+      .eq('attempt_id', attemptId)
+      .order('switch_count', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (procLogs && typeof procLogs === 'object' && 'switch_count' in procLogs && procLogs.switch_count) {
+      const count = Number(procLogs.switch_count);
+      proctoring = {
+        tabSwitchCount: count,
+        hasViolations: count > 0,
+      };
+    } else {
+      const { data: notifs } = await adminClient
+        .from('notifications')
+        .select('data')
+        .eq('data->>type', 'exam_proctoring_violation')
+        .eq('data->>attempt_id', attemptId);
+
+      if (notifs && notifs.length > 0) {
+        const counts = notifs.map((n) => Number((n.data as Record<string, unknown>)?.switch_count || 1));
+        const maxCount = Math.max(...counts, 0);
+        proctoring = {
+          tabSwitchCount: maxCount,
+          hasViolations: maxCount > 0,
+        };
+      }
+    }
+  } catch (procErr) {
+    console.warn('Could not read proctoring logs:', procErr);
+  }
+
   return {
     attemptId: attempt.id,
     examId: attempt.exam_id,
@@ -241,6 +286,7 @@ export async function getTeacherGradingData(attemptId: string): Promise<TeacherG
     essayMaxScore,
     currentTotalScore: result ? Number(result.total_score) : null,
     releasedAt: result?.released_at ?? null,
+    proctoring,
   };
 }
 

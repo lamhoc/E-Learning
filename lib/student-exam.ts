@@ -51,6 +51,7 @@ export type ActiveAttemptData = {
   ends_at: string;
   status: 'in_progress';
   savedAnswers: Record<string, { selected_option?: 'A' | 'B' | 'C' | 'D' | null; answer_text?: string | null }>;
+  tabSwitchCount?: number;
 };
 
 export type StudentExamPageData = {
@@ -212,6 +213,7 @@ export async function getStudentExamPageData(examId: string): Promise<StudentExa
       ends_at: currentActive.ends_at,
       status: 'in_progress',
       savedAnswers: savedMap,
+      tabSwitchCount: 0,
     };
   }
 

@@ -23,6 +23,7 @@ import {
   LoaderCircle,
   Save,
   Send,
+  ShieldAlert,
   Sparkles,
   Trophy,
   User,
@@ -319,6 +320,28 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Proctoring Warning Banner if Student Switched Tabs */}
+      {data.proctoring?.hasViolations && (
+        <div className="flex items-start gap-3.5 rounded-2xl border border-red-200 bg-red-50/90 p-4 text-red-950 shadow-xs">
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-red-100 text-red-700">
+            <ShieldAlert className="size-5" />
+          </span>
+          <div className="min-w-0 flex-1 space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h4 className="text-sm font-bold text-red-900">
+                Cảnh báo giám thị AI: Thí sinh đã rời khỏi tab bài thi {data.proctoring.tabSwitchCount} lần!
+              </h4>
+              <Badge className="border-red-300 bg-red-100 text-red-800 text-[10px] font-bold">
+                {data.proctoring.tabSwitchCount >= 3 ? 'Đã quá ngưỡng (Auto-submit)' : 'Cần lưu ý khi chấm'}
+              </Badge>
+            </div>
+            <p className="text-xs text-red-700 leading-relaxed">
+              Hệ thống ghi nhận thí sinh đã chuyển đổi tab hoặc mở ứng dụng khác {data.proctoring.tabSwitchCount} lần trong lúc làm bài. Thầy/cô vui lòng đối chiếu kỹ lời giải tự luận với đáp án mẫu để phát hiện nghi vấn gian lận hoặc sao chép.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ESSAY QUESTIONS LIST (SPLIT VIEW) */}
       <div className="space-y-6">
