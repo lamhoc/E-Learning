@@ -1,6 +1,5 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -249,14 +248,9 @@ export async function saveEssayGradesAction(
       }
     }
 
-    // Chỉ revalidate các trang quản lý của giáo viên
-    // Tuyệt đối không gọi revalidatePath('/student/dashboard') hay route của sinh viên
-    // vì khi Next.js re-render chúng dưới phiên giáo viên sẽ kích hoạt redirect() làm sập luồng Server Action (Error #441).
-    try {
-      revalidatePath('/teacher/grading');
-    } catch (revalErr) {
-      console.warn('Revalidation warning:', revalErr);
-    }
+    // Trả về kết quả JSON trực tiếp, không gọi revalidatePath để tránh kích hoạt
+    // luồng re-render Server Component của Next.js có thể gây lỗi Minified React Error #441.
+    // Client component sẽ nhận JSON và cập nhật trạng thái UI mượt mà.
 
     return {
       status: 'success',

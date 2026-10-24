@@ -1,6 +1,6 @@
 # Kế hoạch triển khai E-Learning ("Mầm Học")
 
-> **Trạng thái:** Phase 17 hoàn thành - Loại bỏ triệt để xung đột RevalidatePath chéo vai trò gây Error #441, chuẩn hóa RLS Profiles và phản hồi trực quan trên Client.
+> **Trạng thái:** Phase 18 hoàn thành - Loại bỏ hoàn toàn RevalidatePath khỏi Server Action chấm thi, chuyển sang kiến trúc Pure JSON Response không phụ thuộc vào RSC Flight stream.
 > **Cập nhật:** 2026-10-24
 
 ## Trạng thái đã hoàn thành & Lịch sử Commit (`main`)
@@ -82,29 +82,34 @@
   - `lib/teacher-grading.ts`: Chuyển đổi linh hoạt `process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : supabase`.
   - `app/teacher/grading/[attemptId]/page.tsx`: Gỡ bỏ thẻ `<Suspense>` dư thừa quanh `<EssayGradingClient>`.
   - `supabase/migrations/20261024_teacher_grading_permissions.sql`: Cấp quyền RLS cho giảng viên trên `student_answer_grades`, `attempt_results`, `exam_attempts`.
-- [x] **Phase 17 (Commit `fd88b1e`)**: Xử lý triệt để nguyên nhân sâu xa của React Error #441 (Loại bỏ RevalidatePath chéo vai trò & Chuẩn hóa RLS Profiles)
-  - `app/teacher/grading/[attemptId]/actions.ts`: Gỡ bỏ toàn bộ lệnh `revalidatePath('/student/dashboard')` và `revalidatePath('/student/exams/...')`. Các route này có logic kiểm tra quyền sinh viên (`role !== 'student' -> redirect('/subjects')`), khi Next.js revalidate chúng dưới phiên giáo viên sẽ ném `NEXT_REDIRECT` làm sập luồng RSC flight response (chính là nguồn gốc phát sinh Error #441).
-  - `lib/teacher-grading.ts`: Thay thế `redirect('/teacher/dashboard')` bằng `notFound()` từ `next/navigation` khi không tìm thấy lượt thi, tránh việc ném chuyển hướng bất ngờ trong RSC stream.
+- [x] **Phase 17 (Commit `fd88b1e` & `ed959a8`)**: Xử lý triệt để nguyên nhân sâu xa của React Error #441 (Loại bỏ RevalidatePath chéo vai trò & Chuẩn hóa RLS Profiles)
+  - `app/teacher/grading/[attemptId]/actions.ts`: Gỡ bỏ toàn bộ lệnh `revalidatePath('/student/dashboard')` và `revalidatePath('/student/exams/...')`. Các route này có logic kiểm tra quyền sinh viên (`role !== 'student' -> redirect('/subjects')`), khi Next.js revalidate chúng dưới phiên giáo viên sẽ ném `NEXT_REDIRECT` làm sập luồng RSC flight response.
+  - `lib/teacher-grading.ts`: Thay thế `redirect('/teacher/dashboard')` bằng `notFound()` từ `next/navigation` khi không tìm thấy lượt thi.
   - `lib/teacher-exam-analytics.ts`: Đồng bộ cơ chế fallback an toàn `process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : supabase`.
-  - `components/teacher/essay-grading-client.tsx`: Bổ sung state `isReleasedLocal` cập nhật huy hiệu "Đã công bố kết quả" ngay lập tức, chuyển đổi thông điệp lỗi thân thiện tiếng Việt nếu gặp sự cố kết nối máy chủ.
+  - `components/teacher/essay-grading-client.tsx`: Bổ sung state `isReleasedLocal` cập nhật huy hiệu "Đã công bố kết quả" ngay lập tức.
   - `supabase/migrations/20261024_teacher_grading_permissions.sql`: Bổ sung policy `profiles_read_teacher` cho phép giảng viên đọc thông tin họ tên, mã sinh viên khi chấm thi.
+- [x] **Phase 18 (Commit `pending`)**: Chuyển Server Action sang Pure JSON Architecture (Loại bỏ hoàn toàn revalidatePath)
+  - `app/teacher/grading/[attemptId]/actions.ts`: Loại bỏ hoàn toàn `revalidatePath` khỏi `saveEssayGradesAction`. Thay vì bắt Next.js re-render ngầm các Server Component khác trong response flight stream, action chỉ tập trung lưu CSDL an toàn và trả về JSON thuần (`200 OK`).
+  - Phía Client nhận kết quả JSON, hiển thị toast thành công, cập nhật badge ngay lập tức và client-side refresh an toàn mà không sợ lỗi RSC Flight.
 
 ---
 
-## Chi tiết kỹ thuật Phase 17: Bản chất kỹ thuật của lỗi Minified React #441
+## Chi tiết kỹ thuật Phase 18: Pure JSON Server Action Architecture
 
-### 1. Cơ chế kích hoạt lỗi ngầm (Hidden Trigger Mechanism)
-Trong Next.js 15 & 16 (App Router):
-1. Khi Server Action gọi `revalidatePath('/student/dashboard')` hoặc `revalidatePath('/student/exams/[examId]')`: Next.js không chỉ xóa cache mà còn lên lịch re-render các route này ngay trong luồng HTTP Response của Server Action.
-2. Các route của sinh viên (`/student/dashboard`) có guard:
-   ```ts
-   if (roleError || roleRecord?.role !== 'student') redirect('/subjects');
-   ```
-3. Vì Server Action đang được gọi bởi **Giảng viên** (`role === 'teacher'`), component sinh viên kiểm tra thấy `role !== 'student'` và gọi `redirect('/subjects')`.
-4. Trong Next.js, `redirect()` hoạt động bằng cách ném ngoại lệ nội bộ `NEXT_REDIRECT`.
-5. Khi ngoại lệ `NEXT_REDIRECT` bị ném ra trong quá trình revalidate một route khác của Server Action, giao thức Flight của React Server Actions bị phá vỡ (aborted), và trong bản build production, React mã hóa sự cố này thành **Minified React Error #441**.
-6. Client nhận được rejection từ Server Action và hiển thị Error #441 lên màn hình.
+### 1. Tại sao `revalidatePath` là nguyên nhân gây Minified React Error #441?
+Trong Next.js App Router (React 19 Server Actions):
+* Khi một Server Action gọi `revalidatePath(...)`, Next.js **bắt buộc phải thực hiện Server Component Render** của đường dẫn đó ngay trong HTTP Response Stream của Action.
+* Nếu trang được revalidate đó có bất kỳ query nào bị PostgREST từ chối, hoặc có điều kiện redirect, toàn bộ stream của Server Action sẽ bị React 19 abort và chuyển thành **Minified React Error #441**.
+* Vì vậy, Server Action bị đánh dấu là "thất bại" (Promise rejection) mặc dù dữ liệu trong CSDL có thể đã được lưu.
 
-### 2. Giải pháp khắc phục
-* **Nguyên tắc phân lập ngữ cảnh**: Server Action của giảng viên chỉ revalidate các trang thuộc ngữ cảnh của giảng viên (`/teacher/grading`), tuyệt đối không revalidate các trang của sinh viên có guard redirect.
-* **Cập nhật Client UI tức thì**: Sử dụng local state `isReleasedLocal` và `router.refresh()` cục bộ để cập nhật giao diện ngay lập tức mà không cần phụ thuộc vào flight revalidation chéo route.
+### 2. Giải pháp dứt điểm (The Decisive Solution)
+* Gỡ bỏ hoàn toàn `revalidatePath` trong `saveEssayGradesAction`.
+* Server Action thực hiện 100% nhiệm vụ backend: Kiểm tra quyền -> Lưu `student_answer_grades` -> Tính tổng điểm -> Cập nhật `attempt_results` -> Đổi trạng thái `exam_attempts` -> Gửi thông báo -> Trả về JSON sạch:
+  ```json
+  { "status": "success", "message": "...", "newTotalScore": 10, "isReleased": true }
+  ```
+* Phía Client đón nhận kết quả JSON thành công:
+  - Hiển thị Toast thông báo màu xanh lá.
+  - Bật huy hiệu `Đã công bố kết quả` tức thì qua `isReleasedLocal`.
+  - Cập nhật điểm số trực tiếp.
+  - Gọi `router.refresh()` thông qua transition nhẹ nhàng trên client.
