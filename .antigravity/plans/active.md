@@ -82,7 +82,10 @@
 
 ### Nhiệm vụ 1: Màn hình Tạo Đề Thi cho Giáo viên (`/teacher/exams/create`) ✅ ĐÃ HOÀN THÀNH
 
-### Nhiệm vụ 2: Màn hình Chấm thi Tự luận cho Giảng viên (`/teacher/grading/[attemptId]`) ✅ ĐÃ HOÀN THÀNH
+### Nhiệm vụ 2: Màn hình Chấm thi Tự luận cho Giảng viên (`/teacher/grading/[attemptId]`) ✅ ĐÃ NÂNG CẤP REACT HOOK FORM + ZOD
+- Tích hợp `react-hook-form` và `zod` với `@hookform/resolvers/zod` để bắt lỗi nhập điểm (không âm, không vượt quá điểm tối đa của câu hỏi).
+- Cụm nút gán điểm nhanh 0%, 50%, 75%, 100% kết nối trực tiếp với form state và trigger validate Zod.
+- Server Action `saveEssayGradesAction` xác thực Zod schema chặt chẽ, tính tổng điểm và cập nhật `attempt_results.released_at` cùng `status = 'completed'`.
 
 ### Nhiệm vụ 3: Tích hợp Gia sư AI Chữa đề (AI Exam Tutor) ✅ ĐÃ TRIỂN KHAI
 - Nút "Hỏi gia sư AI về bài thi này" trên trang kết quả thi của sinh viên.

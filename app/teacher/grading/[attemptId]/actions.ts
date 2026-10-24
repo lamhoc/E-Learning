@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
@@ -25,11 +26,34 @@ export type SaveEssayGradesResult = {
   isReleased?: boolean;
 };
 
-const uuidPattern = /^[0-9a-f-]{36}$/i;
+// Zod Schema xác thực dữ liệu gửi lên Server Action
+export const gradeItemSchema = z.object({
+  questionId: z.string().uuid('ID câu hỏi không hợp lệ.'),
+  awardedPoints: z.number().min(0, 'Điểm không được là số âm.'),
+  feedback: z.string().max(2000, 'Nhận xét không được quá 2000 ký tự.').nullable().optional(),
+});
+
+export const saveEssayGradesSchema = z.object({
+  attemptId: z.string().uuid('Mã lượt thi không hợp lệ.'),
+  examId: z.string().uuid('Mã đề thi không hợp lệ.'),
+  studentId: z.string().uuid('Mã sinh viên không hợp lệ.'),
+  grades: z.array(gradeItemSchema).min(1, 'Danh sách điểm không được để trống.'),
+  releaseResult: z.boolean(),
+});
 
 export async function saveEssayGradesAction(
-  payload: SaveEssayGradesPayload,
+  payload: SaveEssayGradesPayload
 ): Promise<SaveEssayGradesResult> {
+  // 1. Xác thực schema với Zod trên máy chủ
+  const parseResult = saveEssayGradesSchema.safeParse(payload);
+  if (!parseResult.success) {
+    const errorMsg = parseResult.error.issues.map((i) => i.message).join(', ');
+    return { status: 'error', message: `Dữ liệu không hợp lệ: ${errorMsg}` };
+  }
+
+  const { attemptId, examId, studentId, grades, releaseResult } = parseResult.data;
+
+  // 2. Xác thực phiên đăng nhập & vai trò
   const supabase = await createClient();
   const {
     data: { user },
@@ -50,15 +74,9 @@ export async function saveEssayGradesAction(
     return { status: 'error', message: 'Bạn không có quyền chấm bài thi này.' };
   }
 
-  const { attemptId, examId, studentId, grades, releaseResult } = payload;
-
-  if (!uuidPattern.test(attemptId) || !uuidPattern.test(examId)) {
-    return { status: 'error', message: 'Mã bài thi hoặc lượt thi không hợp lệ.' };
-  }
-
   const adminClient = createAdminClient();
 
-  // 1. Fetch Exam & Questions to validate points limit
+  // 3. Kiểm tra đề thi & điểm tối đa của từng câu hỏi
   const { data: examData } = await adminClient
     .from('exams')
     .select('id, title')
@@ -74,12 +92,9 @@ export async function saveEssayGradesAction(
 
   const maxPointsMap = new Map((examQuestions ?? []).map((q) => [q.id, Number(q.points) || 1]));
 
-  // Validate points range for each essay question
+  // Xác thực điểm không vượt quá điểm tối đa của câu hỏi
   for (const item of grades) {
     const maxPoints = maxPointsMap.get(item.questionId) ?? 10;
-    if (item.awardedPoints < 0) {
-      return { status: 'error', message: 'Điểm số không được là số âm.' };
-    }
     if (item.awardedPoints > maxPoints) {
       return {
         status: 'error',
@@ -91,8 +106,9 @@ export async function saveEssayGradesAction(
   try {
     const nowIso = new Date().toISOString();
 
-    // 2. Ensure each essay question has a row in student_answers (foreign key constraint)
+    // 4. Lưu câu trả lời & điểm số vào student_answer_grades
     for (const item of grades) {
+      // Đảm bảo có bản ghi trong student_answers (khóa ngoại)
       await adminClient
         .from('student_answers')
         .upsert(
@@ -102,10 +118,10 @@ export async function saveEssayGradesAction(
             exam_question_id: item.questionId,
             updated_at: nowIso,
           },
-          { onConflict: 'attempt_id,exam_question_id' },
+          { onConflict: 'attempt_id,exam_question_id' }
         );
 
-      // 3. Upsert into student_answer_grades
+      // Cập nhật/Insert vào bảng student_answer_grades
       const { error: gradeErr } = await adminClient
         .from('student_answer_grades')
         .upsert(
@@ -117,16 +133,16 @@ export async function saveEssayGradesAction(
             graded_by: user.id,
             graded_at: nowIso,
           },
-          { onConflict: 'attempt_id,exam_question_id' },
+          { onConflict: 'attempt_id,exam_question_id' }
         );
 
       if (gradeErr) {
         console.error('Failed to save student_answer_grades:', gradeErr);
-        return { status: 'error', message: 'Lỗi khi lưu điểm câu hỏi tự luận.' };
+        return { status: 'error', message: 'Lỗi khi lưu điểm câu hỏi tự luận vào CSDL.' };
       }
     }
 
-    // 4. Calculate New Total Score from all questions (MC + Essay)
+    // 5. Tính tổng điểm toàn bộ bài thi (Điểm trắc nghiệm + Điểm tự luận)
     const { data: allGrades } = await adminClient
       .from('student_answer_grades')
       .select('awarded_points')
@@ -134,20 +150,18 @@ export async function saveEssayGradesAction(
 
     const totalScore = (allGrades ?? []).reduce(
       (acc, g) => acc + (Number(g.awarded_points) || 0),
-      0,
+      0
     );
     const roundedTotalScore = Math.round(totalScore * 100) / 100;
 
-    // 5. Update or Create attempt_results
+    // 6. Cập nhật kết quả vào attempt_results và set released_at
     const { data: currentResult } = await adminClient
       .from('attempt_results')
       .select('released_at')
       .eq('attempt_id', attemptId)
       .maybeSingle();
 
-    const releasedAtValue = releaseResult
-      ? nowIso
-      : currentResult?.released_at || null;
+    const releasedAtValue = releaseResult ? nowIso : currentResult?.released_at || null;
 
     const { error: resultErr } = await adminClient
       .from('attempt_results')
@@ -159,15 +173,15 @@ export async function saveEssayGradesAction(
           graded_by: user.id,
           updated_at: nowIso,
         },
-        { onConflict: 'attempt_id' },
+        { onConflict: 'attempt_id' }
       );
 
     if (resultErr) {
       console.error('Failed to update attempt_results:', resultErr);
-      return { status: 'error', message: 'Lỗi khi cập nhật tổng điểm bài thi.' };
+      return { status: 'error', message: 'Lỗi khi cập nhật tổng kết quả điểm bài thi.' };
     }
 
-    // 6. Update attempt status if released
+    // 7. Chốt trạng thái bài thi thành 'completed' khi công bố điểm
     if (releaseResult) {
       await adminClient
         .from('exam_attempts')
@@ -176,7 +190,7 @@ export async function saveEssayGradesAction(
         })
         .eq('id', attemptId);
 
-      // 7. Send notification to student
+      // Gửi thông báo đến sinh viên
       try {
         await adminClient.from('notifications').insert({
           user_id: studentId,
@@ -197,8 +211,8 @@ export async function saveEssayGradesAction(
     return {
       status: 'success',
       message: releaseResult
-        ? `Đã chốt điểm và công bố kết quả thành công! Tổng điểm: ${roundedTotalScore} điểm.`
-        : `Đã lưu tạm điểm thành công! Tổng điểm hiện tại: ${roundedTotalScore} điểm.`,
+        ? `Đã chốt điểm và công bố kết quả bài thi thành công! Tổng điểm: ${roundedTotalScore} điểm.`
+        : `Đã lưu tạm điểm số và nhận xét thành công! Tổng điểm hiện tại: ${roundedTotalScore} điểm.`,
       newTotalScore: roundedTotalScore,
       isReleased: Boolean(releasedAtValue),
     };
@@ -210,4 +224,3 @@ export async function saveEssayGradesAction(
     };
   }
 }
-
