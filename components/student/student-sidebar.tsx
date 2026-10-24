@@ -2,6 +2,7 @@ import Link from 'next/link';
 import {
   BookOpen,
   ClipboardList,
+  FileText,
   GraduationCap,
   LayoutDashboard,
   LogOut,
@@ -22,6 +23,7 @@ export function StudentSidebar({ studentName }: { studentName: string }) {
   const navItems = [
     { label: 'Tổng quan', href: '/student/dashboard', icon: LayoutDashboard },
     { label: 'Lớp học', href: '/student/dashboard#classes', icon: BookOpen },
+    { label: 'Tài liệu', href: '/student/dashboard#materials', icon: FileText },
     { label: 'Đề thi', href: '/student/dashboard#exams', icon: ClipboardList },
     { label: 'Gia sư AI', href: '/chat', icon: Sparkles },
   ];

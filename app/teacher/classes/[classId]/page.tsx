@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { ArrowLeft, GraduationCap, Users } from 'lucide-react';
+import { ArrowLeft, FileText, GraduationCap, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -79,9 +79,18 @@ export default async function ClassRosterPage({ params }: ClassRosterPageProps) 
                 {teacher?.full_name ? ` · ${teacher.full_name}` : ''}
               </CardDescription>
             </div>
-            <Badge variant="outline" className="gap-1.5">
-              <Users aria-hidden="true" className="size-3.5" /> {students.length} sinh viên
-            </Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href={`/teacher/classes/${classId}/materials`}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-900 hover:bg-emerald-100 transition shadow-2xs"
+              >
+                <FileText className="size-3.5" />
+                <span>Tài liệu học tập</span>
+              </Link>
+              <Badge variant="outline" className="gap-1.5">
+                <Users aria-hidden="true" className="size-3.5" /> {students.length} sinh viên
+              </Badge>
+            </div>
           </CardHeader>
           <CardContent>
             {rosterError ? (

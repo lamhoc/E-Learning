@@ -7,12 +7,14 @@ import {
   CheckCircle2,
   ClipboardList,
   Clock3,
+  FileText,
   GraduationCap,
   Sparkles,
   Trophy,
 } from 'lucide-react';
 import { StudentSidebar } from '@/components/student/student-sidebar';
 import { NotificationBell } from '@/components/layout/notification-bell';
+import { StudentClassMaterials } from '@/components/student/student-class-materials';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import {
@@ -246,6 +248,10 @@ export default async function StudentDashboardPage() {
                 <BookOpen data-icon="inline-start" />
                 <span className="hidden sm:inline">Lớp học</span>
               </Link>
+              <Link href="#materials" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
+                <FileText data-icon="inline-start" />
+                <span className="hidden sm:inline">Tài liệu</span>
+              </Link>
               <Link href="#exams" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
                 <ClipboardList data-icon="inline-start" />
                 <span className="hidden sm:inline">Đề thi</span>
@@ -416,6 +422,19 @@ export default async function StudentDashboardPage() {
                 Bạn chưa được ghi danh vào lớp nào. Hãy liên hệ giảng viên để nhận mã lớp.
               </EmptyState>
             )}
+          </section>
+
+          {/* Kho Tài liệu & Bài giảng lớp học */}
+          <section id="materials" className="space-y-4 scroll-mt-24">
+            <SectionHeading
+              eyebrow="Tài liệu"
+              title="Tài liệu học tập theo tuần"
+              detail="Slide bài giảng, giáo trình PDF/Word và video học tập của các lớp bạn tham gia"
+            />
+            <StudentClassMaterials
+              classes={data.classes}
+              materials={data.materials}
+            />
           </section>
 
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">

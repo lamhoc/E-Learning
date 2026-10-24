@@ -2,6 +2,7 @@ import 'server-only';
 
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import type { ClassMaterialItem } from '@/lib/class-materials';
 
 type Related<T> = T | T[] | null;
 
@@ -48,6 +49,7 @@ export type StudentDashboardData = {
   studentName: string;
   studentCode: string | null;
   classes: StudentClass[];
+  materials: ClassMaterialItem[];
   openExams: StudentExam[];
   attempts: StudentAttempt[];
   submittedAttemptCount: number;
@@ -142,6 +144,38 @@ export async function getStudentDashboardData(): Promise<StudentDashboardData> {
     return startsAt <= now && now < endsAt;
   });
 
+  const classIds = classes.map((c) => c.id);
+  let materials: ClassMaterialItem[] = [];
+  if (classIds.length > 0) {
+    try {
+      const { data: materialsData } = await supabase
+        .from('class_materials')
+        .select('*')
+        .in('class_id', classIds)
+        .order('week_number', { ascending: true })
+        .order('created_at', { ascending: false });
+
+      if (materialsData) {
+        materials = (materialsData as Record<string, unknown>[]).map((row) => ({
+          id: String(row.id),
+          classId: String(row.class_id),
+          teacherId: String(row.teacher_id),
+          title: String(row.title || 'Tài liệu không tên'),
+          description: row.description ? String(row.description) : null,
+          materialType: (String(row.material_type || 'document') as 'document' | 'video' | 'link'),
+          fileUrl: String(row.file_url || ''),
+          fileName: row.file_name ? String(row.file_name) : null,
+          fileSizeBytes: row.file_size_bytes ? Number(row.file_size_bytes) : null,
+          mimeType: row.mime_type ? String(row.mime_type) : null,
+          weekNumber: Number(row.week_number) || 1,
+          createdAt: String(row.created_at || new Date().toISOString()),
+        }));
+      }
+    } catch {
+      // Table may be empty
+    }
+  }
+
   const errors = [
     profileResult.error,
     membershipsResult.error,
@@ -156,6 +190,7 @@ export async function getStudentDashboardData(): Promise<StudentDashboardData> {
     studentName: profileResult.data?.full_name || user.email || 'Sinh viên',
     studentCode: profileResult.data?.student_code ?? null,
     classes,
+    materials,
     openExams,
     attempts: (attemptsResult.data ?? []) as StudentAttempt[],
     submittedAttemptCount: submittedAttemptsResult.count ?? 0,
