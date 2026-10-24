@@ -9,6 +9,7 @@ import {
   Copy,
   Eye,
   FileQuestion,
+  FileUp,
   Filter,
   LibraryBig,
   LoaderCircle,
@@ -29,6 +30,7 @@ import { Input } from '@/components/ui/input';
 import { MathText } from '@/components/ui/math-text';
 import { QuestionModal } from './question-modal';
 import { AIGeneratorModal } from './ai-generator-modal';
+import { UploadDocumentModal } from './upload-document-modal';
 import { ExamPreviewModal } from './exam-preview-modal';
 import { deleteQuestion } from '@/app/teacher/questions/actions';
 import type { BankQuestion, SubjectSummary } from '@/lib/question-bank';
@@ -54,6 +56,7 @@ export function QuestionManager({
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [questionToEdit, setQuestionToEdit] = useState<BankQuestion | null>(null);
 
@@ -331,6 +334,16 @@ export function QuestionManager({
                 AI Sinh câu hỏi
               </Button>
 
+              {/* Upload Document Button */}
+              <Button
+                onClick={() => setIsUploadModalOpen(true)}
+                variant="outline"
+                className="gap-1.5 border-emerald-600 text-emerald-800 hover:bg-emerald-50"
+              >
+                <FileUp className="size-4 text-emerald-700" />
+                Upload tài liệu (DOCX/PDF)
+              </Button>
+
               {/* Create Question Button */}
               <Button
                 onClick={handleOpenCreate}
@@ -595,6 +608,20 @@ export function QuestionManager({
         <AIGeneratorModal
           isOpen={isAIModalOpen}
           onClose={() => setIsAIModalOpen(false)}
+          subjects={subjects}
+          onSuccess={() => {
+            startTransition(() => {
+              router.refresh();
+            });
+          }}
+        />
+      )}
+
+      {/* Modal for Document Upload (DOCX/PDF) */}
+      {isUploadModalOpen && (
+        <UploadDocumentModal
+          isOpen={isUploadModalOpen}
+          onClose={() => setIsUploadModalOpen(false)}
           subjects={subjects}
           onSuccess={() => {
             startTransition(() => {

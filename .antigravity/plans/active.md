@@ -113,10 +113,15 @@
   - **Mục tiêu 3 (Dynamic Imports Recharts)**: Dùng `next/dynamic` với Skeleton fallback cho `SubmissionChart` và `ExamScoreChart`, loại bỏ ~200KB JS khỏi initial bundle.
   - **Mục tiêu 4 (Tối ưu KaTeX Math Rendering)**: Bọc `React.memo` cho `MathText` trong `components/ui/math-text.tsx` để tránh re-parse công thức toán khi re-render UI.
   - Đã nghiệm thu thành công bằng `npx tsc --noEmit` (0 errors) và `npm run build` (pass 100%, 23/23 routes).
-- [x] **Phase 22 (Đã hoàn thành)**: Đồng bộ layout trang Danh sách môn học vào bộ khung Giảng viên (`/teacher/subjects`)
+- [x] **Phase 22 (Commit `c38723b` & `d233fdd`)**: Đồng bộ layout trang Danh sách môn học vào bộ khung Giảng viên (`/teacher/subjects`)
   - **Mục tiêu 1 (Cấu trúc thư mục & Layout)**: Xây dựng route mới `app/teacher/subjects/page.tsx` và `app/teacher/subjects/loading.tsx`, kế thừa trọn vẹn bộ khung Giảng viên với `TeacherSidebar (activeRoute="subjects")`, Topbar dính với ngày giờ tiếng Việt, NotificationBell, và Container `max-w-[1440px]` đồng bộ với "Chấm bài thi" & "Ngân hàng câu hỏi".
   - **Mục tiêu 2 (Refactor UI trang Môn học)**: Loại bỏ thanh Header cũ (nút đăng xuất/dashboard trùng lặp), thiết kế lại khối danh sách môn học bằng hệ thống Shadcn `Card`, `Badge` hiện đại. Bổ sung Quick Metrics Bar (Môn phụ trách, Lớp đang mở, Câu hỏi trong kho) và thẻ môn học kèm thống kê số lớp, câu hỏi, đề thi và các liên kết nhanh (Kho câu hỏi, Mở thêm lớp).
   - **Mục tiêu 3 (Cập nhật Navigation & Backward Compatibility)**: Cập nhật liên kết trong `TeacherSidebar`, `app/admin/layout.tsx` và `app/teacher/dashboard/page.tsx` trỏ trực tiếp về `/teacher/subjects`. Trang `/subjects` cũ tự động chuyển hướng theo role (Giảng viên/Admin -> `/teacher/subjects`, Sinh viên -> `/student/dashboard`).
+  - Đã nghiệm thu thành công bằng `cmd /c npx tsc --noEmit` (0 errors) và `cmd /c npm run build` (pass 100%, 24/24 routes).
+- [x] **Phase 23 (Đã hoàn thành)**: Tính năng Upload tài liệu (DOCX/PDF) bóc tách câu hỏi hàng loạt & nhận diện đáp án màu đỏ
+  - **Mục tiêu 1 (API Route Handler & Parsing Engine)**: Xây dựng `lib/document-parser.ts` và Route Handler `app/api/questions/upload/route.ts` hỗ trợ nhận file `.docx` và `.pdf`. Đối với DOCX, đọc sâu XML với `jszip` và `mammoth` để phát hiện chính xác các text run có `w:color` màu đỏ (FF0000, C00000, red...). Đối với PDF, trích xuất text qua `unpdf`. Cấu trúc hóa câu hỏi và phương án bằng Groq AI (`openai/gpt-oss-120b`).
+  - **Mục tiêu 2 (UI Upload & Preview Modal)**: Xây dựng component `components/teacher/upload-document-modal.tsx` hỗ trợ kéo thả file, thanh tiến trình loading nhiều giai đoạn. Màn hình Preview cho phép giáo viên kiểm tra, chỉnh sửa nội dung/đáp án (tự động tích chọn ✅ các đáp án màu đỏ) và xóa câu không hợp lệ.
+  - **Mục tiêu 3 (Tích hợp vào Question Manager & Lưu CSDL)**: Thêm nút "Upload tài liệu (DOCX/PDF)" vào thanh công cụ `components/teacher/question-manager.tsx`. Thực hiện batch insert chuẩn xác vào `question_bank`, `question_options`, và `question_answer_keys`.
   - Đã nghiệm thu thành công bằng `cmd /c npx tsc --noEmit` (0 errors) và `cmd /c npm run build` (pass 100%, 24/24 routes).
 
 ---
