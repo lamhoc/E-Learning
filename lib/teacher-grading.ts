@@ -94,8 +94,8 @@ export async function getTeacherGradingData(attemptId: string): Promise<TeacherG
 
   const teacherName = teacherProfile?.full_name ?? user.email ?? 'Giảng viên';
 
-  // Use Admin Client to fetch private exam keys and attempt details
-  const adminClient = createAdminClient();
+  // Use Admin Client if service role key is present, otherwise fall back to authenticated supabase client
+  const adminClient = process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : supabase;
 
   // 1. Fetch Attempt Record
   const { data: attempt, error: attemptError } = await adminClient
@@ -348,7 +348,7 @@ export async function getTeacherGradingQueue(): Promise<TeacherGradingQueueData>
 
   const teacherName = teacherProfile?.full_name ?? user.email ?? 'Giảng viên';
 
-  const adminClient = createAdminClient();
+  const adminClient = process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : supabase;
 
   // 1. Lấy danh sách đề thi do giáo viên này tạo
   const { data: exams, error: examsError } = await adminClient

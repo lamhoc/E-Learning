@@ -42,11 +42,14 @@ export const saveEssayGradesSchema = z.object({
 });
 
 function getDbClient(supabase: Awaited<ReturnType<typeof createClient>>) {
-  try {
-    return createAdminClient();
-  } catch {
-    return supabase;
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      return createAdminClient();
+    } catch {
+      return supabase;
+    }
   }
+  return supabase;
 }
 
 export async function saveEssayGradesAction(
@@ -127,13 +130,16 @@ export async function saveEssayGradesAction(
         .maybeSingle();
 
       if (!existingAnswer) {
-        await dbClient.from('student_answers').insert({
+        const { error: insAnsErr } = await dbClient.from('student_answers').insert({
           attempt_id: attemptId,
           exam_id: examId,
           exam_question_id: item.questionId,
           answer_text: '',
           updated_at: nowIso,
         });
+        if (insAnsErr) {
+          console.warn('Notice inserting blank student_answer:', insAnsErr.message);
+        }
       }
 
       // Cập nhật/Insert vào bảng student_answer_grades

@@ -1,9 +1,7 @@
-import { Suspense } from 'react';
 import { GraduationCap } from 'lucide-react';
 import { getTeacherGradingData } from '@/lib/teacher-grading';
 import { TeacherSidebar } from '@/components/teacher/teacher-sidebar';
 import { EssayGradingClient } from '@/components/teacher/essay-grading-client';
-import { Skeleton } from '@/components/ui/skeleton';
 
 type TeacherGradingPageProps = {
   params: Promise<{
@@ -41,9 +39,7 @@ export default async function TeacherGradingPage({ params }: TeacherGradingPageP
         </header>
 
         <div className="mx-auto max-w-[1440px] px-5 py-6 sm:px-8 lg:px-10">
-          <Suspense fallback={<Skeleton className="h-96 w-full rounded-2xl" />}>
-            <EssayGradingClient data={data} />
-          </Suspense>
+          <EssayGradingClient data={data} />
         </div>
       </div>
     </main>

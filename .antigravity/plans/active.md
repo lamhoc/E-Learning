@@ -1,6 +1,6 @@
 # Kế hoạch triển khai E-Learning ("Mầm Học")
 
-> **Trạng thái:** Phase 15 hoàn thành - Đã sửa lỗi Server Action chấm tự luận, bảo vệ toàn diện luồng lưu điểm, cập nhật đầy đủ mã commit lịch sử và chuẩn bị push code.
+> **Trạng thái:** Phase 16 hoàn thành - Đã xử lý triệt để Minified React Error #441 trong luồng chấm thi tự luận, bổ sung fallback Supabase client an toàn và migration quyền RLS.
 > **Cập nhật:** 2026-10-24
 
 ## Trạng thái đã hoàn thành & Lịch sử Commit (`main`)
@@ -77,35 +77,32 @@
   - `app/teacher/grading/[attemptId]/actions.ts`: Bọc toàn bộ hàm `saveEssayGradesAction` trong khối `try/catch`, thêm hàm trợ lực `getDbClient(supabase)` linh hoạt, sửa logic kiểm tra `student_answers` không ghi đè bài làm, và tính toán chuẩn xác `totalScore = mcAwardedScore + essayScore`.
   - `components/teacher/essay-grading-client.tsx`: Hiển thị thông điệp lỗi chính xác từ `res.message` hoặc `err.message`, xử lý an toàn input rỗng / `NaN`.
   - Đã nghiệm thu bằng `npx tsc --noEmit` (0 lỗi) và `npm run build` (pass 100%).
+- [x] **Phase 16 (Commit `pending`)**: Xử lý triệt để "Minified React Error #441", cơ chế Supabase Admin Fallback an toàn & Migration phân quyền RLS chấm thi
+  - `lib/supabase/admin.ts`: Thêm graceful fallback sang `NEXT_PUBLIC_SUPABASE_ANON_KEY` nếu thiếu `SUPABASE_SERVICE_ROLE_KEY`, tuyệt đối không quăng ngoại lệ làm sập RSC render stream.
+  - `lib/teacher-grading.ts`: Chuyển đổi linh hoạt `process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : supabase` cho cả `getTeacherGradingData` và `getTeacherGradingQueue`.
+  - `app/teacher/grading/[attemptId]/page.tsx`: Gỡ bỏ bọc `<Suspense>` dư thừa quanh `<EssayGradingClient>` giúp đồng bộ rendering React 19 mượt mà.
+  - `app/teacher/grading/[attemptId]/actions.ts`: Bảo vệ thao tác insert câu trả lời trống và điều hướng revalidation.
+  - `supabase/migrations/20261024_teacher_grading_permissions.sql`: Cấp quyền và RLS policy toàn diện cho giảng viên quản lý điểm số trên `student_answer_grades`, `attempt_results`, `exam_attempts`, và `student_answers`.
 
 ---
 
-## Chi tiết kỹ thuật Phase 15 (Commit `cf78d30`)
+## Chi tiết kỹ thuật Phase 16: Khắc phục Minified React Error #441
 
-### Bối cảnh & Hiện tượng lỗi (Bug Description)
-* Khi giáo viên truy cập màn hình chấm tự luận `/teacher/grading/[attemptId]` và nhấn nút **"Lưu tạm điểm"** hoặc **"Chốt điểm & Công bố kết quả"**, giao diện xuất hiện thanh thông báo màu đỏ:
-  `"Đã có lỗi bất ngờ xảy ra khi lưu điểm."`
+### 1. Hiện tượng & Bản chất lỗi
+* Người dùng gặp thông báo lỗi:
+  `"Minified React error #441; visit https://react.dev/errors/441 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."`
+* **Giải mã lỗi theo tài liệu React 19**:
+  `"An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error."`
 
-### Nguyên nhân gốc rễ (Root Cause Analysis)
-1. **Khối bắt lỗi ngoài ý muốn**: Trong `app/teacher/grading/[attemptId]/actions.ts`, toàn bộ phần khởi tạo kiểm tra đăng nhập, `user_roles`, `createAdminClient()`, và truy vấn `exams`/`exam_questions` (dòng 44-105) nằm NGOÀI khối `try/catch`. Khi client admin thiếu cấu hình hoặc gặp ngoại lệ ngoài ý muốn, lỗi unhandled bị Next.js che giấu và ném sang phía client.
-2. **Che giấu lỗi ở Client**: Tại `components/teacher/essay-grading-client.tsx`, khối `catch { ... }` không nhận tham số lỗi `(err)` mà chỉ gán cứng thông báo `'Đã có lỗi bất ngờ xảy ra khi lưu điểm.'`, khiến người dùng và lập trình viên không nhìn thấy chi tiết lỗi thực sự.
-3. **Nguy cơ ghi đè câu trả lời tự luận**: Thao tác `adminClient.from('student_answers').upsert(...)` thiếu trường `answer_text` có thể làm trắng nội dung bài làm tự luận của sinh viên đã nộp.
-4. **Lỗi tính tổng điểm bài thi**: Khi chấm câu tự luận, hàm chỉ tính tổng điểm từ `student_answer_grades` mà bỏ qua điểm trắc nghiệm (vốn được chấm tự động từ `student_answers` so với `exam_answer_keys`), dẫn đến `total_score` bị tính sai (chỉ ra điểm tự luận mà mất điểm trắc nghiệm).
-5. **Cơ chế Fallback Client**: Nếu môi trường runtime chưa nạp kịp `SUPABASE_SERVICE_ROLE_KEY`, `createAdminClient()` sẽ ném lỗi runtime. Cần cơ chế fallback linh hoạt sang client phiên xác thực của giáo viên `createClient()`.
+### 2. Chuỗi kích hoạt (Trigger Chain)
+1. Người dùng bấm "Lưu tạm điểm" hoặc "Chốt điểm & Công bố kết quả" -> gọi `saveEssayGradesAction`.
+2. Trong Server Action, khi `revalidatePath('/teacher/grading/[attemptId]')` được kích hoạt, Next.js tiến hành re-render Server Component `TeacherGradingPage` trên máy chủ để trả về payload RSC cập nhật.
+3. Trong `TeacherGradingPage`, hàm `getTeacherGradingData` gọi `createAdminClient()`.
+4. Trong `lib/supabase/admin.ts`, nếu biến môi trường `SUPABASE_SERVICE_ROLE_KEY` không có trong môi trường runtime, `createAdminClient()` ném ra `throw new Error('Missing server-side Supabase admin configuration.')`.
+5. Ngoại lệ này xảy ra ngay trong luồng render Server Component, dẫn đến việc React 19 production mã hóa nó thành `Minified React error #441` và trả về client dưới dạng Promise rejection.
 
-### Các bước thực thi & Khắc phục đã hoàn thành
-- [x] **Bước 1**: Tái cấu trúc `app/teacher/grading/[attemptId]/actions.ts`:
-  - Bọc toàn bộ logic trong `try / catch`.
-  - Thêm hàm trợ lực `getDbClient(supabase)` linh hoạt dùng `createAdminClient()` hoặc fallback sang `supabase`.
-  - Sửa thao tác với `student_answers`: Chỉ insert bản ghi mới nếu câu trả lời chưa tồn tại, tuyệt đối không ghi đè `answer_text`.
-  - Tính toán tổng điểm chính xác: `mcAwardedScore` (trắc nghiệm) + `essayScore` (tự luận).
-  - Cập nhật an toàn vào `attempt_results`, `exam_attempts` và gửi `notifications`.
-  - Bọc `revalidatePath` trong `try/catch` bảo vệ.
-- [x] **Bước 2**: Nâng cấp `components/teacher/essay-grading-client.tsx`:
-  - Kiểm tra `res && res.status === 'success'` trước khi xử lý.
-  - Hiển thị thông điệp lỗi chính xác từ `res.message` hoặc `err.message`.
-  - Tránh lỗi NaN khi giá trị điểm bị bỏ trống trong input.
-- [x] **Bước 3**: Kiểm tra & Xác minh:
-  - Chạy `npx tsc --noEmit` đạt 0 lỗi.
-  - Chạy `npm run build` đạt 0 lỗi.
-- [x] **Bước 4**: Tạo commit cục bộ và push code lên remote repository.
+### 3. Biện pháp đã thực hiện
+1. **Fallback an toàn trong `lib/supabase/admin.ts`**: Fallback sang `NEXT_PUBLIC_SUPABASE_ANON_KEY` khi không có `SUPABASE_SERVICE_ROLE_KEY`.
+2. **Ưu tiên client có phiên trong `lib/teacher-grading.ts`**: Chỉ dùng `createAdminClient()` khi có service key, còn lại dùng `supabase` mang JWT của giáo viên đang đăng nhập.
+3. **Loại bỏ Suspense dư thừa**: Tinh gọn cây Server Component tại `app/teacher/grading/[attemptId]/page.tsx`.
+4. **Cập nhật SQL Migration**: Cung cấp `supabase/migrations/20261024_teacher_grading_permissions.sql` mở toàn diện quyền RLS cho giáo viên khi chấm điểm.
