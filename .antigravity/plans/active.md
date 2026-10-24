@@ -77,7 +77,7 @@
   - `app/teacher/grading/[attemptId]/actions.ts`: Bọc toàn bộ hàm `saveEssayGradesAction` trong khối `try/catch`, thêm hàm trợ lực `getDbClient(supabase)` linh hoạt, sửa logic kiểm tra `student_answers` không ghi đè bài làm, và tính toán chuẩn xác `totalScore = mcAwardedScore + essayScore`.
   - `components/teacher/essay-grading-client.tsx`: Hiển thị thông điệp lỗi chính xác từ `res.message` hoặc `err.message`, xử lý an toàn input rỗng / `NaN`.
   - Đã nghiệm thu bằng `npx tsc --noEmit` (0 lỗi) và `npm run build` (pass 100%).
-- [x] **Phase 16 (Commit `pending`)**: Xử lý triệt để "Minified React Error #441", cơ chế Supabase Admin Fallback an toàn & Migration phân quyền RLS chấm thi
+- [x] **Phase 16 (Commit `5e3bc5d`)**: Xử lý triệt để "Minified React Error #441", cơ chế Supabase Admin Fallback an toàn & Migration phân quyền RLS chấm thi
   - `lib/supabase/admin.ts`: Thêm graceful fallback sang `NEXT_PUBLIC_SUPABASE_ANON_KEY` nếu thiếu `SUPABASE_SERVICE_ROLE_KEY`, tuyệt đối không quăng ngoại lệ làm sập RSC render stream.
   - `lib/teacher-grading.ts`: Chuyển đổi linh hoạt `process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : supabase` cho cả `getTeacherGradingData` và `getTeacherGradingQueue`.
   - `app/teacher/grading/[attemptId]/page.tsx`: Gỡ bỏ bọc `<Suspense>` dư thừa quanh `<EssayGradingClient>` giúp đồng bộ rendering React 19 mượt mà.
