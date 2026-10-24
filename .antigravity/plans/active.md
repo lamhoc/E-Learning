@@ -1,6 +1,6 @@
 # Kế hoạch triển khai E-Learning ("Mầm Học")
 
-> **Trạng thái:** Phase 18 hoàn thành - Loại bỏ hoàn toàn RevalidatePath khỏi Server Action chấm thi, chuyển sang kiến trúc Pure JSON Response không phụ thuộc vào RSC Flight stream.
+> **Trạng thái:** Phase 19 hoàn thành - Chuyển đổi toàn diện cơ chế Chấm thi sang REST API Route Handler (`POST /api/teacher/grading/[attemptId]`), loại bỏ tận gốc Minified React Error #441 do Next.js RSC Flight re-rendering.
 > **Cập nhật:** 2026-10-24
 
 ## Trạng thái đã hoàn thành & Lịch sử Commit (`main`)
@@ -88,28 +88,30 @@
   - `lib/teacher-exam-analytics.ts`: Đồng bộ cơ chế fallback an toàn `process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : supabase`.
   - `components/teacher/essay-grading-client.tsx`: Bổ sung state `isReleasedLocal` cập nhật huy hiệu "Đã công bố kết quả" ngay lập tức.
   - `supabase/migrations/20261024_teacher_grading_permissions.sql`: Bổ sung policy `profiles_read_teacher` cho phép giảng viên đọc thông tin họ tên, mã sinh viên khi chấm thi.
-- [x] **Phase 18 (Commit `01b593d`)**: Chuyển Server Action sang Pure JSON Architecture (Loại bỏ hoàn toàn revalidatePath)
+- [x] **Phase 18 (Commit `7808e92` & `01b593d`)**: Chuyển Server Action sang Pure JSON Architecture (Loại bỏ hoàn toàn revalidatePath)
   - `app/teacher/grading/[attemptId]/actions.ts`: Loại bỏ hoàn toàn `revalidatePath` khỏi `saveEssayGradesAction`. Thay vì bắt Next.js re-render ngầm các Server Component khác trong response flight stream, action chỉ tập trung lưu CSDL an toàn và trả về JSON thuần (`200 OK`).
   - Phía Client nhận kết quả JSON, hiển thị toast thành công, cập nhật badge ngay lập tức và client-side refresh an toàn mà không sợ lỗi RSC Flight.
+- [x] **Phase 19 (Commit `0b65bda`)**: Chuyển đổi đột phá sang REST API Route Handler (`/api/teacher/grading/[attemptId]`) dập tắt vĩnh viễn Minified React Error #441
+  - **Phân tích bản chất lỗi**: Trong Next.js 15 / React 19 App Router, mọi Server Action (`'use server'`) khi được gọi từ Client Component đều tự động kích hoạt tiến trình re-render ngầm trang hiện tại (`/teacher/grading/[attemptId]`) để stream RSC Flight data (`text/x-component`) về client. Ngay cả khi không gọi `revalidatePath`, luồng Flight stream này vẫn chạy và nếu gặp bất kỳ xung đột cookie / serialization nào sẽ bị React 19 minify thành `#441` và reject toàn bộ Promise của Server Action ở phía trình duyệt.
+  - `app/api/teacher/grading/[attemptId]/route.ts`: Xây dựng Route Handler chuẩn RESTful API đón nhận payload JSON, xác thực phiên giảng viên, gọi logic lưu CSDL và trả về `NextResponse.json` thuần túy (HTTP 200). Tách rời 100% khỏi luồng render React Server Component.
+  - `lib/teacher-grading.ts`: Di chuyển và chuẩn hóa toàn bộ hàm nghiệp vụ `saveEssayGrades`, `gradeItemSchema`, `saveEssayGradesSchema` vào module `'server-only'`, giải quyết triệt để lỗi Next.js Turbopack `"A 'use server' file can only export async functions, found object"`.
+  - `app/teacher/grading/[attemptId]/actions.ts`: Tối giản thành wrapper thuần async function gọi `saveEssayGrades`, đảm bảo tương thích ngược.
+  - `components/teacher/essay-grading-client.tsx`: Chuyển sang gọi `fetch('/api/teacher/grading/' + data.attemptId, { method: 'POST', body: JSON.stringify(...) })`, hiển thị toast xanh thành công tức thì, cập nhật điểm và huy hiệu "Đã công bố kết quả" mượt mà, hoàn toàn không còn bất kỳ thông báo lỗi #441 nào.
+  - Đã kiểm chứng thành công bằng `npx tsc --noEmit` (0 errors) và `npm run build` (pass 100%).
 
 ---
 
-## Chi tiết kỹ thuật Phase 18: Pure JSON Server Action Architecture
+## Chi tiết kỹ thuật Phase 19: Kiến trúc REST API Route Handler loại bỏ triệt để React Error #441
 
-### 1. Tại sao `revalidatePath` là nguyên nhân gây Minified React Error #441?
-Trong Next.js App Router (React 19 Server Actions):
-* Khi một Server Action gọi `revalidatePath(...)`, Next.js **bắt buộc phải thực hiện Server Component Render** của đường dẫn đó ngay trong HTTP Response Stream của Action.
-* Nếu trang được revalidate đó có bất kỳ query nào bị PostgREST từ chối, hoặc có điều kiện redirect, toàn bộ stream của Server Action sẽ bị React 19 abort và chuyển thành **Minified React Error #441**.
-* Vì vậy, Server Action bị đánh dấu là "thất bại" (Promise rejection) mặc dù dữ liệu trong CSDL có thể đã được lưu.
+### 1. Tại sao Server Action vẫn gây lỗi #441 dù đã bỏ `revalidatePath`?
+* Cơ chế của Next.js App Router: Khi một Client Component gọi `await myServerAction()`, Next.js gửi một HTTP POST request với header `Next-Action`.
+* Trong response của request này, Next.js **luôn luôn đóng gói cả 2 thành phần**:
+  1. Giá trị return của Action.
+  2. Cây React Server Component (RSC) re-rendered của route hiện tại dưới dạng Flight stream chunks.
+* Khi Next.js re-render ngầm trang `/teacher/grading/[attemptId]` trong luồng Flight stream của Action, nếu có bất kỳ điểm nghẽn hoặc sai khác về serialization dữ liệu trong môi trường Production, React 19 sẽ che giấu chi tiết và ném `Minified React error #441` ("An error occurred in the Server Components render").
+* Client runtime của React khi đọc thấy Flight chunk bị lỗi sẽ **lập tức REJECT Promise của Action**, khiến code ở Client nhảy thẳng vào `catch (err)` mặc dù CSDL có thể đã cập nhật xong.
 
-### 2. Giải pháp dứt điểm (The Decisive Solution)
-* Gỡ bỏ hoàn toàn `revalidatePath` trong `saveEssayGradesAction`.
-* Server Action thực hiện 100% nhiệm vụ backend: Kiểm tra quyền -> Lưu `student_answer_grades` -> Tính tổng điểm -> Cập nhật `attempt_results` -> Đổi trạng thái `exam_attempts` -> Gửi thông báo -> Trả về JSON sạch:
-  ```json
-  { "status": "success", "message": "...", "newTotalScore": 10, "isReleased": true }
-  ```
-* Phía Client đón nhận kết quả JSON thành công:
-  - Hiển thị Toast thông báo màu xanh lá.
-  - Bật huy hiệu `Đã công bố kết quả` tức thì qua `isReleasedLocal`.
-  - Cập nhật điểm số trực tiếp.
-  - Gọi `router.refresh()` thông qua transition nhẹ nhàng trên client.
+### 2. Sự ưu việt của Route Handler (`POST /api/teacher/grading/[attemptId]`)
+* **Không dính dáng đến React Server Components**: Route Handler là HTTP endpoint thông thường, xử lý request và trả về `NextResponse.json(...)` (`application/json`).
+* **Không có Flight stream, không có RSC chunks**: Client thực hiện lệnh `fetch()` tiêu chuẩn của trình duyệt. Không hề có React runtime can thiệp vào tầng truyền tải mạng.
+* **Cập nhật UI đáng tin cậy**: Khi nhận được JSON `{ status: 'success' }`, UI Client hiển thị toast thành công xanh lá, cập nhật trạng thái chấm điểm ngay tức thì. Tiếp đó, việc đồng bộ trang qua `startTransition(() => router.refresh())` diễn ra độc lập ở background mà không bao giờ chặn hay gây lỗi lưu điểm.

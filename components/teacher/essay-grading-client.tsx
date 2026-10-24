@@ -38,7 +38,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MathText } from '@/components/ui/math-text';
-import { saveEssayGradesAction } from '@/app/teacher/grading/[attemptId]/actions';
 import type { EssayQuestionGradingItem, TeacherGradingPageData } from '@/lib/teacher-grading';
 
 type EssayGradingClientProps = {
@@ -159,15 +158,22 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
     });
 
     try {
-      const res = await saveEssayGradesAction({
-        attemptId: data.attemptId,
-        examId: data.examId,
-        studentId: data.student.id,
-        grades: gradesPayload,
-        releaseResult,
+      const response = await fetch(`/api/teacher/grading/${data.attemptId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          examId: data.examId,
+          studentId: data.student.id,
+          grades: gradesPayload,
+          releaseResult,
+        }),
       });
 
-      if (res && res.status === 'success') {
+      const res = await response.json();
+
+      if (response.ok && res && res.status === 'success') {
         setToastMsg({ type: 'success', text: res.message });
         setServerError(null);
         if (res.isReleased) {
@@ -183,11 +189,7 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
       }
     } catch (err: unknown) {
       console.error('Lỗi khi lưu điểm:', err);
-      const rawMsg = err instanceof Error ? err.message : '';
-      const isReact441 = rawMsg.includes('441') || rawMsg.includes('Server Components render');
-      const errorMsg = isReact441
-        ? 'Dữ liệu đã được tiếp nhận nhưng việc đồng bộ giao diện gặp trục trặc (Lỗi render RSC #441). Vui lòng tải lại trang để kiểm tra kết quả.'
-        : rawMsg || 'Đã có lỗi bất ngờ xảy ra khi lưu điểm.';
+      const errorMsg = err instanceof Error ? err.message : 'Đã có lỗi bất ngờ xảy ra khi lưu điểm.';
       setServerError(errorMsg);
       setToastMsg({ type: 'error', text: errorMsg });
     }
