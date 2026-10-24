@@ -290,3 +290,194 @@ export async function getTeacherGradingData(attemptId: string): Promise<TeacherG
   };
 }
 
+
+
+export type TeacherGradingQueueItem = {
+  attemptId: string;
+  examId: string;
+  attemptNo: number;
+  status: 'pending_grading' | 'completed' | 'in_progress' | 'voided';
+  submittedAt: string | null;
+  studentName: string;
+  studentCode: string | null;
+  examTitle: string;
+  subjectName: string;
+  subjectCode: string;
+  essayCount: number;
+  totalScore: number | null;
+  releasedAt: string | null;
+  tabSwitchCount: number;
+};
+
+export type TeacherGradingQueueData = {
+  teacherName: string;
+  teacherId: string;
+  pendingAttempts: TeacherGradingQueueItem[];
+  completedAttempts: TeacherGradingQueueItem[];
+  totalPendingCount: number;
+  totalCompletedCount: number;
+};
+
+export async function getTeacherGradingQueue(): Promise<TeacherGradingQueueData> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    redirect('/login');
+  }
+
+  const { data: roleRecord, error: roleError } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  const userRole = roleRecord?.role as 'admin' | 'teacher' | 'student' | undefined;
+  if (roleError || !userRole || (userRole !== 'teacher' && userRole !== 'admin')) {
+    redirect('/subjects');
+  }
+
+  const { data: teacherProfile } = await supabase
+    .from('profiles')
+    .select('full_name')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  const teacherName = teacherProfile?.full_name ?? user.email ?? 'Giảng viên';
+
+  const adminClient = createAdminClient();
+
+  // 1. Lấy danh sách đề thi do giáo viên này tạo
+  const { data: exams, error: examsError } = await adminClient
+    .from('exams')
+    .select(`
+      id, title,
+      subject:subjects(name, code),
+      exam_questions(id, question_type)
+    `)
+    .eq('created_by', user.id);
+
+  if (examsError || !exams || exams.length === 0) {
+    return {
+      teacherName,
+      teacherId: user.id,
+      pendingAttempts: [],
+      completedAttempts: [],
+      totalPendingCount: 0,
+      totalCompletedCount: 0,
+    };
+  }
+
+  // Lập bản đồ thông tin đề thi
+  const examMap = new Map<string, {
+    title: string;
+    subjectName: string;
+    subjectCode: string;
+    essayCount: number;
+  }>();
+
+  for (const e of exams) {
+    const questions = e.exam_questions ?? [];
+    const essayCount = questions.filter((q) => q.question_type === 'essay').length;
+    const subj = Array.isArray(e.subject) ? e.subject[0] : e.subject;
+    examMap.set(e.id, {
+      title: e.title,
+      subjectName: subj?.name || 'Môn học',
+      subjectCode: subj?.code || '',
+      essayCount,
+    });
+  }
+
+  const examIds = Array.from(examMap.keys());
+
+  // 2. Lấy tất cả lượt thi của các đề này (pending_grading hoặc completed)
+  const { data: rawAttempts, error: attemptsError } = await adminClient
+    .from('exam_attempts')
+    .select(`
+      id, exam_id, student_id, attempt_no, status, submitted_at,
+      student:profiles!exam_attempts_student_id_fkey(id, full_name, student_code),
+      result:attempt_results(total_score, released_at)
+    `)
+    .in('exam_id', examIds)
+    .in('status', ['pending_grading', 'completed'])
+    .order('submitted_at', { ascending: false });
+
+  if (attemptsError || !rawAttempts) {
+    return {
+      teacherName,
+      teacherId: user.id,
+      pendingAttempts: [],
+      completedAttempts: [],
+      totalPendingCount: 0,
+      totalCompletedCount: 0,
+    };
+  }
+
+  // 3. Lấy thông tin vi phạm tab switch proctoring nếu có
+  const attemptIds = rawAttempts.map((a) => a.id);
+  const proctoringMap = new Map<string, number>();
+
+  if (attemptIds.length > 0) {
+    try {
+      const { data: procLogs } = await adminClient
+        .from('exam_proctoring_logs')
+        .select('attempt_id, switch_count')
+        .in('attempt_id', attemptIds);
+
+      if (procLogs) {
+        for (const log of procLogs) {
+          const current = proctoringMap.get(log.attempt_id) || 0;
+          if (log.switch_count > current) {
+            proctoringMap.set(log.attempt_id, log.switch_count);
+          }
+        }
+      }
+    } catch {
+      // Bỏ qua nếu bảng proctoring logs chưa tồn tại
+    }
+  }
+
+  const pendingAttempts: TeacherGradingQueueItem[] = [];
+  const completedAttempts: TeacherGradingQueueItem[] = [];
+
+  for (const a of rawAttempts) {
+    const examInfo = examMap.get(a.exam_id);
+    const student = Array.isArray(a.student) ? a.student[0] : a.student;
+    const result = Array.isArray(a.result) ? a.result[0] : a.result;
+
+    const item: TeacherGradingQueueItem = {
+      attemptId: a.id,
+      examId: a.exam_id,
+      attemptNo: a.attempt_no,
+      status: a.status as 'pending_grading' | 'completed',
+      submittedAt: a.submitted_at,
+      studentName: student?.full_name || 'Sinh viên',
+      studentCode: student?.student_code || null,
+      examTitle: examInfo?.title || 'Đề thi',
+      subjectName: examInfo?.subjectName || 'Môn học',
+      subjectCode: examInfo?.subjectCode || '',
+      essayCount: examInfo?.essayCount || 0,
+      totalScore: result ? Number(result.total_score) : null,
+      releasedAt: result?.released_at || null,
+      tabSwitchCount: proctoringMap.get(a.id) || 0,
+    };
+
+    if (a.status === 'pending_grading') {
+      pendingAttempts.push(item);
+    } else {
+      completedAttempts.push(item);
+    }
+  }
+
+  return {
+    teacherName,
+    teacherId: user.id,
+    pendingAttempts,
+    completedAttempts,
+    totalPendingCount: pendingAttempts.length,
+    totalCompletedCount: completedAttempts.length,
+  };
+}

@@ -30,6 +30,17 @@ export type SubmissionPoint = {
   submissions: number;
 };
 
+export type PendingGradingItem = {
+  id: string;
+  attemptNo: number;
+  submittedAt: string | null;
+  studentName: string;
+  studentCode: string | null;
+  examId: string;
+  examTitle: string;
+  subjectName: string;
+};
+
 export type TeacherDashboardData = {
   teacherId: string;
   teacherName: string;
@@ -42,6 +53,7 @@ export type TeacherDashboardData = {
   publishedExamCount: number;
   submissionCount: number;
   pendingGradingCount: number;
+  pendingAttempts: PendingGradingItem[];
   submissionsByDay: SubmissionPoint[];
   errorMessage: string | null;
 };
@@ -125,7 +137,7 @@ export async function getTeacherDashboardData(): Promise<TeacherDashboardData> {
   const classIds = classes.map((item) => item.id);
   const examIds = (allExamIdsResult.data ?? []).map((item) => item.id);
 
-  const [membershipResult, submissionsResult, pendingResult, dailyResults] = await Promise.all([
+  const [membershipResult, submissionsResult, pendingResult, pendingListResult, dailyResults] = await Promise.all([
     classIds.length
       ? supabase
           .from('class_memberships')
@@ -146,6 +158,22 @@ export async function getTeacherDashboardData(): Promise<TeacherDashboardData> {
           .in('exam_id', examIds)
           .eq('status', 'pending_grading')
       : Promise.resolve({ count: 0, error: null }),
+    examIds.length
+      ? supabase
+          .from('exam_attempts')
+          .select(`
+            id, attempt_no, submitted_at, exam_id,
+            student:profiles!exam_attempts_student_id_fkey(full_name, student_code),
+            exam:exams!exam_attempts_exam_id_fkey(
+              title,
+              subject:subjects!exams_subject_id_fkey(name)
+            )
+          `)
+          .in('exam_id', examIds)
+          .eq('status', 'pending_grading')
+          .order('submitted_at', { ascending: false })
+          .limit(6)
+      : Promise.resolve({ data: [], error: null }),
     examIds.length
       ? Promise.all(
           getLastSevenDays().map(async ({ start, end, day }) => {
@@ -175,8 +203,25 @@ export async function getTeacherDashboardData(): Promise<TeacherDashboardData> {
     membershipResult.error,
     submissionsResult.error,
     pendingResult.error,
+    pendingListResult.error,
     ...dailyResults.map((item) => item.error),
   ].filter(Boolean);
+
+  const pendingAttempts: PendingGradingItem[] = ((pendingListResult.data ?? []) as any[]).map((row) => {
+    const student = Array.isArray(row.student) ? row.student[0] : row.student;
+    const exam = Array.isArray(row.exam) ? row.exam[0] : row.exam;
+    const subject = exam?.subject ? (Array.isArray(exam.subject) ? exam.subject[0] : exam.subject) : null;
+    return {
+      id: row.id,
+      attemptNo: row.attempt_no,
+      submittedAt: row.submitted_at,
+      studentName: student?.full_name || 'Sinh viên',
+      studentCode: student?.student_code || null,
+      examId: row.exam_id,
+      examTitle: exam?.title || 'Đề thi',
+      subjectName: subject?.name || 'Môn học',
+    };
+  });
 
   return {
     teacherId: user.id,
@@ -190,6 +235,7 @@ export async function getTeacherDashboardData(): Promise<TeacherDashboardData> {
     publishedExamCount: publishedCountResult.count ?? 0,
     submissionCount: submissionsResult.count ?? 0,
     pendingGradingCount: pendingResult.count ?? 0,
+    pendingAttempts,
     submissionsByDay: dailyResults.map(({ day, submissions }) => ({ day, submissions })),
     errorMessage: queryErrors.length ? 'Một số dữ liệu chưa tải được. Hãy kiểm tra RLS và kết nối Supabase.' : null,
   };

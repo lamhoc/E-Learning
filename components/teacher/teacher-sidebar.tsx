@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import {
   BookOpen,
+  FileCheck,
   GraduationCap,
   HelpCircle,
   LayoutDashboard,
@@ -12,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
 type TeacherSidebarProps = {
-  activeRoute: 'dashboard' | 'questions' | 'subjects';
+  activeRoute: 'dashboard' | 'questions' | 'subjects' | 'grading';
   teacherName: string;
 };
 
@@ -31,6 +32,13 @@ export function TeacherSidebar({ activeRoute, teacherName }: TeacherSidebarProps
       href: '/teacher/dashboard',
       icon: LayoutDashboard,
       active: activeRoute === 'dashboard',
+    },
+    {
+      id: 'grading',
+      label: 'Chấm bài thi',
+      href: '/teacher/grading',
+      icon: FileCheck,
+      active: activeRoute === 'grading',
     },
     {
       id: 'questions',

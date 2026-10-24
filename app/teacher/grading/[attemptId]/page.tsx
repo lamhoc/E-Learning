@@ -23,7 +23,7 @@ export default async function TeacherGradingPage({ params }: TeacherGradingPageP
 
   return (
     <main className="min-h-screen bg-[#f3f6f3] text-foreground lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
-      <TeacherSidebar activeRoute="dashboard" teacherName={data.teacherName} />
+      <TeacherSidebar activeRoute="grading" teacherName={data.teacherName} />
 
       <div className="min-w-0">
         <header className="sticky top-0 z-20 border-b border-[#e2e8e2] bg-[#f8faf8]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
@@ -49,4 +49,3 @@ export default async function TeacherGradingPage({ params }: TeacherGradingPageP
     </main>
   );
 }
-

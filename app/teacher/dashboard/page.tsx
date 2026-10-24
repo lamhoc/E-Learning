@@ -8,10 +8,12 @@ import {
   CalendarDays,
   CheckCircle2,
   ClipboardList,
+  FileCheck,
   FileText,
   GraduationCap,
   HelpCircle,
   LibraryBig,
+  PenTool,
   Plus,
   Sparkles,
   Upload,
@@ -139,6 +141,14 @@ function EmptyPanel({ title, description }: { title: string; description: string
 
 const QUICK_ACTIONS = [
   {
+    icon: PenTool,
+    label: 'Chấm bài thi',
+    desc: 'Chấm tự luận',
+    href: '/teacher/grading',
+    color: 'bg-amber-50 text-amber-800 hover:bg-amber-100 border-amber-200',
+    iconBg: 'bg-amber-600 text-white',
+  },
+  {
     icon: Sparkles,
     label: 'Sinh câu hỏi AI',
     desc: 'Dùng Groq AI',
@@ -175,8 +185,8 @@ const QUICK_ACTIONS = [
     label: 'Gia sư AI',
     desc: 'Hỏi bất cứ điều gì',
     href: '/chat',
-    color: 'bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-100',
-    iconBg: 'bg-amber-500 text-white',
+    color: 'bg-orange-50 text-orange-700 hover:bg-orange-100 border-orange-100',
+    iconBg: 'bg-orange-500 text-white',
   },
   {
     icon: FileText,
@@ -231,6 +241,13 @@ export default async function TeacherDashboardPage() {
 
             {/* Mobile nav */}
             <nav aria-label="Điều hướng nhanh" className="flex items-center gap-1 lg:hidden">
+              <Link
+                href="/teacher/grading"
+                className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+              >
+                <PenTool className="size-3.5" />
+                <span className="hidden sm:inline">Chấm thi</span>
+              </Link>
               <Link
                 href="/teacher/questions"
                 className={buttonVariants({ variant: 'ghost', size: 'sm' })}
@@ -291,10 +308,25 @@ export default async function TeacherDashboardPage() {
                 Chào {shortName}! 👋
               </h1>
               <p className="mt-1.5 text-sm text-slate-500">
-                Theo dõi lớp học, đề thi và hoạt động nộp bài tại một nơi.
+                Theo dõi lớp học, đề thi và hoạt động chấm bài tự luận tại một nơi.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href="/teacher/grading"
+                className={buttonVariants({
+                  variant: 'outline',
+                  className: 'gap-2 shadow-xs border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100',
+                })}
+              >
+                <PenTool className="size-4 text-amber-700" />
+                <span>Chấm bài thi</span>
+                {data.pendingGradingCount > 0 && (
+                  <span className="ml-1 rounded-full bg-amber-500 px-1.5 py-0.2 text-[10px] font-bold text-white">
+                    {data.pendingGradingCount}
+                  </span>
+                )}
+              </Link>
               <Link
                 href="/teacher/questions"
                 className={buttonVariants({ variant: 'outline', className: 'gap-2 shadow-xs' })}
@@ -332,7 +364,7 @@ export default async function TeacherDashboardPage() {
             <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-400">
               Thao tác nhanh
             </p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
               {QUICK_ACTIONS.map((action) => {
                 const Icon = action.icon;
                 return (
@@ -357,7 +389,7 @@ export default async function TeacherDashboardPage() {
           </section>
 
           {/* ── Metric cards (Bento Grid) ── */}
-          <section aria-label="Chỉ số giảng dạy" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <section aria-label="Chỉ số giảng dạy" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
             <MetricCard
               label="Lớp đang phụ trách"
               value={data.classCount.toLocaleString('vi-VN')}
@@ -388,7 +420,92 @@ export default async function TeacherDashboardPage() {
               icon={ClipboardList}
               tone="yellow"
             />
+            <Link href="/teacher/grading" className="block transition hover:opacity-95">
+              <MetricCard
+                label="Bài chờ chấm"
+                value={data.pendingGradingCount.toLocaleString('vi-VN')}
+                detail={data.pendingGradingCount > 0 ? 'Bấm để chấm tự luận ngay' : 'Đã chấm xong tất cả'}
+                icon={PenTool}
+                tone={data.pendingGradingCount > 0 ? 'orange' : 'green'}
+              />
+            </Link>
           </section>
+
+          {/* ── Pending Essay Grading Queue on Dashboard (nếu có bài chờ chấm) ── */}
+          {data.pendingAttempts && data.pendingAttempts.length > 0 && (
+            <Card id="grading" className="scroll-mt-20 overflow-hidden rounded-2xl border-amber-200 bg-amber-50/20 shadow-sm">
+              <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 border-b border-amber-100 bg-white/90 px-6 py-4">
+                <div className="flex items-center gap-3">
+                  <span className="grid size-10 place-items-center rounded-xl bg-amber-500 text-white shadow-xs">
+                    <PenTool className="size-5" />
+                  </span>
+                  <div>
+                    <CardTitle className="text-base font-semibold text-slate-900">
+                      Bài thi chờ chấm tự luận ({data.pendingGradingCount})
+                    </CardTitle>
+                    <CardDescription className="text-xs text-slate-500">
+                      Các bài thi sinh viên đã nộp cần giáo viên chấm điểm tự luận và nhận xét.
+                    </CardDescription>
+                  </div>
+                </div>
+                <Link
+                  href="/teacher/grading"
+                  className={buttonVariants({
+                    variant: 'outline',
+                    size: 'sm',
+                    className: 'gap-1.5 border-amber-300 bg-white text-amber-900 hover:bg-amber-50',
+                  })}
+                >
+                  <span>Xem toàn bộ danh sách</span>
+                  <ArrowRight className="size-3.5" />
+                </Link>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader className="bg-slate-50/70">
+                      <TableRow>
+                        <TableHead className="pl-6">Thí sinh</TableHead>
+                        <TableHead>Đề thi & Môn học</TableHead>
+                        <TableHead>Thời gian nộp</TableHead>
+                        <TableHead className="pr-6 text-right">Thao tác</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data.pendingAttempts.map((attempt) => (
+                        <TableRow key={attempt.id} className="hover:bg-amber-50/30 transition">
+                          <TableCell className="pl-6">
+                            <p className="font-semibold text-slate-900">{attempt.studentName}</p>
+                            {attempt.studentCode ? (
+                              <p className="font-mono text-xs text-slate-500">MSSV: {attempt.studentCode}</p>
+                            ) : (
+                              <p className="text-xs text-slate-400 italic">Chưa có MSSV</p>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <p className="font-medium text-slate-800">{attempt.examTitle}</p>
+                            <p className="text-xs text-slate-400">{attempt.subjectName} · Lần {attempt.attemptNo}</p>
+                          </TableCell>
+                          <TableCell className="text-xs text-slate-500">
+                            {attempt.submittedAt ? formatDate(attempt.submittedAt) : '—'}
+                          </TableCell>
+                          <TableCell className="pr-6 text-right">
+                            <Link
+                              href={`/teacher/grading/${attempt.id}`}
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-[#17372e] px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#20493e]"
+                            >
+                              <PenTool className="size-3" />
+                              <span>Chấm ngay</span>
+                            </Link>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* ── Onboarding nudge (khi chưa có lớp) ── */}
           {data.classCount === 0 && (
@@ -525,10 +642,12 @@ export default async function TeacherDashboardPage() {
                   Các đề bạn tạo, sắp xếp theo thời gian gần nhất
                 </CardDescription>
               </div>
-              <Badge variant="outline" className="gap-1.5">
-                <ArrowDownRight aria-hidden="true" className="size-3.5" />
-                {data.pendingGradingCount.toLocaleString('vi-VN')} chờ chấm
-              </Badge>
+              <Link href="/teacher/grading">
+                <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-amber-50 border-amber-300 text-amber-800">
+                  <ArrowDownRight aria-hidden="true" className="size-3.5" />
+                  {data.pendingGradingCount.toLocaleString('vi-VN')} chờ chấm
+                </Badge>
+              </Link>
             </CardHeader>
             <CardContent className="px-0 pb-0">
               {data.exams.length === 0 ? (
