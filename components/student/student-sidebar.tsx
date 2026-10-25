@@ -13,7 +13,12 @@ import { signOut } from '@/app/subjects/actions';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
-export function StudentSidebar({ studentName }: { studentName: string }) {
+type StudentSidebarProps = {
+  studentName: string;
+  activeRoute?: 'dashboard' | 'classes' | 'materials' | 'assignments' | 'exams' | 'ai-tutor';
+};
+
+export function StudentSidebar({ studentName, activeRoute = 'dashboard' }: StudentSidebarProps) {
   const initials = studentName
     .split(/[\s@.]+/)
     .filter(Boolean)
@@ -22,12 +27,12 @@ export function StudentSidebar({ studentName }: { studentName: string }) {
     .join('');
 
   const navItems = [
-    { label: 'Tổng quan', href: '/student/dashboard', icon: LayoutDashboard },
-    { label: 'Lớp học', href: '/student/dashboard#classes', icon: BookOpen },
-    { label: 'Tài liệu', href: '/student/dashboard#materials', icon: FileText },
-    { label: 'Bài tập', href: '/student/dashboard#assignments', icon: FileCheck2 },
-    { label: 'Đề thi', href: '/student/dashboard#exams', icon: ClipboardList },
-    { label: 'Gia sư AI', href: '/chat', icon: Sparkles },
+    { id: 'dashboard', label: 'Tổng quan', href: '/student/dashboard', icon: LayoutDashboard },
+    { id: 'classes', label: 'Lớp học', href: '/student/dashboard#classes', icon: BookOpen },
+    { id: 'materials', label: 'Tài liệu', href: '/student/dashboard#materials', icon: FileText },
+    { id: 'assignments', label: 'Bài tập', href: '/student/dashboard#assignments', icon: FileCheck2 },
+    { id: 'exams', label: 'Đề thi', href: '/student/dashboard#exams', icon: ClipboardList },
+    { id: 'ai-tutor', label: 'Gia sư AI', href: '/student/ai-tutor', icon: Sparkles },
   ];
 
   return (
@@ -47,24 +52,27 @@ export function StudentSidebar({ studentName }: { studentName: string }) {
       </div>
 
       <nav aria-label="Điều hướng chính" className="mt-3 space-y-1">
-        {navItems.map(({ label, href, icon: Icon }, index) => (
-          <Link
-            key={label}
-            href={href}
-            aria-current={index === 0 ? 'page' : undefined}
-            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-              index === 0
-                ? 'bg-white/12 text-white ring-1 ring-white/10'
-                : 'text-white/70 hover:bg-white/8 hover:text-white'
-            }`}
-          >
-            <Icon
-              aria-hidden="true"
-              className={`size-4 ${index === 0 ? 'text-[#c9ed99]' : ''}`}
-            />
-            {label}
-          </Link>
-        ))}
+        {navItems.map(({ id, label, href, icon: Icon }) => {
+          const isActive = activeRoute === id;
+          return (
+            <Link
+              key={label}
+              href={href}
+              aria-current={isActive ? 'page' : undefined}
+              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                isActive
+                  ? 'bg-white/12 text-white ring-1 ring-white/10'
+                  : 'text-white/70 hover:bg-white/8 hover:text-white'
+              }`}
+            >
+              <Icon
+                aria-hidden="true"
+                className={`size-4 ${isActive ? 'text-[#c9ed99]' : ''}`}
+              />
+              {label}
+            </Link>
+          );
+        })}
       </nav>
 
       <div className="mt-auto rounded-xl border border-white/10 bg-white/5 p-4">

@@ -136,12 +136,11 @@
 
 ---
 
-- [x] **Phase 25 (Đã hoàn thành)**: Đồng bộ giao diện Gia sư AI vào Layout Giảng viên (`app/teacher/ai-tutor/page.tsx`)
-  - **Mục tiêu 1 (Cấu trúc thư mục & Routing)**: Xây dựng route mới `app/teacher/ai-tutor/page.tsx` kế thừa cấu trúc 2 cột với `TeacherSidebar` (activeRoute="ai-tutor").
-  - **Mục tiêu 2 (Gỡ bỏ Header thừa & Cập nhật Navigation)**: Loại bỏ Header cũ của trang `/chat`. Cập nhật `TeacherSidebar` với prop `activeRoute="ai-tutor"`, chuyển liên kết sang `/teacher/ai-tutor` và highlight trạng thái hoạt động. Cập nhật Quick Action trong `app/teacher/dashboard/page.tsx`.
-  - **Mục tiêu 3 (Tối ưu CSS Flexbox Khung Chat)**: Cấu trúc vùng chat dạng cột `flex flex-col h-[calc(100vh-61px)]`. Vùng tin nhắn `flex-1 overflow-y-auto` cuộn độc lập mượt mà kèm MathText KaTeX; vùng ô nhập liệu nằm cố định ở đáy trang (`shrink-0`).
-  - **Tiêu chí nghiệm thu**: `npx tsc --noEmit` đạt 0 lỗi, `npm run build` thành công 100%, commit cục bộ an toàn.
-
+- [x] **Phase 25 (Đã hoàn thành - 2026-10-25)**: Đồng bộ toàn diện giao diện Gia sư AI vào Layout Giảng viên & Sinh viên (`app/teacher/ai-tutor` & `app/student/ai-tutor`)
+  - **Mục tiêu 1 (Cấu trúc thư mục & Routing)**: Xây dựng `app/teacher/ai-tutor/page.tsx` kế thừa `TeacherSidebar` (activeRoute="ai-tutor") và `app/student/ai-tutor/page.tsx` kế thừa `StudentSidebar` (activeRoute="ai-tutor"). Thêm file `loading.tsx` cho cả 2 route.
+  - **Mục tiêu 2 (Gỡ bỏ Header thừa & Cập nhật Navigation)**: Loại bỏ Header cũ độc lập của `/chat`. Biến `app/chat/page.tsx` thành server redirect tự động theo vai trò (Giảng viên -> `/teacher/ai-tutor`, Sinh viên -> `/student/ai-tutor`). Cập nhật toàn bộ link điều hướng trong Sidebar và Dashboard của cả 2 vai trò.
+  - **Mục tiêu 3 (Tối ưu CSS Flexbox Khung Chat)**: Cấu trúc vùng chat dạng cột `flex flex-col h-[calc(100vh-61px)]` khít 100% màn hình hiển thị dưới Topbar. Vùng tin nhắn `flex-1 overflow-y-auto` cuộn độc lập mượt mà, tích hợp KaTeX qua `MathText`. Vùng ô nhập text ghim cố định ở đáy (`shrink-0`).
+  - **Tiêu chí nghiệm thu**: `cmd /c npx tsc --noEmit` đạt 0 lỗi, `cmd /c npm run build` thành công 100% (26/26 routes).
 ---
 
 ## Chi tiết kỹ thuật Phase 19: Kiến trúc REST API Route Handler loại bỏ triệt để React Error #441

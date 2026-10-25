@@ -258,7 +258,7 @@ export default async function StudentDashboardPage() {
                 <ClipboardList data-icon="inline-start" />
                 <span className="hidden sm:inline">Đề thi</span>
               </Link>
-              <Link href="/chat" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
+              <Link href="/student/ai-tutor" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
                 <Sparkles data-icon="inline-start" />
                 <span className="hidden sm:inline">Gia sư AI</span>
               </Link>
@@ -309,7 +309,7 @@ export default async function StudentDashboardPage() {
               )}
             </div>
             <Link
-              href="/chat"
+              href="/student/ai-tutor"
               className={buttonVariants({
                 className: 'gap-2 bg-[#17372e] text-white shadow-xs hover:bg-[#20493e]',
               })}
@@ -407,7 +407,7 @@ export default async function StudentDashboardPage() {
               </span>
             </Link>
             <Link
-              href="/chat"
+              href="/student/ai-tutor"
               className="flex items-center gap-3 rounded-xl border border-violet-100 bg-violet-50 p-4 text-violet-900 transition hover:-translate-y-0.5 hover:shadow-sm"
             >
               <span className="grid size-10 place-items-center rounded-xl bg-violet-600 text-white">
@@ -588,7 +588,7 @@ export default async function StudentDashboardPage() {
                 </p>
               </div>
               <Link
-                href="/chat"
+                href="/student/ai-tutor"
                 className={buttonVariants({
                   variant: 'secondary',
                   className: 'shrink-0 gap-2 bg-[#c9ed99] text-[#17372e] hover:bg-[#d7f5b2]',
