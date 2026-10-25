@@ -203,7 +203,7 @@ const QUICK_ACTIONS = [
     icon: Bot,
     label: 'Gia sư AI',
     desc: 'Hỏi bất cứ điều gì',
-    href: '/chat',
+    href: '/teacher/ai-tutor',
     color: 'bg-orange-50 text-orange-700 hover:bg-orange-100 border-orange-100',
     iconBg: 'bg-orange-500 text-white',
   },

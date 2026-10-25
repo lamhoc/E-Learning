@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
 type TeacherSidebarProps = {
-  activeRoute: 'dashboard' | 'questions' | 'subjects' | 'grading';
+  activeRoute: 'dashboard' | 'questions' | 'subjects' | 'grading' | 'ai-tutor';
   teacherName: string;
 };
 
@@ -57,9 +57,9 @@ export function TeacherSidebar({ activeRoute, teacherName }: TeacherSidebarProps
     {
       id: 'ai-tutor',
       label: 'Gia sư AI',
-      href: '/chat',
+      href: '/teacher/ai-tutor',
       icon: Sparkles,
-      active: false,
+      active: activeRoute === 'ai-tutor',
     },
   ];
 

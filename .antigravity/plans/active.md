@@ -136,6 +136,14 @@
 
 ---
 
+- [x] **Phase 25 (Đã hoàn thành)**: Đồng bộ giao diện Gia sư AI vào Layout Giảng viên (`app/teacher/ai-tutor/page.tsx`)
+  - **Mục tiêu 1 (Cấu trúc thư mục & Routing)**: Xây dựng route mới `app/teacher/ai-tutor/page.tsx` kế thừa cấu trúc 2 cột với `TeacherSidebar` (activeRoute="ai-tutor").
+  - **Mục tiêu 2 (Gỡ bỏ Header thừa & Cập nhật Navigation)**: Loại bỏ Header cũ của trang `/chat`. Cập nhật `TeacherSidebar` với prop `activeRoute="ai-tutor"`, chuyển liên kết sang `/teacher/ai-tutor` và highlight trạng thái hoạt động. Cập nhật Quick Action trong `app/teacher/dashboard/page.tsx`.
+  - **Mục tiêu 3 (Tối ưu CSS Flexbox Khung Chat)**: Cấu trúc vùng chat dạng cột `flex flex-col h-[calc(100vh-61px)]`. Vùng tin nhắn `flex-1 overflow-y-auto` cuộn độc lập mượt mà kèm MathText KaTeX; vùng ô nhập liệu nằm cố định ở đáy trang (`shrink-0`).
+  - **Tiêu chí nghiệm thu**: `npx tsc --noEmit` đạt 0 lỗi, `npm run build` thành công 100%, commit cục bộ an toàn.
+
+---
+
 ## Chi tiết kỹ thuật Phase 19: Kiến trúc REST API Route Handler loại bỏ triệt để React Error #441
 
 ### 1. Tại sao Server Action vẫn gây lỗi #441 dù đã bỏ `revalidatePath`?
