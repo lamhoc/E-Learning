@@ -1,6 +1,6 @@
 # Kế hoạch triển khai E-Learning ("Mầm Học")
 
-> **Trạng thái:** Đã hoàn thành Phase 25 - Đồng bộ giao diện Gia sư AI vào layout Giảng viên (`app/teacher/ai-tutor/page.tsx`) & Sinh viên (`app/student/ai-tutor/page.tsx`). Sẵn sàng triển khai Nhiệm vụ 2 (Diễn đàn Q&A lớp học).
+> **Trạng thái:** Đã hoàn thành Phase 26 - Chuẩn hóa cấu trúc Layout App Shell, triệt tiêu hoàn toàn lỗi kẹt scroll và thanh cuộn kép tại màn hình Tổng quan Giảng viên & Sinh viên. Sẵn sàng triển khai Nhiệm vụ 2 (Diễn đàn Q&A lớp học).
 > **Cập nhật:** 2026-10-25
 
 ## Trạng thái đã hoàn thành & Lịch sử Commit (`main`)
@@ -141,7 +141,19 @@
   - **Mục tiêu 2 (Gỡ bỏ Header thừa & Cập nhật Navigation)**: Loại bỏ Header cũ độc lập của `/chat`. Biến `app/chat/page.tsx` thành server redirect tự động theo vai trò (Giảng viên -> `/teacher/ai-tutor`, Sinh viên -> `/student/ai-tutor`). Cập nhật toàn bộ link điều hướng trong Sidebar và Dashboard của cả 2 vai trò.
   - **Mục tiêu 3 (Tối ưu CSS Flexbox Khung Chat)**: Cấu trúc vùng chat dạng cột `flex flex-col h-[calc(100vh-61px)]` khít 100% màn hình hiển thị dưới Topbar. Vùng tin nhắn `flex-1 overflow-y-auto` cuộn độc lập mượt mà, tích hợp KaTeX qua `MathText`. Vùng ô nhập text ghim cố định ở đáy (`shrink-0`).
   - **Tiêu chí nghiệm thu**: `cmd /c npx tsc --noEmit` đạt 0 lỗi, `cmd /c npm run build` thành công 100% (26/26 routes).
+
 ---
+
+- [x] **Phase 26 (Commit `b79a1a2`)**: Chuẩn hóa Layout App Shell & Triệt tiêu hoàn toàn lỗi kẹt scroll, thanh cuộn kép màn hình Tổng quan
+  - **Mục tiêu 1 (Thẻ bọc Root Wrapper)**: Thiết lập `flex h-screen overflow-hidden` tại cấp container ngoài cùng, khóa cứng viewport 100vh để triệt tiêu scrollbar của thẻ `body`.
+  - **Mục tiêu 2 (Khối Sidebar)**: Chuẩn hóa `TeacherSidebar` và `StudentSidebar` sử dụng `w-64 flex-shrink-0`, loại bỏ `h-screen`, `min-h-screen`, `sticky` để sidebar tự co giãn theo chiều dọc flex cha mà không gây tràn layout.
+  - **Mục tiêu 3 (Khối Nội dung chính & Topbar)**: Đặt container bên phải là `flex-1 flex flex-col overflow-hidden min-w-0`, Topbar đứng im cố định với `shrink-0`.
+  - **Mục tiêu 4 (Khối chứa {children} cuộn độc lập)**: Bọc toàn bộ vùng nội dung trang Tổng quan bằng thẻ `<main className="flex-1 overflow-y-auto">`, giúp cuộn mượt mà xuống tận đáy trang/footer mà không bị ngắt quãng.
+  - **Mục tiêu 5 (Dọn dẹp page.tsx)**: Xóa sạch các class `h-screen`, `min-h-screen`, `overflow-hidden` khỏi nội dung con bên trong `app/teacher/dashboard/page.tsx` và `app/student/dashboard/page.tsx`.
+  - **Tiêu chí nghiệm thu**: `cmd /c npx tsc --noEmit` đạt 0 lỗi, `cmd /c npm run build` thành công 100% (26/26 routes).
+
+---
+
 
 ## Chi tiết kỹ thuật Phase 19: Kiến trúc REST API Route Handler loại bỏ triệt để React Error #441
 
