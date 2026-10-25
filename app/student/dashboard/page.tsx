@@ -232,11 +232,12 @@ export default async function StudentDashboardPage() {
   }).format(new Date());
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900 lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
+    <div className="flex h-screen overflow-hidden bg-slate-50 text-slate-900">
       <StudentSidebar studentName={data.studentName} />
 
-      <div className="min-w-0">
-        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        {/* ── Topbar (đứng im cố định) ── */}
+        <header className="shrink-0 z-20 border-b border-slate-200 bg-white/90 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
             <div className="flex items-center gap-2 lg:hidden">
               <span className="grid size-9 place-items-center rounded-lg bg-[#17372e] text-[#c9ed99]">
@@ -290,7 +291,9 @@ export default async function StudentDashboardPage() {
           </div>
         </header>
 
-        <div className="mx-auto max-w-[1440px] space-y-7 px-5 py-7 sm:px-8 sm:py-8 lg:px-10">
+        {/* ── Vùng nội dung cuộn độc lập (Scroll Container) ── */}
+        <main className="flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-[1440px] space-y-7 px-5 py-7 sm:px-8 sm:py-8 lg:px-10">
           <section className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
@@ -603,8 +606,9 @@ export default async function StudentDashboardPage() {
           <footer className="pb-2 text-center text-xs text-slate-400">
             Mầm Học · Cùng bạn học tốt hơn mỗi ngày
           </footer>
-        </div>
+          </div>
+        </main>
       </div>
-    </main>
+    </div>
   );
 }

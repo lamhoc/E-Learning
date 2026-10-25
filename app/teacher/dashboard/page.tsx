@@ -239,12 +239,12 @@ export default async function TeacherDashboardPage() {
   const shortName = data.teacherName.split(/\s+/).at(-1) ?? data.teacherName;
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900 lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
+    <div className="flex h-screen overflow-hidden bg-slate-50 text-slate-900">
       <TeacherSidebar activeRoute="dashboard" teacherName={data.teacherName} />
 
-      <div className="min-w-0">
-        {/* ── Topbar ── */}
-        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        {/* ── Topbar (đứng im cố định) ── */}
+        <header className="shrink-0 z-20 border-b border-slate-200 bg-white/90 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
             {/* Mobile logo */}
             <div className="flex items-center gap-2 lg:hidden">
@@ -314,8 +314,9 @@ export default async function TeacherDashboardPage() {
           </div>
         </header>
 
-        {/* ── Main content ── */}
-        <div className="mx-auto max-w-[1440px] space-y-7 px-5 py-7 sm:px-8 sm:py-8 lg:px-10">
+        {/* ── Vùng nội dung cuộn độc lập (Scroll Container) ── */}
+        <main className="flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-[1440px] space-y-7 px-5 py-7 sm:px-8 sm:py-8 lg:px-10">
 
           {/* ── Greeting ── */}
           <section className="flex flex-wrap items-end justify-between gap-4">
@@ -748,8 +749,9 @@ export default async function TeacherDashboardPage() {
               <Sparkles aria-hidden="true" className="size-3.5" /> Mở gia sư AI
             </Link>
           </footer>
-        </div>
+          </div>
+        </main>
       </div>
-    </main>
+    </div>
   );
 }
