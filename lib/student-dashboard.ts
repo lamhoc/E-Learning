@@ -3,6 +3,7 @@ import 'server-only';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import type { ClassMaterialItem } from '@/lib/class-materials';
+import { getStudentAssignments, type StudentAssignmentItem } from '@/lib/assignments';
 
 type Related<T> = T | T[] | null;
 
@@ -50,6 +51,7 @@ export type StudentDashboardData = {
   studentCode: string | null;
   classes: StudentClass[];
   materials: ClassMaterialItem[];
+  assignments: StudentAssignmentItem[];
   openExams: StudentExam[];
   attempts: StudentAttempt[];
   submittedAttemptCount: number;
@@ -78,6 +80,7 @@ export async function getStudentDashboardData(): Promise<StudentDashboardData> {
     attemptsResult,
     submittedAttemptsResult,
     notificationsResult,
+    assignments,
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -118,6 +121,7 @@ export async function getStudentDashboardData(): Promise<StudentDashboardData> {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(5),
+    getStudentAssignments(user.id),
   ]);
 
   const now = Date.now();
@@ -191,6 +195,7 @@ export async function getStudentDashboardData(): Promise<StudentDashboardData> {
     studentCode: profileResult.data?.student_code ?? null,
     classes,
     materials,
+    assignments,
     openExams,
     attempts: (attemptsResult.data ?? []) as StudentAttempt[],
     submittedAttemptCount: submittedAttemptsResult.count ?? 0,

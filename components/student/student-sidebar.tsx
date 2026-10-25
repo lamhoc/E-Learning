@@ -2,6 +2,7 @@ import Link from 'next/link';
 import {
   BookOpen,
   ClipboardList,
+  FileCheck2,
   FileText,
   GraduationCap,
   LayoutDashboard,
@@ -24,6 +25,7 @@ export function StudentSidebar({ studentName }: { studentName: string }) {
     { label: 'Tổng quan', href: '/student/dashboard', icon: LayoutDashboard },
     { label: 'Lớp học', href: '/student/dashboard#classes', icon: BookOpen },
     { label: 'Tài liệu', href: '/student/dashboard#materials', icon: FileText },
+    { label: 'Bài tập', href: '/student/dashboard#assignments', icon: FileCheck2 },
     { label: 'Đề thi', href: '/student/dashboard#exams', icon: ClipboardList },
     { label: 'Gia sư AI', href: '/chat', icon: Sparkles },
   ];

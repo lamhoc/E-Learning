@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { ArrowLeft, FileText, GraduationCap, Users } from 'lucide-react';
+import { ArrowLeft, FileCheck2, FileText, GraduationCap, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -80,6 +80,13 @@ export default async function ClassRosterPage({ params }: ClassRosterPageProps) 
               </CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href={`/teacher/classes/${classId}/assignments`}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-700 bg-[#17372e] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#122c25] transition shadow-2xs"
+              >
+                <FileCheck2 className="size-3.5" />
+                <span>Bài tập về nhà</span>
+              </Link>
               <Link
                 href={`/teacher/classes/${classId}/materials`}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-900 hover:bg-emerald-100 transition shadow-2xs"

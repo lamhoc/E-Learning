@@ -126,6 +126,16 @@
 
 ---
 
+- [x] **Phase 24 (Đã hoàn thành)**: Nhiệm vụ 1 - Bài tập về nhà nộp file (Homework / Assignments)
+  - **Mục tiêu 1 (Database Schema & Storage Bucket)**: Tạo supabase/migrations/20261025_assignments_and_submissions.sql gồm bảng ssignments (bài tập lớp), ssignment_submissions (bài nộp sinh viên), cấu hình storage bucket ssignments (50MB, file types PDF/DOCX/ZIP/RAR) và bộ chính sách bảo mật RLS nghiêm ngặt.
+  - **Mục tiêu 2 (Data Layer & Server Actions)**: Xây dựng lib/assignments.ts và pp/teacher/classes/[classId]/assignments/actions.ts hỗ trợ createAssignmentAction (upload đề bài), gradeAssignmentSubmissionAction (chấm điểm & nhận xét), và submitAssignmentAction (sinh viên nộp file bài làm, tự động tính is_late).
+  - **Mục tiêu 3 (UI Tạo bài tập & Danh sách bài tập Lớp cho Giảng viên)**: Xây dựng components/teacher/create-assignment-dialog.tsx và trang pp/teacher/classes/[classId]/assignments/page.tsx cho phép giảng viên quản lý bài tập, theo dõi số bài nộp/đã chấm, mở modal tạo mới.
+  - **Mục tiêu 4 (UI Chấm bài & Tải file bài làm của Giảng viên)**: Xây dựng pp/teacher/classes/[classId]/assignments/[assignmentId]/page.tsx hiển thị danh sách bài nộp, nút tải bài làm (.zip, .pdf), huy hiệu nộp muộn và form nhập điểm / phản hồi.
+  - **Mục tiêu 5 (UI Nộp bài tập phía Sinh viên)**: Bổ sung khu vực/tab Bài tập về nhà phía Sinh viên (components/student/student-assignments-view.tsx hoặc tích hợp vào Student Dashboard), cho phép tải đề bài, upload file bài làm và xem điểm / nhận xét sau khi giảng viên chấm.
+  - **Tiêu chí nghiệm thu**: cmd /c npx tsc --noEmit đạt 0 lỗi, cmd /c npm run build thành công 100%, commit cục bộ an toàn.
+
+---
+
 ## Chi tiết kỹ thuật Phase 19: Kiến trúc REST API Route Handler loại bỏ triệt để React Error #441
 
 ### 1. Tại sao Server Action vẫn gây lỗi #441 dù đã bỏ `revalidatePath`?

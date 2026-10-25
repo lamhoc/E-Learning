@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   ClipboardList,
   Clock3,
+  FileCheck2,
   FileText,
   GraduationCap,
   Sparkles,
@@ -15,6 +16,7 @@ import {
 import { StudentSidebar } from '@/components/student/student-sidebar';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { StudentClassMaterials } from '@/components/student/student-class-materials';
+import { StudentAssignments } from '@/components/student/student-assignments';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import {
@@ -365,7 +367,7 @@ export default async function StudentDashboardPage() {
 
           <section
             aria-label="Thao tác nhanh"
-            className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+            className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
           >
             <Link
               href="#classes"
@@ -379,6 +381,19 @@ export default async function StudentDashboardPage() {
                 <span className="mt-0.5 block text-xs text-emerald-800/70">Xem môn và lớp đã ghi danh</span>
               </span>
             </Link>
+            <Link
+              href="#assignments"
+              className="flex items-center gap-3 rounded-xl border border-teal-100 bg-teal-50 p-4 text-teal-900 transition hover:-translate-y-0.5 hover:shadow-sm"
+            >
+              <span className="grid size-10 place-items-center rounded-xl bg-teal-700 text-white">
+                <FileCheck2 aria-hidden="true" className="size-5" />
+              </span>
+              <span>
+                <span className="block text-sm font-semibold">Bài tập về nhà</span>
+                <span className="mt-0.5 block text-xs text-teal-800/70">Nộp file & xem điểm chấm</span>
+              </span>
+            </Link>
+
             <Link
               href="#history"
               className="flex items-center gap-3 rounded-xl border border-sky-100 bg-sky-50 p-4 text-sky-900 transition hover:-translate-y-0.5 hover:shadow-sm"
@@ -434,6 +449,18 @@ export default async function StudentDashboardPage() {
             <StudentClassMaterials
               classes={data.classes}
               materials={data.materials}
+            />
+          </section>
+
+          {/* Bài tập về nhà nộp file */}
+          <section id="assignments" className="space-y-4 scroll-mt-24">
+            <SectionHeading
+              eyebrow="Bài tập về nhà"
+              title="Bài tập tự luận & Đồ án cần nộp"
+              detail="Tải đề bài, nộp file bài làm (.zip, .pdf, .docx) và theo dõi kết quả chấm điểm của giảng viên"
+            />
+            <StudentAssignments
+              assignments={data.assignments}
             />
           </section>
 

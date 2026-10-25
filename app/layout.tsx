@@ -17,7 +17,11 @@ export const metadata: Metadata = {
   description: "Trợ lý AI hỗ trợ học tập và ôn luyện.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html
       lang="vi"
