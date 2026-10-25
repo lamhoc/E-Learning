@@ -2,7 +2,6 @@ import Link from 'next/link';
 import {
   ArrowRight,
   BookOpen,
-  Bot,
   CalendarClock,
   CheckCircle2,
   ClipboardList,
@@ -15,8 +14,6 @@ import {
 } from 'lucide-react';
 import { StudentSidebar } from '@/components/student/student-sidebar';
 import { NotificationBell } from '@/components/layout/notification-bell';
-import { StudentClassMaterials } from '@/components/student/student-class-materials';
-import { StudentAssignments } from '@/components/student/student-assignments';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import {
@@ -42,37 +39,52 @@ import {
   type StudentNotification,
 } from '@/lib/student-dashboard';
 
+export const metadata = {
+  title: 'Tổng quan học tập | Mầm Học',
+  description: 'Bảng điều khiển học tập cá nhân của sinh viên',
+};
+
 function getRelatedName(value: { name: string } | { name: string }[] | null) {
-  return Array.isArray(value) ? value[0]?.name : value?.name;
+  if (!value) return null;
+  if (Array.isArray(value)) return value[0]?.name ?? null;
+  return value.name;
 }
 
-function getRelatedExam(value: StudentAttempt['exam']) {
-  return Array.isArray(value) ? value[0] : value;
+function getRelatedExam(value: { title: string; subject: { name: string } | { name: string }[] | null } | { title: string; subject: { name: string } | { name: string }[] | null }[] | null) {
+  if (!value) return null;
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value;
 }
 
-function getRelatedResult(value: StudentAttempt['result']) {
-  return Array.isArray(value) ? value[0] : value;
+function getRelatedResult(value: { total_score: number | string; released_at: string | null } | { total_score: number | string; released_at: string | null }[] | null) {
+  if (!value) return null;
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value;
 }
 
-function formatDate(value: string, options: Intl.DateTimeFormatOptions = {}) {
+function formatDate(dateString: string, options?: Intl.DateTimeFormatOptions) {
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return '—';
   return new Intl.DateTimeFormat('vi-VN', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
     ...options,
-  }).format(new Date(value));
+  }).format(date);
 }
 
-function getAttemptStatus(attempt: StudentAttempt) {
+function getAttemptStatus(attempt: StudentAttempt): { label: string; className: string } {
   switch (attempt.status) {
     case 'in_progress':
-      return { label: 'Đang làm', className: 'border-sky-200 bg-sky-50 text-sky-800' };
+      return { label: 'Đang làm', className: 'border-amber-200 bg-amber-50 text-amber-800' };
     case 'pending_grading':
-      return { label: 'Chờ chấm', className: 'border-amber-200 bg-amber-50 text-amber-800' };
+      return { label: 'Chờ chấm', className: 'border-sky-200 bg-sky-50 text-sky-800' };
     case 'completed':
-      return { label: 'Đã hoàn thành', className: 'border-emerald-200 bg-emerald-50 text-emerald-800' };
+      return { label: 'Hoàn thành', className: 'border-emerald-200 bg-emerald-50 text-emerald-800' };
+    case 'voided':
+      return { label: 'Đã hủy', className: 'border-rose-200 bg-rose-50 text-rose-800' };
     default:
-      return { label: 'Đã hủy', className: 'border-slate-200 bg-slate-100 text-slate-700' };
+      return { label: 'Không rõ', className: 'border-slate-200 bg-slate-50 text-slate-700' };
   }
 }
 
@@ -80,16 +92,29 @@ function SectionHeading({
   eyebrow,
   title,
   detail,
+  action,
 }: {
   eyebrow: string;
   title: string;
   detail: string;
+  action?: { label: string; href: string };
 }) {
   return (
-    <div>
-      <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">{eyebrow}</p>
-      <h2 className="mt-1 text-lg font-bold tracking-tight text-slate-900">{title}</h2>
-      <p className="mt-1 text-sm text-slate-500">{detail}</p>
+    <div className="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">{eyebrow}</p>
+        <h2 className="mt-1 text-lg font-bold tracking-tight text-slate-900">{title}</h2>
+        <p className="mt-0.5 text-sm text-slate-500">{detail}</p>
+      </div>
+      {action && (
+        <Link
+          href={action.href}
+          className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 transition hover:text-emerald-950 hover:underline"
+        >
+          <span>{action.label}</span>
+          <ArrowRight className="size-3.5" />
+        </Link>
+      )}
     </div>
   );
 }
@@ -115,7 +140,7 @@ function MetricCard({
   };
 
   return (
-    <Card className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+    <Card className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md border-slate-200">
       <CardContent className="flex min-h-[126px] items-start justify-between gap-4 p-5">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
@@ -134,7 +159,7 @@ function MetricCard({
 
 function EmptyState({ children }: { children: string }) {
   return (
-    <div className="flex min-h-32 flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 px-5 py-6 text-center">
+    <div className="flex min-h-32 flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white px-5 py-6 text-center">
       <p className="max-w-md text-sm leading-6 text-slate-500">{children}</p>
     </div>
   );
@@ -147,12 +172,12 @@ function ClassCard({ classItem }: { classItem: StudentClass }) {
         <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700">
           <BookOpen aria-hidden="true" className="size-5" />
         </span>
-        <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-600">
+        <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-600 text-xs">
           {classItem.class_code}
         </Badge>
       </div>
-      <h3 className="mt-4 font-semibold text-slate-900">{classItem.name}</h3>
-      <p className="mt-1 text-sm text-slate-500">{getRelatedName(classItem.subject) || 'Chưa có môn học'}</p>
+      <h3 className="mt-4 font-semibold text-slate-900 line-clamp-1">{classItem.name}</h3>
+      <p className="mt-1 text-sm text-slate-500">{getRelatedName(classItem.subject) || 'Môn học'}</p>
       <p className="mt-3 text-xs text-slate-400">Năm học {classItem.academic_year}</p>
     </article>
   );
@@ -162,7 +187,7 @@ function ExamCard({ exam }: { exam: StudentExam }) {
   return (
     <article className="rounded-xl border border-emerald-200 bg-white p-4 shadow-xs">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Badge className="border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-50">
+        <Badge className="border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-50 text-xs">
           Đang mở
         </Badge>
         {exam.available_until && (
@@ -172,7 +197,7 @@ function ExamCard({ exam }: { exam: StudentExam }) {
           </span>
         )}
       </div>
-      <h3 className="mt-3 font-semibold text-slate-900">{exam.title}</h3>
+      <h3 className="mt-3 font-semibold text-slate-900 line-clamp-1">{exam.title}</h3>
       <p className="mt-1 text-sm text-slate-500">{getRelatedName(exam.subject) || 'Đề thi'}</p>
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
         <span className="inline-flex items-center gap-1">
@@ -218,6 +243,7 @@ export default async function StudentDashboardPage() {
     .slice(0, 2)
     .map((part) => part[0]?.toLocaleUpperCase())
     .join('');
+
   const latestReleasedAttempt = data.attempts.find((attempt) => {
     const result = getRelatedResult(attempt.result);
     return Boolean(result?.released_at);
@@ -225,6 +251,7 @@ export default async function StudentDashboardPage() {
   const latestScore = latestReleasedAttempt
     ? Number(getRelatedResult(latestReleasedAttempt.result)?.total_score)
     : null;
+
   const today = new Intl.DateTimeFormat('vi-VN', {
     weekday: 'long',
     day: 'numeric',
@@ -233,7 +260,7 @@ export default async function StudentDashboardPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900 lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
-      <StudentSidebar studentName={data.studentName} />
+      <StudentSidebar studentName={data.studentName} activeRoute="dashboard" />
 
       <div className="min-w-0">
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
@@ -244,25 +271,9 @@ export default async function StudentDashboardPage() {
               </span>
               <span className="text-sm font-bold text-slate-900">Mầm Học</span>
             </div>
+
             <p className="hidden text-xs font-medium capitalize text-slate-500 sm:block">{today}</p>
-            <nav aria-label="Điều hướng nhanh" className="flex items-center gap-1 lg:hidden">
-              <Link href="#classes" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
-                <BookOpen data-icon="inline-start" />
-                <span className="hidden sm:inline">Lớp học</span>
-              </Link>
-              <Link href="#materials" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
-                <FileText data-icon="inline-start" />
-                <span className="hidden sm:inline">Tài liệu</span>
-              </Link>
-              <Link href="#exams" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
-                <ClipboardList data-icon="inline-start" />
-                <span className="hidden sm:inline">Đề thi</span>
-              </Link>
-              <Link href="/student/ai-tutor" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
-                <Sparkles data-icon="inline-start" />
-                <span className="hidden sm:inline">Gia sư AI</span>
-              </Link>
-            </nav>
+
             <div className="ml-auto flex items-center gap-3">
               <NotificationBell
                 userId={data.studentId}
@@ -300,33 +311,15 @@ export default async function StudentDashboardPage() {
                 Chào {shortName}! 👋
               </h1>
               <p className="mt-1.5 text-sm text-slate-500">
-                Theo dõi lớp học, đề thi và kết quả học tập của bạn.
+                Chúc bạn một ngày học tập hiệu quả. Dưới đây là tổng quan các lớp và nhiệm vụ của bạn.
               </p>
-              {data.studentCode && (
-                <p className="mt-1 text-xs text-slate-400">
-                  Mã sinh viên: <span className="font-mono">{data.studentCode}</span>
-                </p>
-              )}
             </div>
-            <Link
-              href="/student/ai-tutor"
-              className={buttonVariants({
-                className: 'gap-2 bg-[#17372e] text-white shadow-xs hover:bg-[#20493e]',
-              })}
-            >
-              <Bot data-icon="inline-start" /> Học cùng gia sư AI
-              <ArrowRight data-icon="inline-end" />
-            </Link>
           </section>
 
           {data.hasDataError && (
-            <div
-              role="alert"
-              className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
-            >
-              <ClipboardList aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-              <div>
-                <p className="font-semibold">Một số dữ liệu chưa tải được</p>
+            <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+              <div className="min-w-0">
+                <p className="font-semibold">Một số thông tin tạm thời chưa thể tải đầy đủ</p>
                 <p className="mt-1 text-amber-900/80">
                   Kiểm tra kết nối Supabase và chính sách RLS, sau đó tải lại trang.
                 </p>
@@ -334,6 +327,7 @@ export default async function StudentDashboardPage() {
             </div>
           )}
 
+          {/* Metric Cards Bento Grid */}
           <section aria-label="Thống kê học tập" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <MetricCard
               label="Lớp đang tham gia"
@@ -345,14 +339,14 @@ export default async function StudentDashboardPage() {
             <MetricCard
               label="Đề thi đang mở"
               value={data.openExams.length.toLocaleString('vi-VN')}
-              detail="Có thể truy cập trong thời gian quy định"
+              detail="Có thể vào thi ngay"
               icon={CalendarClock}
               tone="blue"
             />
             <MetricCard
-              label="Bài đã nộp"
+              label="Bài thi đã nộp"
               value={data.submittedAttemptCount.toLocaleString('vi-VN')}
-              detail="Đã nộp hoặc hoàn thành"
+              detail="Đã hoàn thành hoặc chờ chấm"
               icon={ClipboardList}
               tone="orange"
             />
@@ -365,12 +359,13 @@ export default async function StudentDashboardPage() {
             />
           </section>
 
+          {/* Thao tác nhanh (Quick actions to independent pages) */}
           <section
             aria-label="Thao tác nhanh"
             className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
           >
             <Link
-              href="#classes"
+              href="/student/classes"
               className="flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-emerald-900 transition hover:-translate-y-0.5 hover:shadow-sm"
             >
               <span className="grid size-10 place-items-center rounded-xl bg-emerald-600 text-white">
@@ -382,7 +377,19 @@ export default async function StudentDashboardPage() {
               </span>
             </Link>
             <Link
-              href="#assignments"
+              href="/student/materials"
+              className="flex items-center gap-3 rounded-xl border border-sky-100 bg-sky-50 p-4 text-sky-900 transition hover:-translate-y-0.5 hover:shadow-sm"
+            >
+              <span className="grid size-10 place-items-center rounded-xl bg-sky-600 text-white">
+                <FileText aria-hidden="true" className="size-5" />
+              </span>
+              <span>
+                <span className="block text-sm font-semibold">Tài liệu học tập</span>
+                <span className="mt-0.5 block text-xs text-sky-800/70">Slide bài giảng, PDF & Video</span>
+              </span>
+            </Link>
+            <Link
+              href="/student/assignments"
               className="flex items-center gap-3 rounded-xl border border-teal-100 bg-teal-50 p-4 text-teal-900 transition hover:-translate-y-0.5 hover:shadow-sm"
             >
               <span className="grid size-10 place-items-center rounded-xl bg-teal-700 text-white">
@@ -393,42 +400,31 @@ export default async function StudentDashboardPage() {
                 <span className="mt-0.5 block text-xs text-teal-800/70">Nộp file & xem điểm chấm</span>
               </span>
             </Link>
-
             <Link
-              href="#history"
-              className="flex items-center gap-3 rounded-xl border border-sky-100 bg-sky-50 p-4 text-sky-900 transition hover:-translate-y-0.5 hover:shadow-sm"
-            >
-              <span className="grid size-10 place-items-center rounded-xl bg-sky-600 text-white">
-                <Trophy aria-hidden="true" className="size-5" />
-              </span>
-              <span>
-                <span className="block text-sm font-semibold">Kết quả học tập</span>
-                <span className="mt-0.5 block text-xs text-sky-800/70">Xem lịch sử bài thi và điểm</span>
-              </span>
-            </Link>
-            <Link
-              href="/student/ai-tutor"
+              href="/student/exams"
               className="flex items-center gap-3 rounded-xl border border-violet-100 bg-violet-50 p-4 text-violet-900 transition hover:-translate-y-0.5 hover:shadow-sm"
             >
               <span className="grid size-10 place-items-center rounded-xl bg-violet-600 text-white">
-                <Sparkles aria-hidden="true" className="size-5" />
+                <CalendarClock aria-hidden="true" className="size-5" />
               </span>
               <span>
-                <span className="block text-sm font-semibold">Ôn tập cùng AI</span>
-                <span className="mt-0.5 block text-xs text-violet-800/70">Hỏi bài và củng cố kiến thức</span>
+                <span className="block text-sm font-semibold">Đề thi & Kết quả</span>
+                <span className="mt-0.5 block text-xs text-violet-800/70">Làm đề và xem lịch sử thi</span>
               </span>
             </Link>
           </section>
 
-          <section id="classes" className="space-y-4 scroll-mt-24">
+          {/* Tóm tắt Lớp học gần đây */}
+          <section className="space-y-4">
             <SectionHeading
               eyebrow="Lớp học"
-              title="Lớp học của bạn"
+              title="Lớp học gần đây"
               detail={`${data.classes.length} lớp đang tham gia`}
+              action={{ label: 'Xem tất cả lớp học', href: '/student/classes' }}
             />
             {data.classes.length ? (
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {data.classes.map((classItem) => (
+                {data.classes.slice(0, 3).map((classItem) => (
                   <ClassCard key={classItem.id} classItem={classItem} />
                 ))}
               </div>
@@ -439,41 +435,18 @@ export default async function StudentDashboardPage() {
             )}
           </section>
 
-          {/* Kho Tài liệu & Bài giảng lớp học */}
-          <section id="materials" className="space-y-4 scroll-mt-24">
-            <SectionHeading
-              eyebrow="Tài liệu"
-              title="Tài liệu học tập theo tuần"
-              detail="Slide bài giảng, giáo trình PDF/Word và video học tập của các lớp bạn tham gia"
-            />
-            <StudentClassMaterials
-              classes={data.classes}
-              materials={data.materials}
-            />
-          </section>
-
-          {/* Bài tập về nhà nộp file */}
-          <section id="assignments" className="space-y-4 scroll-mt-24">
-            <SectionHeading
-              eyebrow="Bài tập về nhà"
-              title="Bài tập tự luận & Đồ án cần nộp"
-              detail="Tải đề bài, nộp file bài làm (.zip, .pdf, .docx) và theo dõi kết quả chấm điểm của giảng viên"
-            />
-            <StudentAssignments
-              assignments={data.assignments}
-            />
-          </section>
-
+          {/* Grid 2 cột: Đề thi mở & Thông báo */}
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-            <section id="exams" className="space-y-4 scroll-mt-24">
+            <section className="space-y-4">
               <SectionHeading
                 eyebrow="Đề thi"
                 title="Đề thi đang mở"
                 detail="Các đề trong lớp của bạn đang còn thời gian làm bài"
+                action={{ label: 'Xem tất cả đề thi', href: '/student/exams' }}
               />
               {data.openExams.length ? (
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {data.openExams.map((exam) => (
+                  {data.openExams.slice(0, 2).map((exam) => (
                     <ExamCard key={exam.id} exam={exam} />
                   ))}
                 </div>
@@ -485,8 +458,8 @@ export default async function StudentDashboardPage() {
             <section className="space-y-4">
               <SectionHeading
                 eyebrow="Cập nhật"
-                title="Thông báo"
-                detail="Thông tin mới nhất dành cho bạn"
+                title="Thông báo mới"
+                detail="Thông tin mới nhất từ hệ thống đào tạo"
               />
               <Card>
                 <CardHeader className="pb-3">
@@ -495,7 +468,7 @@ export default async function StudentDashboardPage() {
                 <CardContent>
                   {data.notifications.length ? (
                     <ul className="divide-y divide-slate-100">
-                      {data.notifications.map((notification) => (
+                      {data.notifications.slice(0, 4).map((notification) => (
                         <NotificationItem key={notification.id} notification={notification} />
                       ))}
                     </ul>
@@ -507,11 +480,13 @@ export default async function StudentDashboardPage() {
             </section>
           </div>
 
-          <section id="history" className="space-y-4 scroll-mt-24">
+          {/* Lịch sử thi tóm tắt */}
+          <section className="space-y-4">
             <SectionHeading
               eyebrow="Kết quả"
-              title="Lịch sử thi"
+              title="Lịch sử thi gần nhất"
               detail="Điểm số chỉ xuất hiện sau khi giảng viên công bố kết quả"
+              action={{ label: 'Xem toàn bộ hồ sơ thi', href: '/student/exams' }}
             />
             <Card>
               <CardContent className="p-0">
@@ -527,7 +502,7 @@ export default async function StudentDashboardPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {data.attempts.map((attempt) => {
+                        {data.attempts.slice(0, 5).map((attempt) => {
                           const exam = getRelatedExam(attempt.exam);
                           const result = getRelatedResult(attempt.result);
                           const status = getAttemptStatus(attempt);
@@ -555,7 +530,7 @@ export default async function StudentDashboardPage() {
                               </TableCell>
                               <TableCell className="text-right font-semibold tabular-nums">
                                 {score !== null && Number.isFinite(score)
-                                  ? score.toLocaleString('vi-VN')
+                                  ? `${score.toLocaleString('vi-VN')} / 10`
                                   : '—'}
                               </TableCell>
                             </TableRow>
@@ -573,6 +548,7 @@ export default async function StudentDashboardPage() {
             </Card>
           </section>
 
+          {/* AI Tutor Promotion Banner */}
           <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#17372e] via-[#20493e] to-[#286353] p-6 text-white sm:p-8">
             <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
               <div className="max-w-2xl">

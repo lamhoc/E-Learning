@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   BookOpen,
   ClipboardList,
@@ -13,12 +16,22 @@ import { signOut } from '@/app/subjects/actions';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
+export type StudentSidebarRoute =
+  | 'dashboard'
+  | 'classes'
+  | 'materials'
+  | 'assignments'
+  | 'exams'
+  | 'ai-tutor';
+
 type StudentSidebarProps = {
   studentName: string;
-  activeRoute?: 'dashboard' | 'classes' | 'materials' | 'assignments' | 'exams' | 'ai-tutor';
+  activeRoute?: StudentSidebarRoute;
 };
 
-export function StudentSidebar({ studentName, activeRoute = 'dashboard' }: StudentSidebarProps) {
+export function StudentSidebar({ studentName, activeRoute }: StudentSidebarProps) {
+  const pathname = usePathname();
+
   const initials = studentName
     .split(/[\s@.]+/)
     .filter(Boolean)
@@ -27,12 +40,12 @@ export function StudentSidebar({ studentName, activeRoute = 'dashboard' }: Stude
     .join('');
 
   const navItems = [
-    { id: 'dashboard', label: 'Tổng quan', href: '/student/dashboard', icon: LayoutDashboard },
-    { id: 'classes', label: 'Lớp học', href: '/student/dashboard#classes', icon: BookOpen },
-    { id: 'materials', label: 'Tài liệu', href: '/student/dashboard#materials', icon: FileText },
-    { id: 'assignments', label: 'Bài tập', href: '/student/dashboard#assignments', icon: FileCheck2 },
-    { id: 'exams', label: 'Đề thi', href: '/student/dashboard#exams', icon: ClipboardList },
-    { id: 'ai-tutor', label: 'Gia sư AI', href: '/student/ai-tutor', icon: Sparkles },
+    { id: 'dashboard' as const, label: 'Tổng quan', href: '/student/dashboard', icon: LayoutDashboard },
+    { id: 'classes' as const, label: 'Lớp học', href: '/student/classes', icon: BookOpen },
+    { id: 'materials' as const, label: 'Tài liệu', href: '/student/materials', icon: FileText },
+    { id: 'assignments' as const, label: 'Bài tập', href: '/student/assignments', icon: FileCheck2 },
+    { id: 'exams' as const, label: 'Đề thi', href: '/student/exams', icon: ClipboardList },
+    { id: 'ai-tutor' as const, label: 'Gia sư AI', href: '/student/ai-tutor', icon: Sparkles },
   ];
 
   return (
@@ -53,7 +66,10 @@ export function StudentSidebar({ studentName, activeRoute = 'dashboard' }: Stude
 
       <nav aria-label="Điều hướng chính" className="mt-3 space-y-1">
         {navItems.map(({ id, label, href, icon: Icon }) => {
-          const isActive = activeRoute === id;
+          const isActive = activeRoute
+            ? activeRoute === id
+            : (id === 'dashboard' ? pathname === '/student/dashboard' : pathname.startsWith(href));
+
           return (
             <Link
               key={label}
