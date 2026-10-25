@@ -1,7 +1,7 @@
 # Kế hoạch triển khai E-Learning ("Mầm Học")
 
-> **Trạng thái:** Đang thực hiện Phase 22 - Đồng bộ trang Danh sách môn học vào layout Giảng viên (`app/teacher/subjects/page.tsx`), tích hợp TeacherSidebar và chuẩn hóa giao diện EdTech.
-> **Cập nhật:** 2026-10-24
+> **Trạng thái:** Đã hoàn thành Phase 25 - Đồng bộ giao diện Gia sư AI vào layout Giảng viên (`app/teacher/ai-tutor/page.tsx`) & Sinh viên (`app/student/ai-tutor/page.tsx`). Sẵn sàng triển khai Nhiệm vụ 2 (Diễn đàn Q&A lớp học).
+> **Cập nhật:** 2026-10-25
 
 ## Trạng thái đã hoàn thành & Lịch sử Commit (`main`)
 
@@ -118,7 +118,7 @@
   - **Mục tiêu 2 (Refactor UI trang Môn học)**: Loại bỏ thanh Header cũ (nút đăng xuất/dashboard trùng lặp), thiết kế lại khối danh sách môn học bằng hệ thống Shadcn `Card`, `Badge` hiện đại. Bổ sung Quick Metrics Bar (Môn phụ trách, Lớp đang mở, Câu hỏi trong kho) và thẻ môn học kèm thống kê số lớp, câu hỏi, đề thi và các liên kết nhanh (Kho câu hỏi, Mở thêm lớp).
   - **Mục tiêu 3 (Cập nhật Navigation & Backward Compatibility)**: Cập nhật liên kết trong `TeacherSidebar`, `app/admin/layout.tsx` và `app/teacher/dashboard/page.tsx` trỏ trực tiếp về `/teacher/subjects`. Trang `/subjects` cũ tự động chuyển hướng theo role (Giảng viên/Admin -> `/teacher/subjects`, Sinh viên -> `/student/dashboard`).
   - Đã nghiệm thu thành công bằng `cmd /c npx tsc --noEmit` (0 errors) và `cmd /c npm run build` (pass 100%, 24/24 routes).
-- [x] **Phase 23 (Đã hoàn thành)**: Tính năng Upload tài liệu (DOCX/PDF) bóc tách câu hỏi hàng loạt & nhận diện đáp án màu đỏ
+- [x] **Phase 23 (Commit `63b6dbd` & `8e68c0d`)**: Tính năng Upload tài liệu (DOCX/PDF) bóc tách câu hỏi hàng loạt & nhận diện đáp án màu đỏ
   - **Mục tiêu 1 (API Route Handler & Parsing Engine)**: Xây dựng `lib/document-parser.ts` và Route Handler `app/api/questions/upload/route.ts` hỗ trợ nhận file `.docx` và `.pdf`. Đối với DOCX, đọc sâu XML với `jszip` và `mammoth` để phát hiện chính xác các text run có `w:color` màu đỏ (FF0000, C00000, red...). Đối với PDF, trích xuất text qua `unpdf`. Cấu trúc hóa câu hỏi và phương án bằng Groq AI (`openai/gpt-oss-120b`).
   - **Mục tiêu 2 (UI Upload & Preview Modal)**: Xây dựng component `components/teacher/upload-document-modal.tsx` hỗ trợ kéo thả file, thanh tiến trình loading nhiều giai đoạn. Màn hình Preview cho phép giáo viên kiểm tra, chỉnh sửa nội dung/đáp án (tự động tích chọn ✅ các đáp án màu đỏ) và xóa câu không hợp lệ.
   - **Mục tiêu 3 (Tích hợp vào Question Manager & Lưu CSDL)**: Thêm nút "Upload tài liệu (DOCX/PDF)" vào thanh công cụ `components/teacher/question-manager.tsx`. Thực hiện batch insert chuẩn xác vào `question_bank`, `question_options`, và `question_answer_keys`.
@@ -126,17 +126,17 @@
 
 ---
 
-- [x] **Phase 24 (Đã hoàn thành)**: Nhiệm vụ 1 - Bài tập về nhà nộp file (Homework / Assignments)
-  - **Mục tiêu 1 (Database Schema & Storage Bucket)**: Tạo supabase/migrations/20261025_assignments_and_submissions.sql gồm bảng ssignments (bài tập lớp), ssignment_submissions (bài nộp sinh viên), cấu hình storage bucket ssignments (50MB, file types PDF/DOCX/ZIP/RAR) và bộ chính sách bảo mật RLS nghiêm ngặt.
-  - **Mục tiêu 2 (Data Layer & Server Actions)**: Xây dựng lib/assignments.ts và pp/teacher/classes/[classId]/assignments/actions.ts hỗ trợ createAssignmentAction (upload đề bài), gradeAssignmentSubmissionAction (chấm điểm & nhận xét), và submitAssignmentAction (sinh viên nộp file bài làm, tự động tính is_late).
-  - **Mục tiêu 3 (UI Tạo bài tập & Danh sách bài tập Lớp cho Giảng viên)**: Xây dựng components/teacher/create-assignment-dialog.tsx và trang pp/teacher/classes/[classId]/assignments/page.tsx cho phép giảng viên quản lý bài tập, theo dõi số bài nộp/đã chấm, mở modal tạo mới.
-  - **Mục tiêu 4 (UI Chấm bài & Tải file bài làm của Giảng viên)**: Xây dựng pp/teacher/classes/[classId]/assignments/[assignmentId]/page.tsx hiển thị danh sách bài nộp, nút tải bài làm (.zip, .pdf), huy hiệu nộp muộn và form nhập điểm / phản hồi.
-  - **Mục tiêu 5 (UI Nộp bài tập phía Sinh viên)**: Bổ sung khu vực/tab Bài tập về nhà phía Sinh viên (components/student/student-assignments-view.tsx hoặc tích hợp vào Student Dashboard), cho phép tải đề bài, upload file bài làm và xem điểm / nhận xét sau khi giảng viên chấm.
-  - **Tiêu chí nghiệm thu**: cmd /c npx tsc --noEmit đạt 0 lỗi, cmd /c npm run build thành công 100%, commit cục bộ an toàn.
+- [x] **Phase 24 (Commit `44fa5ad`)**: Nhiệm vụ 1 - Bài tập về nhà nộp file (Homework / Assignments)
+  - **Mục tiêu 1 (Database Schema & Storage Bucket)**: Tạo supabase/migrations/20261025_assignments_and_submissions.sql gồm bảng assignments (bài tập lớp), assignment_submissions (bài nộp sinh viên), cấu hình storage bucket assignments (50MB, file types PDF/DOCX/ZIP/RAR) và bộ chính sách bảo mật RLS nghiêm ngặt.
+  - **Mục tiêu 2 (Data Layer & Server Actions)**: Xây dựng lib/assignments.ts và app/teacher/classes/[classId]/assignments/actions.ts hỗ trợ createAssignmentAction (upload đề bài), gradeAssignmentSubmissionAction (chấm điểm & nhận xét), và submitAssignmentAction (sinh viên nộp file bài làm, tự động tính is_late).
+  - **Mục tiêu 3 (UI Tạo bài tập & Danh sách bài tập Lớp cho Giảng viên)**: Xây dựng components/teacher/create-assignment-dialog.tsx và trang app/teacher/classes/[classId]/assignments/page.tsx cho phép giảng viên quản lý bài tập, theo dõi số bài nộp/đã chấm, mở modal tạo mới.
+  - **Mục tiêu 4 (UI Chấm bài & Tải file bài làm của Giảng viên)**: Xây dựng app/teacher/classes/[classId]/assignments/[assignmentId]/page.tsx hiển thị danh sách bài nộp, nút tải bài làm (.zip, .pdf), huy hiệu nộp muộn và form nhập điểm / phản hồi.
+  - **Mục tiêu 5 (UI Nộp bài tập phía Sinh viên)**: Bổ sung khu vực/tab Bài tập về nhà phía Sinh viên (`components/student/student-assignments-view.tsx`), cho phép tải đề bài, upload file bài làm và xem điểm / nhận xét sau khi giảng viên chấm.
+  - **Tiêu chí nghiệm thu**: `cmd /c npx tsc --noEmit` đạt 0 lỗi, `cmd /c npm run build` thành công 100%, commit cục bộ an toàn.
 
 ---
 
-- [x] **Phase 25 (Đã hoàn thành - 2026-10-25)**: Đồng bộ toàn diện giao diện Gia sư AI vào Layout Giảng viên & Sinh viên (`app/teacher/ai-tutor` & `app/student/ai-tutor`)
+- [x] **Phase 25 (Commit `30d208e` & `a00481e`)**: Đồng bộ toàn diện giao diện Gia sư AI vào Layout Giảng viên & Sinh viên (`app/teacher/ai-tutor` & `app/student/ai-tutor`)
   - **Mục tiêu 1 (Cấu trúc thư mục & Routing)**: Xây dựng `app/teacher/ai-tutor/page.tsx` kế thừa `TeacherSidebar` (activeRoute="ai-tutor") và `app/student/ai-tutor/page.tsx` kế thừa `StudentSidebar` (activeRoute="ai-tutor"). Thêm file `loading.tsx` cho cả 2 route.
   - **Mục tiêu 2 (Gỡ bỏ Header thừa & Cập nhật Navigation)**: Loại bỏ Header cũ độc lập của `/chat`. Biến `app/chat/page.tsx` thành server redirect tự động theo vai trò (Giảng viên -> `/teacher/ai-tutor`, Sinh viên -> `/student/ai-tutor`). Cập nhật toàn bộ link điều hướng trong Sidebar và Dashboard của cả 2 vai trò.
   - **Mục tiêu 3 (Tối ưu CSS Flexbox Khung Chat)**: Cấu trúc vùng chat dạng cột `flex flex-col h-[calc(100vh-61px)]` khít 100% màn hình hiển thị dưới Topbar. Vùng tin nhắn `flex-1 overflow-y-auto` cuộn độc lập mượt mà, tích hợp KaTeX qua `MathText`. Vùng ô nhập text ghim cố định ở đáy (`shrink-0`).
