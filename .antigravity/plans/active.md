@@ -1,6 +1,6 @@
 # Kế hoạch triển khai E-Learning ("Mầm Học")
 
-> **Trạng thái:** Đã hoàn thành Phase 25 - Đồng bộ giao diện Gia sư AI vào layout Giảng viên (`app/teacher/ai-tutor/page.tsx`) & Sinh viên (`app/student/ai-tutor/page.tsx`). Sẵn sàng triển khai Nhiệm vụ 2 (Diễn đàn Q&A lớp học).
+> **Trạng thái:** Đã hoàn thành Phase 26 - Cấu trúc lại luồng điều hướng Sinh viên thành các Route độc lập (`/student/classes`, `/student/materials`, `/student/assignments`, `/student/exams`), cập nhật StudentSidebar với `usePathname` và tách rời khỏi cơ chế hash link. Sẵn sàng triển khai Nhiệm vụ 2 (Diễn đàn Q&A lớp học).
 > **Cập nhật:** 2026-10-25
 
 ## Trạng thái đã hoàn thành & Lịch sử Commit (`main`)
@@ -141,6 +141,18 @@
   - **Mục tiêu 2 (Gỡ bỏ Header thừa & Cập nhật Navigation)**: Loại bỏ Header cũ độc lập của `/chat`. Biến `app/chat/page.tsx` thành server redirect tự động theo vai trò (Giảng viên -> `/teacher/ai-tutor`, Sinh viên -> `/student/ai-tutor`). Cập nhật toàn bộ link điều hướng trong Sidebar và Dashboard của cả 2 vai trò.
   - **Mục tiêu 3 (Tối ưu CSS Flexbox Khung Chat)**: Cấu trúc vùng chat dạng cột `flex flex-col h-[calc(100vh-61px)]` khít 100% màn hình hiển thị dưới Topbar. Vùng tin nhắn `flex-1 overflow-y-auto` cuộn độc lập mượt mà, tích hợp KaTeX qua `MathText`. Vùng ô nhập text ghim cố định ở đáy (`shrink-0`).
   - **Tiêu chí nghiệm thu**: `cmd /c npx tsc --noEmit` đạt 0 lỗi, `cmd /c npm run build` thành công 100% (26/26 routes).
+
+---
+
+- [x] **Phase 26 (Commit `b52285e`)**: Cấu trúc lại luồng điều hướng Sinh viên thành các Route độc lập & Cập nhật StudentSidebar
+  - **Mục tiêu 1 (Cập nhật StudentSidebar)**: Chuyển toàn bộ hash links (`#classes`, `#materials`, `#assignments`, `#exams`) thành route thực tế (`/student/classes`, `/student/materials`, `/student/assignments`, `/student/exams`). Tích hợp `usePathname` từ `next/navigation` để tự động kích hoạt active state chuẩn xác.
+  - **Mục tiêu 2 (Tạo Route Lớp học /student/classes)**: Xây dựng `app/student/classes/page.tsx` và `loading.tsx` hiển thị danh sách lớp học đã ghi danh, mã lớp, năm học và liên kết nhanh.
+  - **Mục tiêu 3 (Tạo Route Tài liệu /student/materials)**: Xây dựng `app/student/materials/page.tsx` và `loading.tsx` hiển thị tài liệu học tập theo tuần, tích hợp component `StudentClassMaterials` tải slide, PDF, Word, video.
+  - **Mục tiêu 4 (Tạo Route Bài tập /student/assignments)**: Xây dựng `app/student/assignments/page.tsx` và `loading.tsx` hiển thị danh sách bài tập tự luận/đồ án, hạn nộp, trạng thái nộp file và điểm số chấm thi.
+  - **Mục tiêu 5 (Tạo Route Đề thi /student/exams)**: Xây dựng `app/student/exams/page.tsx` và `loading.tsx` hiển thị danh sách đề thi đang mở, số lượt còn lại và bảng lịch sử kết quả thi.
+  - **Mục tiêu 6 (Tinh gọn Dashboard /student/dashboard)**: Giữ lại lời chào, thẻ metric thống kê tổng quan, thao tác nhanh chuyển trang, hộp thư thông báo và banner AI ôn tập.
+  - **Tiêu chí nghiệm thu**: `cmd /c npx tsc --noEmit` đạt 0 lỗi, `cmd /c npm run build` thành công 100% (30/30 routes).
+
 ---
 
 ## Chi tiết kỹ thuật Phase 19: Kiến trúc REST API Route Handler loại bỏ triệt để React Error #441
