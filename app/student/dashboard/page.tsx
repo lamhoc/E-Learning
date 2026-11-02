@@ -189,7 +189,7 @@ function StudentDashboardContentSkeleton() {
 
 async function StudentDashboardDataContent() {
   const data = await getStudentDashboardData();
-  const activeAssignmentsCount = data.assignments.filter((a) => a.status === 'open').length;
+  const activeAssignmentsCount = data.assignments.filter((a) => a.status === 'published').length;
 
   return (
     <>
@@ -492,7 +492,7 @@ export default async function StudentDashboardPage() {
     .split(/[\s@.]+/)
     .filter(Boolean)
     .slice(0, 2)
-    .map((part) => part[0]?.toLocaleUpperCase())
+    .map((part: string) => part[0]?.toLocaleUpperCase())
     .join('');
 
   const today = new Intl.DateTimeFormat('vi-VN', {
