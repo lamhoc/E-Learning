@@ -1,26 +1,16 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUserWithRole } from '@/lib/auth-cache';
 
 type AppRole = 'admin' | 'teacher' | 'student';
 
 export default async function SubjectsRedirectPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  const { user, role: userRole, supabase } = await getCurrentUserWithRole();
 
-  if (authError || !user) {
+  if (!user) {
     redirect('/login');
   }
 
-  const { data: roleRecord } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  const role = (roleRecord?.role as AppRole) ?? 'student';
+  const role = (userRole as AppRole) ?? 'student';
 
   if (role === 'teacher' || role === 'admin') {
     redirect('/teacher/subjects');

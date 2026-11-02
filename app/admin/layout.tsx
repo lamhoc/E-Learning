@@ -9,33 +9,22 @@ import {
   ShieldCheck,
   Users,
 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUserWithRole } from '@/lib/auth-cache';
 import { signOut } from '@/app/subjects/actions';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  const { user, role } = await getCurrentUserWithRole();
 
-  if (authError || !user) {
+  if (!user) {
     redirect('/login');
   }
 
   // Bảo mật nghiêm ngặt: Kiểm tra user.app_metadata.role === 'admin'
   // Kết hợp kiểm tra dự phòng bảng user_roles để đồng bộ cơ sở dữ liệu
   const isMetadataAdmin = user.app_metadata?.role === 'admin';
-
-  const { data: roleRecord } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  const isDbAdmin = roleRecord?.role === 'admin';
+  const isDbAdmin = role === 'admin';
 
   if (!isMetadataAdmin && !isDbAdmin) {
     redirect('/subjects');
@@ -46,7 +35,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       <header className="sticky top-0 z-40 border-b border-[#dfe7e0] bg-white/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3.5 sm:px-8">
           {/* Logo & Brand Admin Link */}
-          <Link href="/admin" className="flex items-center gap-3 transition hover:opacity-90">
+          <Link prefetch={true} href="/admin" className="flex items-center gap-3 transition hover:opacity-90">
             <span className="grid size-10 place-items-center rounded-xl bg-[#17372e] text-[#c9ed99] shadow-xs">
               <ShieldCheck aria-hidden="true" className="size-5" />
             </span>

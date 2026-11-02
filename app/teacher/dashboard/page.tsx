@@ -1,4 +1,6 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
+import { getCurrentProfile } from '@/lib/auth-cache';
 import {
   ArrowDownRight,
   ArrowRight,
@@ -219,14 +221,398 @@ const QUICK_ACTIONS = [
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function TeacherDashboardPage() {
+
+function TeacherDashboardContentSkeleton() {
+  return (
+    <div className="space-y-7 animate-pulse">
+      {/* ── Metric cards Skeleton ── */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        {Array.from({ length: 5 }, (_, i) => (
+          <Skeleton key={i} className="h-32 rounded-2xl" />
+        ))}
+      </div>
+
+      {/* ── Class form Skeleton ── */}
+      <Skeleton className="h-44 rounded-2xl" />
+
+      {/* ── 2-Col Bento Skeleton ── */}
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.85fr)]">
+        <Skeleton className="h-[360px] rounded-2xl" />
+        <Skeleton className="h-[360px] rounded-2xl" />
+      </div>
+
+      {/* ── Exams Table Skeleton ── */}
+      <Skeleton className="h-72 rounded-2xl" />
+    </div>
+  );
+}
+
+async function TeacherDashboardDataContent() {
   const data = await getTeacherDashboardData();
 
-  const initials = data.teacherName
-    .split(/[\s@.]+/)
+  return (
+    <>
+      {/* ── Error alert ── */}
+      {data.errorMessage && (
+        <div
+          role="alert"
+          className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+        >
+          <ClipboardList aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          <div>
+            <p className="font-semibold">Một số dữ liệu chưa tải được</p>
+            <p className="mt-1 text-amber-900/80">
+              {data.errorMessage} Kiểm tra các policy RLS trên Supabase rồi tải lại trang.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Metric cards (Bento Grid) ── */}
+      <section aria-label="Chỉ số giảng dạy" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5 items-stretch">
+        <MetricCard
+          label="Lớp đang phụ trách"
+          value={data.classCount.toLocaleString('vi-VN')}
+          detail="Lớp chưa lưu trữ"
+          icon={BookOpen}
+          tone="green"
+        />
+        <MetricCard
+          label="Lượt ghi danh"
+          value={data.enrollmentCount.toLocaleString('vi-VN')}
+          detail="Trên các lớp của bạn"
+          icon={Users}
+          tone="orange"
+        />
+        <Link href="/teacher/questions" className="block h-full transition hover:opacity-95">
+          <MetricCard
+            label="Câu hỏi trong kho"
+            value={data.questionCount.toLocaleString('vi-VN')}
+            detail="Bấm để xem và quản lý kho"
+            icon={LibraryBig}
+            tone="blue"
+          />
+        </Link>
+        <MetricCard
+          label="Đề đã phát hành"
+          value={data.publishedExamCount.toLocaleString('vi-VN')}
+          detail="Trong các đề bạn tạo"
+          icon={ClipboardList}
+          tone="yellow"
+        />
+        <Link href="/teacher/grading" className="block h-full transition hover:opacity-95">
+          <MetricCard
+            label="Bài chờ chấm"
+            value={data.pendingGradingCount.toLocaleString('vi-VN')}
+            detail={data.pendingGradingCount > 0 ? 'Bấm để chấm tự luận ngay' : 'Đã chấm xong tất cả'}
+            icon={PenTool}
+            tone={data.pendingGradingCount > 0 ? 'orange' : 'green'}
+          />
+        </Link>
+      </section>
+
+      {/* ── Pending Essay Grading Queue on Dashboard (nếu có bài chờ chấm) ── */}
+      {data.pendingAttempts && data.pendingAttempts.length > 0 && (
+        <Card id="grading" className="scroll-mt-20 overflow-hidden rounded-2xl border-amber-200 bg-amber-50/20 shadow-sm">
+          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 border-b border-amber-100 bg-white/90 px-6 py-4">
+            <div className="flex items-center gap-3">
+              <span className="grid size-10 place-items-center rounded-xl bg-amber-500 text-white shadow-xs">
+                <PenTool className="size-5" />
+              </span>
+              <div>
+                <CardTitle className="text-base font-semibold text-slate-900">
+                  Bài thi chờ chấm tự luận ({data.pendingGradingCount})
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-500">
+                  Các bài thi sinh viên đã nộp cần giáo viên chấm điểm tự luận và nhận xét.
+                </CardDescription>
+              </div>
+            </div>
+            <Link
+              href="/teacher/grading"
+              className={buttonVariants({
+                variant: 'outline',
+                size: 'sm',
+                className: 'gap-1.5 border-amber-300 bg-white text-amber-900 hover:bg-amber-50',
+              })}
+            >
+              <span>Xem toàn bộ danh sách</span>
+              <ArrowRight className="size-3.5" />
+            </Link>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-slate-50/70">
+                  <TableRow>
+                    <TableHead className="pl-6">Thí sinh</TableHead>
+                    <TableHead>Đề thi & Môn học</TableHead>
+                    <TableHead>Thời gian nộp</TableHead>
+                    <TableHead className="pr-6 text-right">Thao tác</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.pendingAttempts.map((attempt) => (
+                    <TableRow key={attempt.id} className="hover:bg-amber-50/30 transition">
+                      <TableCell className="pl-6">
+                        <p className="font-semibold text-slate-900">{attempt.studentName}</p>
+                        {attempt.studentCode ? (
+                          <p className="font-mono text-xs text-slate-500">MSSV: {attempt.studentCode}</p>
+                        ) : (
+                          <p className="text-xs text-slate-400 italic">Chưa có MSSV</p>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <p className="font-medium text-slate-800">{attempt.examTitle}</p>
+                        <p className="text-xs text-slate-400">{attempt.subjectName} · Lần {attempt.attemptNo}</p>
+                      </TableCell>
+                      <TableCell className="text-xs text-slate-500">
+                        {attempt.submittedAt ? formatDate(attempt.submittedAt) : '—'}
+                      </TableCell>
+                      <TableCell className="pr-6 text-right">
+                        <Link
+                          href={`/teacher/grading/${attempt.id}`}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-[#17372e] px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#20493e]"
+                        >
+                          <PenTool className="size-3" />
+                          <span>Chấm ngay</span>
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Onboarding nudge (khi chưa có lớp) ── */}
+      {data.classCount === 0 && (
+        <div className="flex items-center justify-between gap-4 rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50 to-teal-50 p-5">
+          <div className="flex items-center gap-4">
+            <span className="grid size-10 place-items-center rounded-xl bg-emerald-600 text-white">
+              <Zap className="size-5" />
+            </span>
+            <div>
+              <p className="font-semibold text-slate-800">Bắt đầu với lớp học đầu tiên</p>
+              <p className="mt-0.5 text-sm text-slate-500">
+                Chọn môn đã được quản trị viên phân công để tạo lớp.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/teacher/subjects"
+            className={buttonVariants({
+              variant: 'outline',
+              className: 'shrink-0 gap-2 border-emerald-200 bg-white hover:bg-emerald-50',
+            })}
+          >
+            Đi tới môn học <ArrowRight data-icon="inline-end" />
+          </Link>
+        </div>
+      )}
+
+      {/* ── Create class form ── */}
+      <Card id="create-class" className="scroll-mt-20 rounded-2xl shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-base font-semibold">Tạo lớp học mới</CardTitle>
+          <CardDescription>
+            Lớp mới sẽ thuộc môn được phân công và do bạn phụ trách.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ClassForm subjects={data.assignedSubjects} />
+        </CardContent>
+      </Card>
+
+      {/* ── Charts + Recent classes (2-col bento) ── */}
+      <section className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.85fr)]">
+        {/* Submission chart */}
+        <Card className="min-w-0 rounded-2xl shadow-sm">
+          <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+            <div>
+              <CardTitle className="text-base font-semibold">Hoạt động nộp bài</CardTitle>
+              <CardDescription className="mt-1">
+                Bài thi đã nộp trong 7 ngày gần nhất
+              </CardDescription>
+            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+              <span className="size-1.5 rounded-full bg-emerald-500" />
+              {data.submissionCount.toLocaleString('vi-VN')} tổng bài
+            </span>
+          </CardHeader>
+          <CardContent>
+            {data.submissionCount === 0 ? (
+              <div className="flex h-[250px] flex-col items-center justify-center text-center">
+                <span className="grid size-11 place-items-center rounded-full bg-slate-100 text-slate-400">
+                  <CalendarDays aria-hidden="true" className="size-5" />
+                </span>
+                <p className="mt-3 text-sm font-medium text-slate-600">Chưa có bài nộp</p>
+                <p className="mt-1 text-sm text-slate-400">
+                  Biểu đồ sẽ cập nhật khi sinh viên hoàn thành bài thi.
+                </p>
+              </div>
+            ) : (
+              <SubmissionChart data={data.submissionsByDay} />
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recent classes */}
+        <Card className="min-w-0 rounded-2xl shadow-sm">
+          <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+            <div>
+              <CardTitle className="text-base font-semibold">Lớp học gần đây</CardTitle>
+              <CardDescription className="mt-1">Các lớp bạn đang phụ trách</CardDescription>
+            </div>
+            <Badge variant="secondary">{data.classes.length} lớp</Badge>
+          </CardHeader>
+          <CardContent>
+            {data.classes.length === 0 ? (
+              <EmptyPanel
+                title="Chưa có lớp do bạn phụ trách"
+                description="Tạo lớp từ một môn được quản trị viên phân công để bắt đầu quản lý học tập."
+              />
+            ) : (
+              <div className="space-y-1">
+                {data.classes.slice(0, 4).map((classItem) => (
+                  <Link
+                    href={`/teacher/classes/${classItem.id}`}
+                    key={classItem.id}
+                    className="group flex items-center gap-3 rounded-xl px-2 py-3 transition hover:bg-slate-50"
+                  >
+                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700 transition group-hover:bg-emerald-100">
+                      <BookOpen aria-hidden="true" className="size-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-slate-800">
+                        {classItem.name}
+                      </span>
+                      <span className="mt-0.5 block truncate text-xs text-slate-400">
+                        {getSubjectName(classItem.subject) ?? 'Môn học'} ·{' '}
+                        {classItem.academic_year}
+                      </span>
+                    </span>
+                    <ArrowUpRight
+                      aria-hidden="true"
+                      className="size-4 shrink-0 text-slate-300 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-slate-600"
+                    />
+                  </Link>
+                ))}
+                <Separator className="my-2" />
+                <Link
+                  href="/teacher/subjects"
+                  className="inline-flex items-center gap-1 px-2 py-2 text-sm font-medium text-emerald-700 hover:underline"
+                >
+                  Xem môn học <ArrowRight aria-hidden="true" className="size-4" />
+                </Link>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* ── Recent exams table ── */}
+      <Card className="overflow-hidden rounded-2xl shadow-sm">
+        <CardHeader className="flex flex-row flex-wrap items-end justify-between gap-3">
+          <div>
+            <CardTitle className="text-base font-semibold">Đề thi gần đây</CardTitle>
+            <CardDescription className="mt-1">
+              Các đề bạn tạo, sắp xếp theo thời gian gần nhất
+            </CardDescription>
+          </div>
+          <Link href="/teacher/grading">
+            <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-amber-50 border-amber-300 text-amber-800">
+              <ArrowDownRight aria-hidden="true" className="size-3.5" />
+              {data.pendingGradingCount.toLocaleString('vi-VN')} chờ chấm
+            </Badge>
+          </Link>
+        </CardHeader>
+        <CardContent className="px-0 pb-0">
+          {data.exams.length === 0 ? (
+            <div className="px-5 pb-5">
+              <EmptyPanel
+                title="Chưa có đề thi"
+                description="Đề thi sẽ xuất hiện sau khi bạn tạo và lưu bản nháp đầu tiên."
+              />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50 hover:bg-slate-50">
+                    <TableHead className="min-w-[220px] pl-5">Tên đề</TableHead>
+                    <TableHead>Môn học</TableHead>
+                    <TableHead className="text-center">Câu hỏi</TableHead>
+                    <TableHead className="text-center">Lớp</TableHead>
+                    <TableHead>Trạng thái</TableHead>
+                    <TableHead>Ngày tạo</TableHead>
+                    <TableHead className="pr-5 text-right">Thao tác</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.exams.map((exam) => {
+                    const status = getExamStatus(exam.status);
+                    return (
+                      <TableRow key={exam.id} className="transition-colors hover:bg-slate-50/70">
+                        <TableCell className="max-w-[300px] pl-5">
+                          <Link
+                            href={`/teacher/exams/${exam.id}`}
+                            className="block truncate font-semibold text-slate-900 hover:text-emerald-800 hover:underline"
+                          >
+                            {exam.title}
+                          </Link>
+                          <span className="mt-0.5 block text-xs text-slate-400">
+                            {exam.duration_minutes} phút
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-slate-500">
+                          {getSubjectName(exam.subject) ?? '—'}
+                        </TableCell>
+                        <TableCell className="text-center tabular-nums">
+                          {exam.exam_questions?.length ?? 0}
+                        </TableCell>
+                        <TableCell className="text-center tabular-nums">
+                          {exam.exam_classes?.length ?? 0}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={status.className}>
+                            {status.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-slate-400">
+                          {formatDate(exam.created_at)}
+                        </TableCell>
+                        <TableCell className="pr-5 text-right">
+                          <Link
+                            href={`/teacher/exams/${exam.id}`}
+                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-emerald-800 transition shadow-2xs"
+                          >
+                            <span>Thống kê</span>
+                          </Link>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
+export default async function TeacherDashboardPage() {
+  const { user, fullName } = await getCurrentProfile();
+
+  const initials = fullName
+    .split(/[s@.]+/)
     .filter(Boolean)
     .slice(0, 2)
-    .map((part) => part[0]?.toLocaleUpperCase())
+    .map((part: string) => part[0]?.toLocaleUpperCase())
     .join('');
 
   const today = new Intl.DateTimeFormat('vi-VN', {
@@ -235,18 +621,16 @@ export default async function TeacherDashboardPage() {
     month: 'long',
   }).format(new Date());
 
-  // Tên ngắn gọn để chào
-  const shortName = data.teacherName.split(/\s+/).at(-1) ?? data.teacherName;
+  const shortName = fullName.split(/\s+/).at(-1) ?? fullName;
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900 lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
-      <TeacherSidebar activeRoute="dashboard" teacherName={data.teacherName} />
+      <TeacherSidebar activeRoute="dashboard" teacherName={fullName || 'Giảng viên'} />
 
       <div className="min-w-0">
-        {/* ── Topbar ── */}
+        {/* ── Topbar (Static Shell 0ms) ── */}
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
-            {/* Mobile logo */}
             <div className="flex items-center gap-2 lg:hidden">
               <span className="grid size-9 place-items-center rounded-lg bg-[#17372e] text-[#c9ed99]">
                 <GraduationCap aria-hidden="true" className="size-5" />
@@ -258,7 +642,6 @@ export default async function TeacherDashboardPage() {
               {today}
             </p>
 
-            {/* Mobile nav */}
             <nav aria-label="Điều hướng nhanh" className="flex items-center gap-1 lg:hidden">
               <Link
                 href="/teacher/grading"
@@ -291,22 +674,16 @@ export default async function TeacherDashboardPage() {
             </nav>
 
             <div className="ml-auto flex items-center gap-3">
-              <NotificationBell userId={data.teacherId} />
-              {!data.errorMessage ? (
-                <Badge
-                  variant="outline"
-                  className="hidden gap-1.5 border-emerald-200 bg-emerald-50 text-emerald-800 sm:inline-flex"
-                >
-                  <CheckCircle2 data-icon="inline-start" /> Đã đồng bộ
-                </Badge>
-              ) : (
-                <Badge variant="destructive" className="hidden sm:inline-flex">
-                  Cần kiểm tra dữ liệu
-                </Badge>
-              )}
+              <NotificationBell userId={user.id} />
+              <Badge
+                variant="outline"
+                className="hidden gap-1.5 border-emerald-200 bg-emerald-50 text-emerald-800 sm:inline-flex"
+              >
+                <CheckCircle2 data-icon="inline-start" /> Giảng viên
+              </Badge>
               <span
                 className="grid size-9 place-items-center rounded-full bg-[#f0a879] text-xs font-bold text-[#4b2a1b]"
-                aria-label={`Tài khoản ${data.teacherName}`}
+                aria-label={`Tài khoản ${fullName}`}
               >
                 {initials || 'GV'}
               </span>
@@ -317,7 +694,7 @@ export default async function TeacherDashboardPage() {
         {/* ── Main content ── */}
         <div className="mx-auto max-w-[1440px] space-y-7 px-5 py-7 sm:px-8 sm:py-8 lg:px-10">
 
-          {/* ── Greeting ── */}
+          {/* ── Greeting (Static Shell 0ms) ── */}
           <section className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
@@ -340,11 +717,6 @@ export default async function TeacherDashboardPage() {
               >
                 <PenTool className="size-4 text-amber-700" />
                 <span>Chấm bài thi</span>
-                {data.pendingGradingCount > 0 && (
-                  <span className="ml-1 rounded-full bg-amber-500 px-1.5 py-0.2 text-[10px] font-bold text-white">
-                    {data.pendingGradingCount}
-                  </span>
-                )}
               </Link>
               <Link
                 href="/teacher/questions"
@@ -362,23 +734,7 @@ export default async function TeacherDashboardPage() {
             </div>
           </section>
 
-          {/* ── Error alert ── */}
-          {data.errorMessage && (
-            <div
-              role="alert"
-              className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
-            >
-              <ClipboardList aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-              <div>
-                <p className="font-semibold">Một số dữ liệu chưa tải được</p>
-                <p className="mt-1 text-amber-900/80">
-                  {data.errorMessage} Kiểm tra các policy RLS trên Supabase rồi tải lại trang.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* ── Quick Actions (Bento strip) ── */}
+          {/* ── Quick Actions (Bento strip - Static Shell 0ms) ── */}
           <section aria-label="Thao tác nhanh">
             <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-400">
               Thao tác nhanh
@@ -407,339 +763,10 @@ export default async function TeacherDashboardPage() {
             </div>
           </section>
 
-          {/* ── Metric cards (Bento Grid) ── */}
-          <section aria-label="Chỉ số giảng dạy" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5 items-stretch">
-            <MetricCard
-              label="Lớp đang phụ trách"
-              value={data.classCount.toLocaleString('vi-VN')}
-              detail="Lớp chưa lưu trữ"
-              icon={BookOpen}
-              tone="green"
-            />
-            <MetricCard
-              label="Lượt ghi danh"
-              value={data.enrollmentCount.toLocaleString('vi-VN')}
-              detail="Trên các lớp của bạn"
-              icon={Users}
-              tone="orange"
-            />
-            <Link href="/teacher/questions" className="block h-full transition hover:opacity-95">
-              <MetricCard
-                label="Câu hỏi trong kho"
-                value={data.questionCount.toLocaleString('vi-VN')}
-                detail="Bấm để xem và quản lý kho"
-                icon={LibraryBig}
-                tone="blue"
-              />
-            </Link>
-            <MetricCard
-              label="Đề đã phát hành"
-              value={data.publishedExamCount.toLocaleString('vi-VN')}
-              detail="Trong các đề bạn tạo"
-              icon={ClipboardList}
-              tone="yellow"
-            />
-            <Link href="/teacher/grading" className="block h-full transition hover:opacity-95">
-              <MetricCard
-                label="Bài chờ chấm"
-                value={data.pendingGradingCount.toLocaleString('vi-VN')}
-                detail={data.pendingGradingCount > 0 ? 'Bấm để chấm tự luận ngay' : 'Đã chấm xong tất cả'}
-                icon={PenTool}
-                tone={data.pendingGradingCount > 0 ? 'orange' : 'green'}
-              />
-            </Link>
-          </section>
-
-          {/* ── Pending Essay Grading Queue on Dashboard (nếu có bài chờ chấm) ── */}
-          {data.pendingAttempts && data.pendingAttempts.length > 0 && (
-            <Card id="grading" className="scroll-mt-20 overflow-hidden rounded-2xl border-amber-200 bg-amber-50/20 shadow-sm">
-              <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 border-b border-amber-100 bg-white/90 px-6 py-4">
-                <div className="flex items-center gap-3">
-                  <span className="grid size-10 place-items-center rounded-xl bg-amber-500 text-white shadow-xs">
-                    <PenTool className="size-5" />
-                  </span>
-                  <div>
-                    <CardTitle className="text-base font-semibold text-slate-900">
-                      Bài thi chờ chấm tự luận ({data.pendingGradingCount})
-                    </CardTitle>
-                    <CardDescription className="text-xs text-slate-500">
-                      Các bài thi sinh viên đã nộp cần giáo viên chấm điểm tự luận và nhận xét.
-                    </CardDescription>
-                  </div>
-                </div>
-                <Link
-                  href="/teacher/grading"
-                  className={buttonVariants({
-                    variant: 'outline',
-                    size: 'sm',
-                    className: 'gap-1.5 border-amber-300 bg-white text-amber-900 hover:bg-amber-50',
-                  })}
-                >
-                  <span>Xem toàn bộ danh sách</span>
-                  <ArrowRight className="size-3.5" />
-                </Link>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader className="bg-slate-50/70">
-                      <TableRow>
-                        <TableHead className="pl-6">Thí sinh</TableHead>
-                        <TableHead>Đề thi & Môn học</TableHead>
-                        <TableHead>Thời gian nộp</TableHead>
-                        <TableHead className="pr-6 text-right">Thao tác</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {data.pendingAttempts.map((attempt) => (
-                        <TableRow key={attempt.id} className="hover:bg-amber-50/30 transition">
-                          <TableCell className="pl-6">
-                            <p className="font-semibold text-slate-900">{attempt.studentName}</p>
-                            {attempt.studentCode ? (
-                              <p className="font-mono text-xs text-slate-500">MSSV: {attempt.studentCode}</p>
-                            ) : (
-                              <p className="text-xs text-slate-400 italic">Chưa có MSSV</p>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <p className="font-medium text-slate-800">{attempt.examTitle}</p>
-                            <p className="text-xs text-slate-400">{attempt.subjectName} · Lần {attempt.attemptNo}</p>
-                          </TableCell>
-                          <TableCell className="text-xs text-slate-500">
-                            {attempt.submittedAt ? formatDate(attempt.submittedAt) : '—'}
-                          </TableCell>
-                          <TableCell className="pr-6 text-right">
-                            <Link
-                              href={`/teacher/grading/${attempt.id}`}
-                              className="inline-flex items-center gap-1.5 rounded-lg bg-[#17372e] px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#20493e]"
-                            >
-                              <PenTool className="size-3" />
-                              <span>Chấm ngay</span>
-                            </Link>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* ── Onboarding nudge (khi chưa có lớp) ── */}
-          {data.classCount === 0 && (
-            <div className="flex items-center justify-between gap-4 rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50 to-teal-50 p-5">
-              <div className="flex items-center gap-4">
-                <span className="grid size-10 place-items-center rounded-xl bg-emerald-600 text-white">
-                  <Zap className="size-5" />
-                </span>
-                <div>
-                  <p className="font-semibold text-slate-800">Bắt đầu với lớp học đầu tiên</p>
-                  <p className="mt-0.5 text-sm text-slate-500">
-                    Chọn môn đã được quản trị viên phân công để tạo lớp.
-                  </p>
-                </div>
-              </div>
-              <Link
-                href="/teacher/subjects"
-                className={buttonVariants({
-                  variant: 'outline',
-                  className: 'shrink-0 gap-2 border-emerald-200 bg-white hover:bg-emerald-50',
-                })}
-              >
-                Đi tới môn học <ArrowRight data-icon="inline-end" />
-              </Link>
-            </div>
-          )}
-
-          {/* ── Create class form ── */}
-          <Card id="create-class" className="scroll-mt-20 rounded-2xl shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-base font-semibold">Tạo lớp học mới</CardTitle>
-              <CardDescription>
-                Lớp mới sẽ thuộc môn được phân công và do bạn phụ trách.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ClassForm subjects={data.assignedSubjects} />
-            </CardContent>
-          </Card>
-
-          {/* ── Charts + Recent classes (2-col bento) ── */}
-          <section className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.85fr)]">
-            {/* Submission chart */}
-            <Card className="min-w-0 rounded-2xl shadow-sm">
-              <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
-                <div>
-                  <CardTitle className="text-base font-semibold">Hoạt động nộp bài</CardTitle>
-                  <CardDescription className="mt-1">
-                    Bài thi đã nộp trong 7 ngày gần nhất
-                  </CardDescription>
-                </div>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
-                  <span className="size-1.5 rounded-full bg-emerald-500" />
-                  {data.submissionCount.toLocaleString('vi-VN')} tổng bài
-                </span>
-              </CardHeader>
-              <CardContent>
-                {data.submissionCount === 0 ? (
-                  <div className="flex h-[250px] flex-col items-center justify-center text-center">
-                    <span className="grid size-11 place-items-center rounded-full bg-slate-100 text-slate-400">
-                      <CalendarDays aria-hidden="true" className="size-5" />
-                    </span>
-                    <p className="mt-3 text-sm font-medium text-slate-600">Chưa có bài nộp</p>
-                    <p className="mt-1 text-sm text-slate-400">
-                      Biểu đồ sẽ cập nhật khi sinh viên hoàn thành bài thi.
-                    </p>
-                  </div>
-                ) : (
-                  <SubmissionChart data={data.submissionsByDay} />
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Recent classes */}
-            <Card className="min-w-0 rounded-2xl shadow-sm">
-              <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
-                <div>
-                  <CardTitle className="text-base font-semibold">Lớp học gần đây</CardTitle>
-                  <CardDescription className="mt-1">Các lớp bạn đang phụ trách</CardDescription>
-                </div>
-                <Badge variant="secondary">{data.classes.length} lớp</Badge>
-              </CardHeader>
-              <CardContent>
-                {data.classes.length === 0 ? (
-                  <EmptyPanel
-                    title="Chưa có lớp do bạn phụ trách"
-                    description="Tạo lớp từ một môn được quản trị viên phân công để bắt đầu quản lý học tập."
-                  />
-                ) : (
-                  <div className="space-y-1">
-                    {data.classes.slice(0, 4).map((classItem) => (
-                      <Link
-                        href={`/teacher/classes/${classItem.id}`}
-                        key={classItem.id}
-                        className="group flex items-center gap-3 rounded-xl px-2 py-3 transition hover:bg-slate-50"
-                      >
-                        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700 transition group-hover:bg-emerald-100">
-                          <BookOpen aria-hidden="true" className="size-4" />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium text-slate-800">
-                            {classItem.name}
-                          </span>
-                          <span className="mt-0.5 block truncate text-xs text-slate-400">
-                            {getSubjectName(classItem.subject) ?? 'Môn học'} ·{' '}
-                            {classItem.academic_year}
-                          </span>
-                        </span>
-                        <ArrowUpRight
-                          aria-hidden="true"
-                          className="size-4 shrink-0 text-slate-300 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-slate-600"
-                        />
-                      </Link>
-                    ))}
-                    <Separator className="my-2" />
-                    <Link
-                      href="/teacher/subjects"
-                      className="inline-flex items-center gap-1 px-2 py-2 text-sm font-medium text-emerald-700 hover:underline"
-                    >
-                      Xem môn học <ArrowRight aria-hidden="true" className="size-4" />
-                    </Link>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </section>
-
-          {/* ── Recent exams table ── */}
-          <Card className="overflow-hidden rounded-2xl shadow-sm">
-            <CardHeader className="flex flex-row flex-wrap items-end justify-between gap-3">
-              <div>
-                <CardTitle className="text-base font-semibold">Đề thi gần đây</CardTitle>
-                <CardDescription className="mt-1">
-                  Các đề bạn tạo, sắp xếp theo thời gian gần nhất
-                </CardDescription>
-              </div>
-              <Link href="/teacher/grading">
-                <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-amber-50 border-amber-300 text-amber-800">
-                  <ArrowDownRight aria-hidden="true" className="size-3.5" />
-                  {data.pendingGradingCount.toLocaleString('vi-VN')} chờ chấm
-                </Badge>
-              </Link>
-            </CardHeader>
-            <CardContent className="px-0 pb-0">
-              {data.exams.length === 0 ? (
-                <div className="px-5 pb-5">
-                  <EmptyPanel
-                    title="Chưa có đề thi"
-                    description="Đề thi sẽ xuất hiện sau khi bạn tạo và lưu bản nháp đầu tiên."
-                  />
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-slate-50 hover:bg-slate-50">
-                        <TableHead className="min-w-[220px] pl-5">Tên đề</TableHead>
-                        <TableHead>Môn học</TableHead>
-                        <TableHead className="text-center">Câu hỏi</TableHead>
-                        <TableHead className="text-center">Lớp</TableHead>
-                        <TableHead>Trạng thái</TableHead>
-                        <TableHead>Ngày tạo</TableHead>
-                        <TableHead className="pr-5 text-right">Thao tác</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {data.exams.map((exam) => {
-                        const status = getExamStatus(exam.status);
-                        return (
-                          <TableRow key={exam.id} className="transition-colors hover:bg-slate-50/70">
-                            <TableCell className="max-w-[300px] pl-5">
-                              <Link
-                                href={`/teacher/exams/${exam.id}`}
-                                className="block truncate font-semibold text-slate-900 hover:text-emerald-800 hover:underline"
-                              >
-                                {exam.title}
-                              </Link>
-                              <span className="mt-0.5 block text-xs text-slate-400">
-                                {exam.duration_minutes} phút
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-slate-500">
-                              {getSubjectName(exam.subject) ?? '—'}
-                            </TableCell>
-                            <TableCell className="text-center tabular-nums">
-                              {exam.exam_questions?.length ?? 0}
-                            </TableCell>
-                            <TableCell className="text-center tabular-nums">
-                              {exam.exam_classes?.length ?? 0}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className={status.className}>
-                                {status.label}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-slate-400">
-                              {formatDate(exam.created_at)}
-                            </TableCell>
-                            <TableCell className="pr-5 text-right">
-                              <Link
-                                href={`/teacher/exams/${exam.id}`}
-                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-emerald-800 transition shadow-2xs"
-                              >
-                                <span>Thống kê</span>
-                              </Link>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* ── Granular Suspense Streaming: Dynamic Database Content ── */}
+          <Suspense fallback={<TeacherDashboardContentSkeleton />}>
+            <TeacherDashboardDataContent />
+          </Suspense>
 
           {/* ── Footer ── */}
           <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 py-4 text-xs text-slate-400">

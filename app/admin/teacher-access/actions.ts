@@ -5,6 +5,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { getCurrentUserWithRole } from '@/lib/auth-cache';
+import { revalidateSubjectsCache } from '@/lib/data-cache';
 
 export type InvitationState = {
   status: 'idle' | 'error' | 'success';
@@ -34,21 +36,11 @@ function getInvitationSiteUrl() {
 }
 
 async function getAdminClient() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user) return { error: 'Vui lòng đăng nhập lại.', supabase: null, user: null };
+  const { user, role, supabase } = await getCurrentUserWithRole();
+  if (!user) return { error: 'Vui lòng đăng nhập lại.', supabase: null, user: null };
 
   const isMetadataAdmin = user.app_metadata?.role === 'admin';
-  const { data: roleRecord, error: roleError } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  const isDbAdmin = !roleError && roleRecord?.role === 'admin';
+  const isDbAdmin = role === 'admin';
 
   if (!isMetadataAdmin && !isDbAdmin) {
     return { error: 'Chỉ admin mới được quản lý quyền giảng viên.', supabase: null, user: null };

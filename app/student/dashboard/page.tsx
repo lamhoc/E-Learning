@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -13,8 +14,10 @@ import {
   Trophy,
 } from 'lucide-react';
 import { StudentSidebar } from '@/components/student/student-sidebar';
+import { getCurrentProfile } from '@/lib/auth-cache';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { buttonVariants } from '@/components/ui/button';
 import {
   Card,
@@ -159,98 +162,338 @@ function MetricCard({
 
 function EmptyState({ children }: { children: string }) {
   return (
-    <div className="flex min-h-32 flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white px-5 py-6 text-center">
+    <div className="flex min-h-32 flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 px-5 py-6 text-center">
       <p className="max-w-md text-sm leading-6 text-slate-500">{children}</p>
     </div>
   );
 }
 
-function ClassCard({ classItem }: { classItem: StudentClass }) {
+function StudentDashboardContentSkeleton() {
   return (
-    <article className="rounded-xl border border-slate-200 bg-white p-4 transition hover:border-emerald-200 hover:shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700">
-          <BookOpen aria-hidden="true" className="size-5" />
-        </span>
-        <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-600 text-xs">
-          {classItem.class_code}
-        </Badge>
+    <div className="space-y-7 animate-pulse">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }, (_, i) => (
+          <Skeleton key={i} className="h-32 rounded-xl" />
+        ))}
       </div>
-      <h3 className="mt-4 font-semibold text-slate-900 line-clamp-1">{classItem.name}</h3>
-      <p className="mt-1 text-sm text-slate-500">{getRelatedName(classItem.subject) || 'Môn học'}</p>
-      <p className="mt-3 text-xs text-slate-400">Năm học {classItem.academic_year}</p>
-    </article>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }, (_, i) => (
+          <Skeleton key={i} className="h-40 rounded-2xl" />
+        ))}
+      </div>
+      <Skeleton className="h-48 rounded-xl" />
+      <Skeleton className="h-64 rounded-xl" />
+    </div>
   );
 }
 
-function ExamCard({ exam }: { exam: StudentExam }) {
-  return (
-    <article className="rounded-xl border border-emerald-200 bg-white p-4 shadow-xs">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <Badge className="border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-50 text-xs">
-          Đang mở
-        </Badge>
-        {exam.available_until && (
-          <span className="inline-flex items-center gap-1 text-xs text-slate-500">
-            <Clock3 aria-hidden="true" className="size-3.5" />
-            Đóng {formatDate(exam.available_until, { hour: '2-digit', minute: '2-digit' })}
-          </span>
-        )}
-      </div>
-      <h3 className="mt-3 font-semibold text-slate-900 line-clamp-1">{exam.title}</h3>
-      <p className="mt-1 text-sm text-slate-500">{getRelatedName(exam.subject) || 'Đề thi'}</p>
-      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
-        <span className="inline-flex items-center gap-1">
-          <Clock3 aria-hidden="true" className="size-3.5" />
-          {exam.duration_minutes} phút
-        </span>
-        <span>Tối đa {exam.max_attempts} lượt</span>
-      </div>
-      <Link
-        href={`/student/exams/${exam.id}`}
-        className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#17372e] px-3 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-[#20493e]"
-      >
-        <span>Vào làm bài</span>
-        <ArrowRight className="size-4" />
-      </Link>
-    </article>
-  );
-}
+async function StudentDashboardDataContent() {
+  const data = await getStudentDashboardData();
+  const activeAssignmentsCount = data.assignments.filter((a) => a.status === 'open').length;
 
-function NotificationItem({ notification }: { notification: StudentNotification }) {
   return (
-    <li className="flex gap-3 py-3 first:pt-0 last:pb-0">
-      <span className={`mt-0.5 size-2 shrink-0 rounded-full ${notification.read_at ? 'bg-slate-300' : 'bg-emerald-500'}`} />
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <h3 className="text-sm font-semibold text-slate-800">{notification.title}</h3>
-          <time className="text-xs text-slate-400" dateTime={notification.created_at}>
-            {formatDate(notification.created_at)}
-          </time>
+    <>
+      {data.hasDataError && (
+        <div
+          role="alert"
+          className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+        >
+          <ClipboardList aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          <div>
+            <p className="font-semibold">Một số dữ liệu chưa tải được</p>
+            <p className="mt-1 text-amber-900/80">
+              Kiểm tra các chính sách RLS cho tài khoản sinh viên trên Supabase rồi tải lại trang.
+            </p>
+          </div>
         </div>
-        <p className="mt-1 text-sm leading-6 text-slate-500">{notification.message}</p>
-      </div>
-    </li>
+      )}
+
+      {/* Metric Cards */}
+      <section aria-label="Chỉ số học tập" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Link href="/student/classes" className="block transition hover:opacity-95">
+          <MetricCard
+            label="Lớp đang tham gia"
+            value={data.classes.length.toLocaleString('vi-VN')}
+            detail="Bấm để xem danh sách lớp"
+            icon={BookOpen}
+            tone="green"
+          />
+        </Link>
+        <Link href="/student/assignments" className="block transition hover:opacity-95">
+          <MetricCard
+            label="Bài tập đang mở"
+            value={activeAssignmentsCount.toLocaleString('vi-VN')}
+            detail="Cần hoàn thành đúng hạn"
+            icon={FileCheck2}
+            tone="orange"
+          />
+        </Link>
+        <Link href="/student/exams" className="block transition hover:opacity-95">
+          <MetricCard
+            label="Đề thi đang mở"
+            value={data.openExams.length.toLocaleString('vi-VN')}
+            detail="Bấm để vào phòng thi"
+            icon={ClipboardList}
+            tone="blue"
+          />
+        </Link>
+        <MetricCard
+          label="Thông báo mới"
+          value={data.notifications.filter((n) => !n.read_at).length.toLocaleString('vi-VN')}
+          detail="Chưa đọc từ hệ thống"
+          icon={CalendarClock}
+          tone="violet"
+        />
+      </section>
+
+      {/* Quick Navigation Cards */}
+      <section aria-label="Khu vực học tập" className="space-y-3">
+        <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+          Khu vực học tập
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Link
+            href="/student/classes"
+            className="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 transition-all duration-200 hover:-translate-y-1 hover:border-emerald-300 hover:shadow-md"
+          >
+            <div>
+              <span className="grid size-11 place-items-center rounded-xl bg-emerald-50 text-emerald-700 transition-colors group-hover:bg-emerald-600 group-hover:text-white">
+                <BookOpen className="size-5" />
+              </span>
+              <h3 className="mt-4 font-bold text-slate-900 group-hover:text-emerald-800">
+                Lớp học của tôi
+              </h3>
+              <p className="mt-1 text-xs text-slate-500 line-clamp-2">
+                Xem toàn bộ các lớp bạn đang theo học, thông tin giảng viên và năm học.
+              </p>
+            </div>
+            <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs font-semibold text-emerald-800">
+              <span>{data.classes.length} lớp học</span>
+              <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
+            </div>
+          </Link>
+
+          <Link
+            href="/student/materials"
+            className="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 transition-all duration-200 hover:-translate-y-1 hover:border-sky-300 hover:shadow-md"
+          >
+            <div>
+              <span className="grid size-11 place-items-center rounded-xl bg-sky-50 text-sky-700 transition-colors group-hover:bg-sky-600 group-hover:text-white">
+                <FileText className="size-5" />
+              </span>
+              <h3 className="mt-4 font-bold text-slate-900 group-hover:text-sky-800">
+                Kho tài liệu học tập
+              </h3>
+              <p className="mt-1 text-xs text-slate-500 line-clamp-2">
+                Tải slide bài giảng, giáo trình PDF, file DOCX và tài liệu theo tuần học.
+              </p>
+            </div>
+            <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs font-semibold text-sky-800">
+              <span>{data.materials.length} tài liệu</span>
+              <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
+            </div>
+          </Link>
+
+          <Link
+            href="/student/assignments"
+            className="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 transition-all duration-200 hover:-translate-y-1 hover:border-orange-300 hover:shadow-md"
+          >
+            <div>
+              <span className="grid size-11 place-items-center rounded-xl bg-orange-50 text-orange-700 transition-colors group-hover:bg-orange-600 group-hover:text-white">
+                <FileCheck2 className="size-5" />
+              </span>
+              <h3 className="mt-4 font-bold text-slate-900 group-hover:text-orange-800">
+                Bài tập & Đồ án
+              </h3>
+              <p className="mt-1 text-xs text-slate-500 line-clamp-2">
+                Nộp bài tập tự luận, báo cáo thực hành và xem điểm số, nhận xét của giảng viên.
+              </p>
+            </div>
+            <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs font-semibold text-orange-800">
+              <span>{activeAssignmentsCount} bài cần nộp</span>
+              <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
+            </div>
+          </Link>
+
+          <Link
+            href="/student/exams"
+            className="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 transition-all duration-200 hover:-translate-y-1 hover:border-amber-300 hover:shadow-md"
+          >
+            <div>
+              <span className="grid size-11 place-items-center rounded-xl bg-amber-50 text-amber-700 transition-colors group-hover:bg-amber-600 group-hover:text-white">
+                <ClipboardList className="size-5" />
+              </span>
+              <h3 className="mt-4 font-bold text-slate-900 group-hover:text-amber-800">
+                Phòng thi trực tuyến
+              </h3>
+              <p className="mt-1 text-xs text-slate-500 line-clamp-2">
+                Làm bài thi trắc nghiệm & tự luận trực tuyến, theo dõi thời gian và lịch sử điểm thi.
+              </p>
+            </div>
+            <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs font-semibold text-amber-800">
+              <span>{data.openExams.length} đề đang mở</span>
+              <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
+            </div>
+          </Link>
+        </div>
+      </section>
+
+      {/* Active Exams Preview */}
+      {data.openExams.length > 0 && (
+        <section className="space-y-3">
+          <SectionHeading
+            eyebrow="Cần làm ngay"
+            title="Đề thi đang trong khung giờ mở"
+            detail="Hãy hoàn thành trước thời hạn đóng bài"
+            action={{ label: 'Vào trang đề thi', href: '/student/exams' }}
+          />
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {data.openExams.slice(0, 3).map((exam) => (
+              <Card key={exam.id} className="border-emerald-200 bg-emerald-50/20">
+                <CardHeader className="p-4 pb-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <Badge className="border-emerald-200 bg-emerald-50 text-emerald-800 text-[10px]">
+                      Đang mở
+                    </Badge>
+                    {exam.available_until && (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-slate-500">
+                        <Clock3 className="size-3" />
+                        Đóng {formatDate(exam.available_until, { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    )}
+                  </div>
+                  <CardTitle className="mt-2 text-sm font-bold text-slate-900 line-clamp-1">
+                    {exam.title}
+                  </CardTitle>
+                  <p className="text-xs text-slate-500">
+                    {getRelatedName(exam.subject) || 'Môn học'} · {exam.duration_minutes} phút
+                  </p>
+                </CardHeader>
+                <CardContent className="p-4 pt-2">
+                  <Link
+                    href={`/student/exams/${exam.id}`}
+                    className={buttonVariants({
+                      size: 'sm',
+                      className: 'w-full gap-1.5 bg-[#17372e] text-white hover:bg-[#20493e] text-xs h-8',
+                    })}
+                  >
+                    <span>Bắt đầu làm bài</span>
+                    <ArrowRight className="size-3" />
+                  </Link>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Recent Exam History */}
+      <section className="space-y-3">
+        <SectionHeading
+          eyebrow="Kết quả"
+          title="Lượt thi gần nhất"
+          detail="Điểm số chỉ xuất hiện sau khi giảng viên công bố kết quả"
+          action={{ label: 'Xem toàn bộ hồ sơ thi', href: '/student/exams' }}
+        />
+        <Card>
+          <CardContent className="p-0">
+            {data.attempts.length ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Đề thi</TableHead>
+                      <TableHead className="hidden sm:table-cell">Ngày làm</TableHead>
+                      <TableHead>Trạng thái</TableHead>
+                      <TableHead className="text-right">Điểm</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {data.attempts.slice(0, 5).map((attempt) => {
+                      const exam = getRelatedExam(attempt.exam);
+                      const result = getRelatedResult(attempt.result);
+                      const status = getAttemptStatus(attempt);
+                      const score = result?.released_at ? Number(result.total_score) : null;
+                      return (
+                        <TableRow key={attempt.id}>
+                          <TableCell className="min-w-48">
+                            <Link
+                              href={`/student/exams/${attempt.exam_id}`}
+                              className="block font-medium text-slate-800 transition hover:text-emerald-700 hover:underline"
+                            >
+                              {exam?.title || 'Đề thi'}
+                            </Link>
+                            <span className="mt-0.5 block text-xs text-slate-400">
+                              Lượt {attempt.attempt_no}
+                            </span>
+                          </TableCell>
+                          <TableCell className="hidden text-slate-500 sm:table-cell">
+                            {formatDate(attempt.started_at)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={status.className}>
+                              {status.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-semibold tabular-nums">
+                            {score !== null && Number.isFinite(score)
+                              ? `${score.toLocaleString('vi-VN')} / 10`
+                              : '—'}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="p-5">
+                <EmptyState>Bài thi bạn đã nộp sẽ xuất hiện tại đây.</EmptyState>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* AI Tutor Promotion Banner */}
+      <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#17372e] via-[#20493e] to-[#286353] p-6 text-white sm:p-8">
+        <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-[#d7f5b2]">
+              <Sparkles aria-hidden="true" className="size-3.5" />
+              Trợ lý học tập AI
+            </span>
+            <h2 className="mt-4 text-xl font-bold tracking-tight sm:text-2xl">
+              Cần ôn lại một kiến thức?
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-white/70">
+              Hỏi gia sư AI để được giải thích từng bước và luyện tập theo tốc độ của bạn.
+            </p>
+          </div>
+          <Link
+            href="/student/ai-tutor"
+            className={buttonVariants({
+              variant: 'secondary',
+              className: 'shrink-0 gap-2 bg-[#c9ed99] text-[#17372e] hover:bg-[#d7f5b2]',
+            })}
+          >
+            Bắt đầu ôn tập <ArrowRight data-icon="inline-end" />
+          </Link>
+        </div>
+      </section>
+    </>
   );
 }
 
 export default async function StudentDashboardPage() {
-  const data = await getStudentDashboardData();
-  const shortName = data.studentName.split(/\s+/).at(-1) ?? data.studentName;
-  const initials = data.studentName
+  const { user, fullName, studentCode } = await getCurrentProfile();
+  const shortName = (fullName || 'Sinh viên').split(/\s+/).at(-1) ?? 'Sinh viên';
+  const initials = (fullName || 'SV')
     .split(/[\s@.]+/)
     .filter(Boolean)
     .slice(0, 2)
     .map((part) => part[0]?.toLocaleUpperCase())
     .join('');
-
-  const latestReleasedAttempt = data.attempts.find((attempt) => {
-    const result = getRelatedResult(attempt.result);
-    return Boolean(result?.released_at);
-  });
-  const latestScore = latestReleasedAttempt
-    ? Number(getRelatedResult(latestReleasedAttempt.result)?.total_score)
-    : null;
 
   const today = new Intl.DateTimeFormat('vi-VN', {
     weekday: 'long',
@@ -260,9 +503,10 @@ export default async function StudentDashboardPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900 lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
-      <StudentSidebar studentName={data.studentName} activeRoute="dashboard" />
+      <StudentSidebar studentName={fullName || 'Sinh viên'} activeRoute="dashboard" />
 
       <div className="min-w-0">
+        {/* Topbar: Static Shell 0ms */}
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
             <div className="flex items-center gap-2 lg:hidden">
@@ -271,29 +515,18 @@ export default async function StudentDashboardPage() {
               </span>
               <span className="text-sm font-bold text-slate-900">Mầm Học</span>
             </div>
-
             <p className="hidden text-xs font-medium capitalize text-slate-500 sm:block">{today}</p>
-
             <div className="ml-auto flex items-center gap-3">
-              <NotificationBell
-                userId={data.studentId}
-                initialNotifications={data.notifications}
-              />
-              {!data.hasDataError ? (
-                <Badge
-                  variant="outline"
-                  className="hidden gap-1.5 border-emerald-200 bg-emerald-50 text-emerald-800 sm:inline-flex"
-                >
-                  <CheckCircle2 data-icon="inline-start" /> Đã đồng bộ
-                </Badge>
-              ) : (
-                <Badge variant="destructive" className="hidden sm:inline-flex">
-                  Cần kiểm tra dữ liệu
-                </Badge>
-              )}
+              <NotificationBell userId={user.id} />
+              <Badge
+                variant="outline"
+                className="hidden gap-1.5 border-emerald-200 bg-emerald-50 text-emerald-800 sm:inline-flex"
+              >
+                <CheckCircle2 data-icon="inline-start" /> Sinh viên
+              </Badge>
               <span
                 className="grid size-9 place-items-center rounded-full bg-[#f0a879] text-xs font-bold text-[#4b2a1b]"
-                aria-label={`Tài khoản ${data.studentName}`}
+                aria-label={`Tài khoản ${fullName}`}
               >
                 {initials || 'SV'}
               </span>
@@ -302,6 +535,7 @@ export default async function StudentDashboardPage() {
         </header>
 
         <div className="mx-auto max-w-[1440px] space-y-7 px-5 py-7 sm:px-8 sm:py-8 lg:px-10">
+          {/* Greeting: Static Shell 0ms */}
           <section className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
@@ -311,269 +545,29 @@ export default async function StudentDashboardPage() {
                 Chào {shortName}! 👋
               </h1>
               <p className="mt-1.5 text-sm text-slate-500">
-                Chúc bạn một ngày học tập hiệu quả. Dưới đây là tổng quan các lớp và nhiệm vụ của bạn.
+                Theo dõi lớp học, đề thi và tiến độ học tập của bạn tại một nơi.
               </p>
-            </div>
-          </section>
-
-          {data.hasDataError && (
-            <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-              <div className="min-w-0">
-                <p className="font-semibold">Một số thông tin tạm thời chưa thể tải đầy đủ</p>
-                <p className="mt-1 text-amber-900/80">
-                  Kiểm tra kết nối Supabase và chính sách RLS, sau đó tải lại trang.
+              {studentCode && (
+                <p className="mt-1 text-xs text-slate-400">
+                  Mã sinh viên: <span className="font-mono">{studentCode}</span>
                 </p>
-              </div>
-            </div>
-          )}
-
-          {/* Metric Cards Bento Grid */}
-          <section aria-label="Thống kê học tập" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricCard
-              label="Lớp đang tham gia"
-              value={data.classes.length.toLocaleString('vi-VN')}
-              detail="Các lớp chưa lưu trữ"
-              icon={BookOpen}
-              tone="green"
-            />
-            <MetricCard
-              label="Đề thi đang mở"
-              value={data.openExams.length.toLocaleString('vi-VN')}
-              detail="Có thể vào thi ngay"
-              icon={CalendarClock}
-              tone="blue"
-            />
-            <MetricCard
-              label="Bài thi đã nộp"
-              value={data.submittedAttemptCount.toLocaleString('vi-VN')}
-              detail="Đã hoàn thành hoặc chờ chấm"
-              icon={ClipboardList}
-              tone="orange"
-            />
-            <MetricCard
-              label="Điểm gần nhất"
-              value={latestScore !== null && Number.isFinite(latestScore) ? latestScore.toLocaleString('vi-VN') : '—'}
-              detail="Chỉ hiển thị điểm đã công bố"
-              icon={Trophy}
-              tone="violet"
-            />
-          </section>
-
-          {/* Thao tác nhanh (Quick actions to independent pages) */}
-          <section
-            aria-label="Thao tác nhanh"
-            className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
-          >
-            <Link
-              href="/student/classes"
-              className="flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-emerald-900 transition hover:-translate-y-0.5 hover:shadow-sm"
-            >
-              <span className="grid size-10 place-items-center rounded-xl bg-emerald-600 text-white">
-                <BookOpen aria-hidden="true" className="size-5" />
-              </span>
-              <span>
-                <span className="block text-sm font-semibold">Lớp học của tôi</span>
-                <span className="mt-0.5 block text-xs text-emerald-800/70">Xem môn và lớp đã ghi danh</span>
-              </span>
-            </Link>
-            <Link
-              href="/student/materials"
-              className="flex items-center gap-3 rounded-xl border border-sky-100 bg-sky-50 p-4 text-sky-900 transition hover:-translate-y-0.5 hover:shadow-sm"
-            >
-              <span className="grid size-10 place-items-center rounded-xl bg-sky-600 text-white">
-                <FileText aria-hidden="true" className="size-5" />
-              </span>
-              <span>
-                <span className="block text-sm font-semibold">Tài liệu học tập</span>
-                <span className="mt-0.5 block text-xs text-sky-800/70">Slide bài giảng, PDF & Video</span>
-              </span>
-            </Link>
-            <Link
-              href="/student/assignments"
-              className="flex items-center gap-3 rounded-xl border border-teal-100 bg-teal-50 p-4 text-teal-900 transition hover:-translate-y-0.5 hover:shadow-sm"
-            >
-              <span className="grid size-10 place-items-center rounded-xl bg-teal-700 text-white">
-                <FileCheck2 aria-hidden="true" className="size-5" />
-              </span>
-              <span>
-                <span className="block text-sm font-semibold">Bài tập về nhà</span>
-                <span className="mt-0.5 block text-xs text-teal-800/70">Nộp file & xem điểm chấm</span>
-              </span>
-            </Link>
-            <Link
-              href="/student/exams"
-              className="flex items-center gap-3 rounded-xl border border-violet-100 bg-violet-50 p-4 text-violet-900 transition hover:-translate-y-0.5 hover:shadow-sm"
-            >
-              <span className="grid size-10 place-items-center rounded-xl bg-violet-600 text-white">
-                <CalendarClock aria-hidden="true" className="size-5" />
-              </span>
-              <span>
-                <span className="block text-sm font-semibold">Đề thi & Kết quả</span>
-                <span className="mt-0.5 block text-xs text-violet-800/70">Làm đề và xem lịch sử thi</span>
-              </span>
-            </Link>
-          </section>
-
-          {/* Tóm tắt Lớp học gần đây */}
-          <section className="space-y-4">
-            <SectionHeading
-              eyebrow="Lớp học"
-              title="Lớp học gần đây"
-              detail={`${data.classes.length} lớp đang tham gia`}
-              action={{ label: 'Xem tất cả lớp học', href: '/student/classes' }}
-            />
-            {data.classes.length ? (
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {data.classes.slice(0, 3).map((classItem) => (
-                  <ClassCard key={classItem.id} classItem={classItem} />
-                ))}
-              </div>
-            ) : (
-              <EmptyState>
-                Bạn chưa được ghi danh vào lớp nào. Hãy liên hệ giảng viên để nhận mã lớp.
-              </EmptyState>
-            )}
-          </section>
-
-          {/* Grid 2 cột: Đề thi mở & Thông báo */}
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-            <section className="space-y-4">
-              <SectionHeading
-                eyebrow="Đề thi"
-                title="Đề thi đang mở"
-                detail="Các đề trong lớp của bạn đang còn thời gian làm bài"
-                action={{ label: 'Xem tất cả đề thi', href: '/student/exams' }}
-              />
-              {data.openExams.length ? (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {data.openExams.slice(0, 2).map((exam) => (
-                    <ExamCard key={exam.id} exam={exam} />
-                  ))}
-                </div>
-              ) : (
-                <EmptyState>Hiện chưa có đề thi nào đang mở cho các lớp của bạn.</EmptyState>
               )}
-            </section>
-
-            <section className="space-y-4">
-              <SectionHeading
-                eyebrow="Cập nhật"
-                title="Thông báo mới"
-                detail="Thông tin mới nhất từ hệ thống đào tạo"
-              />
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Hộp thư thông báo</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {data.notifications.length ? (
-                    <ul className="divide-y divide-slate-100">
-                      {data.notifications.slice(0, 4).map((notification) => (
-                        <NotificationItem key={notification.id} notification={notification} />
-                      ))}
-                    </ul>
-                  ) : (
-                    <EmptyState>Bạn chưa có thông báo mới.</EmptyState>
-                  )}
-                </CardContent>
-              </Card>
-            </section>
-          </div>
-
-          {/* Lịch sử thi tóm tắt */}
-          <section className="space-y-4">
-            <SectionHeading
-              eyebrow="Kết quả"
-              title="Lịch sử thi gần nhất"
-              detail="Điểm số chỉ xuất hiện sau khi giảng viên công bố kết quả"
-              action={{ label: 'Xem toàn bộ hồ sơ thi', href: '/student/exams' }}
-            />
-            <Card>
-              <CardContent className="p-0">
-                {data.attempts.length ? (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Đề thi</TableHead>
-                          <TableHead className="hidden sm:table-cell">Ngày làm</TableHead>
-                          <TableHead>Trạng thái</TableHead>
-                          <TableHead className="text-right">Điểm</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {data.attempts.slice(0, 5).map((attempt) => {
-                          const exam = getRelatedExam(attempt.exam);
-                          const result = getRelatedResult(attempt.result);
-                          const status = getAttemptStatus(attempt);
-                          const score = result?.released_at ? Number(result.total_score) : null;
-                          return (
-                            <TableRow key={attempt.id}>
-                              <TableCell className="min-w-48">
-                                <Link
-                                  href={`/student/exams/${attempt.exam_id}`}
-                                  className="block font-medium text-slate-800 transition hover:text-emerald-700 hover:underline"
-                                >
-                                  {exam?.title || 'Đề thi'}
-                                </Link>
-                                <span className="mt-0.5 block text-xs text-slate-400">
-                                  Lượt {attempt.attempt_no}
-                                </span>
-                              </TableCell>
-                              <TableCell className="hidden text-slate-500 sm:table-cell">
-                                {formatDate(attempt.started_at)}
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className={status.className}>
-                                  {status.label}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right font-semibold tabular-nums">
-                                {score !== null && Number.isFinite(score)
-                                  ? `${score.toLocaleString('vi-VN')} / 10`
-                                  : '—'}
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
-                ) : (
-                  <div className="p-5">
-                    <EmptyState>Bài thi bạn đã nộp sẽ xuất hiện tại đây.</EmptyState>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </section>
-
-          {/* AI Tutor Promotion Banner */}
-          <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#17372e] via-[#20493e] to-[#286353] p-6 text-white sm:p-8">
-            <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
-              <div className="max-w-2xl">
-                <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-[#d7f5b2]">
-                  <Sparkles aria-hidden="true" className="size-3.5" />
-                  Trợ lý học tập AI
-                </span>
-                <h2 className="mt-4 text-xl font-bold tracking-tight sm:text-2xl">
-                  Cần ôn lại một kiến thức?
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-white/70">
-                  Hỏi gia sư AI để được giải thích từng bước và luyện tập theo tốc độ của bạn.
-                </p>
-              </div>
-              <Link
-                href="/student/ai-tutor"
-                className={buttonVariants({
-                  variant: 'secondary',
-                  className: 'shrink-0 gap-2 bg-[#c9ed99] text-[#17372e] hover:bg-[#d7f5b2]',
-                })}
-              >
-                Bắt đầu ôn tập <ArrowRight data-icon="inline-end" />
-              </Link>
             </div>
+            <Link
+              href="/student/ai-tutor"
+              className={buttonVariants({
+                className: 'gap-2 bg-[#17372e] text-white shadow-xs hover:bg-[#20493e]',
+              })}
+            >
+              <Sparkles data-icon="inline-start" /> Ôn tập cùng gia sư AI
+              <ArrowRight data-icon="inline-end" />
+            </Link>
           </section>
+
+          {/* Granular Suspense Streaming */}
+          <Suspense fallback={<StudentDashboardContentSkeleton />}>
+            <StudentDashboardDataContent />
+          </Suspense>
 
           <Separator />
           <footer className="pb-2 text-center text-xs text-slate-400">

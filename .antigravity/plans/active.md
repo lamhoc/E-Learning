@@ -1,3 +1,4 @@
+
 # Kế hoạch triển khai E-Learning ("Mầm Học")
 
 > **Trạng thái:** Đã hoàn thành Phase 26 - Cấu trúc lại luồng điều hướng Sinh viên thành các Route độc lập (`/student/classes`, `/student/materials`, `/student/assignments`, `/student/exams`), cập nhật StudentSidebar với `usePathname` và tách rời khỏi cơ chế hash link. Sẵn sàng triển khai Nhiệm vụ 2 (Diễn đàn Q&A lớp học).
@@ -169,3 +170,11 @@
 * **Không dính dáng đến React Server Components**: Route Handler là HTTP endpoint thông thường, xử lý request và trả về `NextResponse.json(...)` (`application/json`).
 * **Không có Flight stream, không có RSC chunks**: Client thực hiện lệnh `fetch()` tiêu chuẩn của trình duyệt. Không hề có React runtime can thiệp vào tầng truyền tải mạng.
 * **Cập nhật UI đáng tin cậy**: Khi nhận được JSON `{ status: 'success' }`, UI Client hiển thị toast thành công xanh lá, cập nhật trạng thái chấm điểm ngay tức thì. Tiếp đó, việc đồng bộ trang qua `startTransition(() => router.refresh())` diễn ra độc lập ở background mà không bao giờ chặn hay gây lỗi lưu điểm.
+
+- [x] **Phase 27**: Tối ưu hóa tốc độ xử lý request & chuyển trang tức thì (Instant Navigation)
+  - **Mục tiêu 1 (Request Deduplication)**: Bọc Auth & Role bằng React.cache() trong `lib/auth-cache.ts`. Thay thế các lệnh gọi Auth trực tiếp trong layouts, pages và helpers.
+  - **Mục tiêu 2 (Eliminate Waterfalls & N+1 Queries)**: PostgREST join `teacher_subject_assignments` -> `subjects` trong `lib/teacher-dashboard.ts`. Gộp `class_materials` vào `Promise.all` trong `lib/student-dashboard.ts`. Thay `select('*')` bằng explicit columns.
+  - **Mục tiêu 3 (Instant Transitions & Prefetching)**: Bổ sung `prefetch={true}` cho Sidebar GV và SV, thêm `loading.tsx` cho các route còn thiếu (`/teacher/questions`, `/teacher/exams/create`, `/student/exams/[examId]`).
+  - **Mục tiêu 4 (Granular Suspense Streaming)**: Tách nhỏ boundary cho Teacher & Student Dashboard và Question Bank để render static shell ngay lập tức (0ms) và stream nội dung động.
+  - **Mục tiêu 5 (Server-side Caching)**: Tích hợp `unstable_cache` với cache tag trong `lib/data-cache.ts` cho các bảng ít biến động (subjects, classes).
+  - **Mục tiêu 6 (Database Index & RLS Optimization)**: Viết migration file `supabase/migrations/20261102_performance_indexes.sql` đánh index cho tất cả các FK và cột filter/sort phổ biến.

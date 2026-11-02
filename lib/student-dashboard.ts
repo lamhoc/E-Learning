@@ -1,7 +1,6 @@
 import 'server-only';
 
-import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { requireRole } from '@/lib/auth-cache';
 import type { ClassMaterialItem } from '@/lib/class-materials';
 import { getStudentAssignments, type StudentAssignmentItem } from '@/lib/assignments';
 
@@ -60,18 +59,7 @@ export type StudentDashboardData = {
 };
 
 export async function getStudentDashboardData(): Promise<StudentDashboardData> {
-  const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-  if (authError || !user) redirect('/login');
-
-  const { data: roleRecord, error: roleError } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  if (roleError || roleRecord?.role !== 'student') redirect('/subjects');
+  const { user, supabase } = await requireRole('student');
 
   const [
     profileResult,
@@ -81,6 +69,7 @@ export async function getStudentDashboardData(): Promise<StudentDashboardData> {
     submittedAttemptsResult,
     notificationsResult,
     assignments,
+    materialsResult,
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -122,6 +111,13 @@ export async function getStudentDashboardData(): Promise<StudentDashboardData> {
       .order('created_at', { ascending: false })
       .limit(5),
     getStudentAssignments(user.id),
+    supabase
+      .from('class_materials')
+      .select(
+        'id, class_id, teacher_id, title, description, material_type, file_url, file_name, file_size_bytes, mime_type, week_number, created_at',
+      )
+      .order('week_number', { ascending: true })
+      .order('created_at', { ascending: false }),
   ]);
 
   const now = Date.now();
@@ -148,37 +144,21 @@ export async function getStudentDashboardData(): Promise<StudentDashboardData> {
     return startsAt <= now && now < endsAt;
   });
 
-  const classIds = classes.map((c) => c.id);
-  let materials: ClassMaterialItem[] = [];
-  if (classIds.length > 0) {
-    try {
-      const { data: materialsData } = await supabase
-        .from('class_materials')
-        .select('*')
-        .in('class_id', classIds)
-        .order('week_number', { ascending: true })
-        .order('created_at', { ascending: false });
-
-      if (materialsData) {
-        materials = (materialsData as Record<string, unknown>[]).map((row) => ({
-          id: String(row.id),
-          classId: String(row.class_id),
-          teacherId: String(row.teacher_id),
-          title: String(row.title || 'Tài liệu không tên'),
-          description: row.description ? String(row.description) : null,
-          materialType: (String(row.material_type || 'document') as 'document' | 'video' | 'link'),
-          fileUrl: String(row.file_url || ''),
-          fileName: row.file_name ? String(row.file_name) : null,
-          fileSizeBytes: row.file_size_bytes ? Number(row.file_size_bytes) : null,
-          mimeType: row.mime_type ? String(row.mime_type) : null,
-          weekNumber: Number(row.week_number) || 1,
-          createdAt: String(row.created_at || new Date().toISOString()),
-        }));
-      }
-    } catch {
-      // Table may be empty
-    }
-  }
+  const rawMaterials = (materialsResult.data ?? []) as Record<string, unknown>[];
+  const materials: ClassMaterialItem[] = rawMaterials.map((row) => ({
+    id: String(row.id),
+    classId: String(row.class_id),
+    teacherId: String(row.teacher_id),
+    title: String(row.title || 'Tài liệu không tên'),
+    description: row.description ? String(row.description) : null,
+    materialType: (String(row.material_type || 'document') as 'document' | 'video' | 'link'),
+    fileUrl: String(row.file_url || ''),
+    fileName: row.file_name ? String(row.file_name) : null,
+    fileSizeBytes: row.file_size_bytes ? Number(row.file_size_bytes) : null,
+    mimeType: row.mime_type ? String(row.mime_type) : null,
+    weekNumber: Number(row.week_number) || 1,
+    createdAt: String(row.created_at || new Date().toISOString()),
+  }));
 
   const errors = [
     profileResult.error,

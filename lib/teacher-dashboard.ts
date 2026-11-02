@@ -1,7 +1,6 @@
 import 'server-only';
 
-import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { requireRole } from '@/lib/auth-cache';
 
 export type TeacherClass = {
   id: string;
@@ -75,18 +74,7 @@ function getLastSevenDays() {
 }
 
 export async function getTeacherDashboardData(): Promise<TeacherDashboardData> {
-  const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-  if (authError || !user) redirect('/login');
-
-  const { data: roleRecord, error: roleError } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  if (roleError || roleRecord?.role !== 'teacher') redirect('/subjects');
+  const { user, supabase } = await requireRole('teacher');
 
   const [profileResult, classResult, examResult, allExamIdsResult, publishedCountResult, questionResult, assignmentsResult] = await Promise.all([
     supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
@@ -117,22 +105,20 @@ export async function getTeacherDashboardData(): Promise<TeacherDashboardData> {
       .is('archived_at', null),
     supabase
       .from('teacher_subject_assignments')
-      .select('subject_id')
+      .select('subject:subjects(id, code, name, archived_at)')
       .eq('teacher_id', user.id),
   ]);
 
-  const assignedSubjectIds = (assignmentsResult.data ?? []).map((assignment) => assignment.subject_id);
-  const assignedSubjectsResult = assignedSubjectIds.length
-    ? await supabase
-        .from('subjects')
-        .select('id, code, name')
-        .in('id', assignedSubjectIds)
-        .is('archived_at', null)
-        .order('name')
-    : { data: [], error: null };
-
   const classes = (classResult.data ?? []) as TeacherClass[];
-  const assignedSubjects = (assignedSubjectsResult.data ?? []) as TeacherSubject[];
+  type RawAssignmentSubject = { id: string; code: string; name: string; archived_at: string | null };
+  const assignedSubjects: TeacherSubject[] = (assignmentsResult.data ?? [])
+    .map((item) => {
+      const s = item.subject as RawAssignmentSubject | RawAssignmentSubject[] | null;
+      return Array.isArray(s) ? s[0] : s;
+    })
+    .filter((s): s is RawAssignmentSubject => Boolean(s && !s.archived_at))
+    .map(({ id, code, name }) => ({ id, code, name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
   const exams = (examResult.data ?? []) as TeacherExam[];
   const classIds = classes.map((item) => item.id);
   const examIds = (allExamIdsResult.data ?? []).map((item) => item.id);
@@ -198,7 +184,6 @@ export async function getTeacherDashboardData(): Promise<TeacherDashboardData> {
     publishedCountResult.error,
     questionResult.error,
     assignmentsResult.error,
-    assignedSubjectsResult.error,
     membershipResult.error,
     submissionsResult.error,
     pendingResult.error,

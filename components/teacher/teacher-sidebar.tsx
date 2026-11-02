@@ -65,7 +65,7 @@ export function TeacherSidebar({ activeRoute, teacherName }: TeacherSidebarProps
 
   return (
     <aside className="hidden min-h-screen flex-col border-r border-[#d9e3dc] bg-[#17372e] px-4 py-6 text-white lg:sticky lg:top-0 lg:flex lg:h-screen">
-      <Link href="/teacher/dashboard" className="flex items-center gap-3 px-2">
+      <Link prefetch={true} href="/teacher/dashboard" className="flex items-center gap-3 px-2">
         <span className="grid size-10 place-items-center rounded-xl bg-[#c9ed99] text-[#17372e]">
           <GraduationCap aria-hidden="true" className="size-6" />
         </span>
@@ -86,6 +86,7 @@ export function TeacherSidebar({ activeRoute, teacherName }: TeacherSidebarProps
             <Link
               key={item.id}
               href={item.href}
+              prefetch={true}
               aria-current={item.active ? 'page' : undefined}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
                 item.active

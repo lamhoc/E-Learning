@@ -2,6 +2,8 @@ import 'server-only';
 
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { getCurrentUserWithRole, getCurrentProfile } from '@/lib/auth-cache';
+import { getCachedTeacherAssignedSubjectIds } from '@/lib/data-cache';
 
 export type SubjectClassSummary = {
   id: string;
@@ -34,26 +36,12 @@ export type TeacherSubjectsData = {
 };
 
 export async function getTeacherSubjectsData(): Promise<TeacherSubjectsData> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  const { user, role, supabase } = await getCurrentUserWithRole();
 
-  if (authError || !user) {
+  if (!user) {
     redirect('/login');
   }
 
-  const [{ data: profile }, { data: roleRecord, error: roleError }] = await Promise.all([
-    supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
-    supabase.from('user_roles').select('role').eq('user_id', user.id).maybeSingle(),
-  ]);
-
-  if (roleError || !roleRecord) {
-    redirect('/login');
-  }
-
-  const role = roleRecord.role as 'admin' | 'teacher' | 'student';
   if (role === 'student') {
     redirect('/student/dashboard');
   }
@@ -61,21 +49,19 @@ export async function getTeacherSubjectsData(): Promise<TeacherSubjectsData> {
     redirect('/login');
   }
 
-  const teacherName = profile?.full_name?.trim() || user.email?.split('@')[0] || 'Giảng viên';
+  const { fullName } = await getCurrentProfile();
+  const teacherName = fullName || user.email?.split('@')[0] || 'Giảng viên';
 
   let subjectIds: string[] | null = null;
   let lookupError: string | undefined;
 
   if (role === 'teacher') {
-    const { data: assignmentData, error: assignmentError } = await supabase
-      .from('teacher_subject_assignments')
-      .select('subject_id')
-      .eq('teacher_id', user.id);
-
-    if (assignmentError) {
-      lookupError = assignmentError.message;
+    try {
+      subjectIds = await getCachedTeacherAssignedSubjectIds(user.id);
+    } catch (err: unknown) {
+      lookupError = err instanceof Error ? err.message : 'Lỗi truy vấn môn học';
+      subjectIds = [];
     }
-    subjectIds = [...new Set((assignmentData ?? []).map((row) => row.subject_id as string))];
   }
 
   // Nếu giảng viên chưa được phân công môn nào

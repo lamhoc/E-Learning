@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { BookOpen, Brain, GraduationCap, Sparkles, Users } from 'lucide-react';
 import { LoginForm } from './login-form';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUserWithRole } from '@/lib/auth-cache';
 
 type LoginPageProps = {
   searchParams: Promise<{ registered?: string; claimInvite?: string; claimEmail?: string }>;
@@ -18,12 +18,9 @@ const HIGHLIGHTS = [
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user, role, supabase } = await getCurrentUserWithRole();
 
-  // ── Redirect nếu đã đăng nhập ─────────────────────────────────────────────
+  // Redirect nếu đã đăng nhập
   if (user) {
     if (params.claimInvite) {
       const claimUrl = new URLSearchParams({
@@ -33,20 +30,18 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       redirect(`/register/teacher/claim?${claimUrl.toString()}`);
     }
 
-    const [{ data: roleRecord }, { data: application }] = await Promise.all([
-      supabase.from('user_roles').select('role').eq('user_id', user.id).maybeSingle(),
-      supabase
-        .from('teacher_applications')
-        .select('status')
-        .eq('user_id', user.id)
-        .maybeSingle(),
-    ]);
-
-    const userRole = (user.app_metadata?.role as string) || roleRecord?.role;
+    const userRole = (user.app_metadata?.role as string) || role;
 
     if (userRole === 'admin') redirect('/admin');
     if (userRole === 'teacher') redirect('/teacher/dashboard');
     if (userRole === 'student') redirect('/student/dashboard');
+
+    const { data: application } = await supabase
+      .from('teacher_applications')
+      .select('status')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
     if (application) redirect('/register/teacher/pending');
     redirect('/subjects');
   }

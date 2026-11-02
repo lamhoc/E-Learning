@@ -4,6 +4,7 @@ import { getTeacherQuestionsData } from '@/lib/question-bank';
 import { TeacherSidebar } from '@/components/teacher/teacher-sidebar';
 import { QuestionManager } from '@/components/teacher/question-manager';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getCurrentProfile } from '@/lib/auth-cache';
 
 type QuestionsPageProps = {
   searchParams: Promise<{
@@ -13,13 +14,59 @@ type QuestionsPageProps = {
   }>;
 };
 
-export default async function TeacherQuestionsPage({ searchParams }: QuestionsPageProps) {
+function QuestionsSkeleton() {
+  return (
+    <div className="space-y-6">
+      {/* Filter bar skeleton */}
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
+        <Skeleton className="h-10 w-64 rounded-lg" />
+        <Skeleton className="h-10 w-44 rounded-lg" />
+        <Skeleton className="h-10 w-44 rounded-lg" />
+      </div>
+
+      {/* Cards skeleton */}
+      <div className="space-y-4">
+        {Array.from({ length: 4 }, (_, index) => (
+          <div key={index} className="rounded-xl border border-slate-200 bg-white p-5 space-y-3">
+            <div className="flex justify-between items-center">
+              <div className="flex gap-2">
+                <Skeleton className="h-5 w-16 rounded" />
+                <Skeleton className="h-5 w-28 rounded" />
+              </div>
+              <Skeleton className="h-8 w-24 rounded-lg" />
+            </div>
+            <Skeleton className="h-6 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+            <div className="grid grid-cols-2 gap-2 pt-2">
+              <Skeleton className="h-9 rounded-lg" />
+              <Skeleton className="h-9 rounded-lg" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+async function QuestionsAsyncContent({ searchParams }: QuestionsPageProps) {
   const { subject, type, q } = await searchParams;
   const data = await getTeacherQuestionsData({
     subjectId: typeof subject === 'string' ? subject : undefined,
     type: typeof type === 'string' ? type : undefined,
     query: typeof q === 'string' ? q : undefined,
   });
+
+  return (
+    <QuestionManager
+      initialQuestions={data.questions}
+      subjects={data.assignedSubjects}
+    />
+  );
+}
+
+export default async function TeacherQuestionsPage({ searchParams }: QuestionsPageProps) {
+  // Lấy thông tin profile từ cache nhanh (0ms nếu đã authenticate)
+  const { fullName } = await getCurrentProfile();
 
   const today = new Intl.DateTimeFormat('vi-VN', {
     weekday: 'long',
@@ -29,7 +76,7 @@ export default async function TeacherQuestionsPage({ searchParams }: QuestionsPa
 
   return (
     <main className="min-h-screen bg-[#f3f6f3] text-foreground lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
-      <TeacherSidebar activeRoute="questions" teacherName={data.teacherName} />
+      <TeacherSidebar activeRoute="questions" teacherName={fullName || 'Giảng viên'} />
 
       <div className="min-w-0">
         <header className="sticky top-0 z-20 border-b border-[#e2e8e2] bg-[#f8faf8]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
@@ -63,11 +110,9 @@ export default async function TeacherQuestionsPage({ searchParams }: QuestionsPa
             </div>
           </section>
 
-          <Suspense fallback={<Skeleton className="h-96 w-full rounded-xl" />}>
-            <QuestionManager
-              initialQuestions={data.questions}
-              subjects={data.assignedSubjects}
-            />
+          {/* Granular Suspense Streaming: Shell tĩnh tải 0ms, bảng dữ liệu câu hỏi stream về sau */}
+          <Suspense fallback={<QuestionsSkeleton />}>
+            <QuestionsAsyncContent searchParams={searchParams} />
           </Suspense>
         </div>
       </div>
