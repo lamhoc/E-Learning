@@ -1,7 +1,7 @@
 
 # Kế hoạch triển khai E-Learning ("Mầm Học")
 
-> **Trạng thái:** Đã hoàn thành Phase 28 - Đồng bộ nhận diện thương hiệu Đại học Lạc Hồng (LHU) & Chế độ Sáng/Tối (Light/Dark Mode) toàn diện. Sẵn sàng cho các tính năng tiếp theo.
+> **Trạng thái:** Đã hoàn thành Phase 29 - Sửa triệt để lỗi cookies() trong unstable_cache(), bổ sung cơ chế fallback trực tiếp cho môn học và kiểm tra toàn diện hệ thống. Sẵn sàng cho các tính năng tiếp theo.
 > **Cập nhật:** 2026-11-03
 
 ## Trạng thái đã hoàn thành & Lịch sử Commit (`main`)
@@ -186,4 +186,14 @@
   - **Mục tiêu 2 (Bảng màu chuẩn LHU Theme)**: Cập nhật `app/globals.css` và toàn bộ component từ tông xanh lá cũ (`#17372e`) sang màu chủ đạo Royal Blue (`#154C99`), Deep Navy (`#0A275C`), Accent Gold Vàng chim Lạc (`#FACC15` / `#EAB308`), và phụ ASU Maroon (`#8C1D40`).
   - **Mục tiêu 3 (Hệ thống ThemeProvider & ThemeToggle)**: Cấu hình `next-themes` với Semantic CSS Variables cho cả Light Mode (`#F4F7FB`, card `#FFFFFF`) và Dark Mode (`#09111E`, card `#111C2D`, sidebar `#0B1628`). Tạo `<ThemeToggle />` đặt cạnh chuông thông báo trên tất cả Topbars và Headers.
   - **Mục tiêu 4 (Đồng bộ Dark Mode không mất chữ)**: Rà soát và bổ sung dark styles cho tất cả các thẻ Card, Table, Input, Textarea, Modal/Drawer và công thức Toán KaTeX để tự động đổi màu sắc nét ở cả hai chế độ.
+  - **Tiêu chí nghiệm thu**: `cmd /c npx tsc --noEmit` đạt 0 lỗi, `cmd /c npm run build` thành công 100% (30/30 routes), commit cục bộ an toàn.
+
+
+---
+
+- [x] **Phase 29 (Commit `9f4daad`)**: Sửa lỗi `cookies() inside unstable_cache()` và kiểm tra toàn diện hệ thống
+  - **Mục tiêu 1 (Loại bỏ cookies khỏi unstable_cache)**: Tách hoàn toàn `createClient()` khỏi callback của `unstable_cache` trong `lib/data-cache.ts`. Chuyển sang sử dụng `createAdminClient()` (Service Role Client không dùng cookies) và truyền tham số tĩnh tường minh (`teacherId`).
+  - **Mục tiêu 2 (Cơ chế Fallback kiên cố cho /teacher/subjects)**: Trong `lib/teacher-subjects.ts`, bổ sung nhánh fallback tự động sang query trực tiếp bằng authenticated user client (`supabase`) nếu cache rỗng hoặc lỗi, giải quyết triệt để lỗi hiển thị 0 môn học / 0 lớp học. Hỗ trợ role Admin xem toàn bộ môn học và lớp học.
+  - **Mục tiêu 3 (Tự động Revalidate Cache khi phân công)**: Trong `app/admin/teacher-access/actions.ts`, gọi `revalidateSubjectsCache(teacherId)` khi gán/hủy môn học hoặc tạo môn mới với tham số `'max'`.
+  - **Mục tiêu 4 (Kiểm tra toàn diện hệ thống)**: Rà soát Next.js 16 Async Dynamic APIs (`await params`, `await searchParams`), Hydration & Boundary, Query Supabase.
   - **Tiêu chí nghiệm thu**: `cmd /c npx tsc --noEmit` đạt 0 lỗi, `cmd /c npm run build` thành công 100% (30/30 routes), commit cục bộ an toàn.
