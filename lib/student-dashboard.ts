@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { requireRole } from '@/lib/auth-cache';
+import { sanitizeVietnameseText } from '@/lib/utils';
 import type { ClassMaterialItem } from '@/lib/class-materials';
 import { getStudentAssignments, type StudentAssignmentItem } from '@/lib/assignments';
 
@@ -171,7 +172,7 @@ export async function getStudentDashboardData(): Promise<StudentDashboardData> {
 
   return {
     studentId: user.id,
-    studentName: profileResult.data?.full_name || user.email || 'Sinh viên',
+    studentName: sanitizeVietnameseText(profileResult.data?.full_name || user.email || 'Sinh viên'),
     studentCode: profileResult.data?.student_code ?? null,
     classes,
     materials,

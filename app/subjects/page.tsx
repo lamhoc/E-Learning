@@ -12,7 +12,11 @@ export default async function SubjectsRedirectPage() {
 
   const role = (userRole as AppRole) ?? 'student';
 
-  if (role === 'teacher' || role === 'admin') {
+  if (role === 'admin') {
+    redirect('/admin/subjects');
+  }
+
+  if (role === 'teacher') {
     redirect('/teacher/subjects');
   }
 

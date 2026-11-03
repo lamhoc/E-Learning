@@ -1,3 +1,4 @@
+import { sanitizeVietnameseText } from '@/lib/utils';
 import 'server-only';
 
 import { redirect } from 'next/navigation';
@@ -108,7 +109,7 @@ export async function getStudentExamPageData(examId: string): Promise<StudentExa
     .eq('id', user.id)
     .maybeSingle();
 
-  const studentName = profile?.full_name || user.email || 'Sinh viên';
+  const studentName = sanitizeVietnameseText(profile?.full_name) || user.email || 'Sinh viên';
 
   // 3. Fetch Questions of the Exam
   const { data: questionsData, error: qError } = await supabase

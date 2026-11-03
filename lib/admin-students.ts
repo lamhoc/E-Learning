@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createAdminClient } from '@/lib/supabase/admin';
+import { sanitizeVietnameseText } from '@/lib/utils';
 
 export type StudentAccount = {
   id: string;
@@ -64,13 +65,15 @@ export async function getAdminStudentsList(): Promise<StudentAccount[]> {
       );
       const isBlocked = isBannedByDuration || isBlockedByMetadata;
 
+      const rawFullName =
+        profile.full_name ||
+        (typeof authUser?.user_metadata?.full_name === 'string'
+          ? authUser.user_metadata.full_name
+          : 'Sinh viên');
+
       return {
         id: profile.id,
-        fullName:
-          profile.full_name ||
-          (typeof authUser?.user_metadata?.full_name === 'string'
-            ? authUser.user_metadata.full_name
-            : 'Sinh viên'),
+        fullName: sanitizeVietnameseText(rawFullName),
         studentCode: profile.student_code ?? null,
         email: authUser?.email ?? 'Chưa xác thực email',
         createdAt: profile.created_at || authUser?.created_at || new Date().toISOString(),

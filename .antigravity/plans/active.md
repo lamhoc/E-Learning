@@ -197,3 +197,19 @@
   - **Mục tiêu 3 (Tự động Revalidate Cache khi phân công)**: Trong `app/admin/teacher-access/actions.ts`, gọi `revalidateSubjectsCache(teacherId)` khi gán/hủy môn học hoặc tạo môn mới với tham số `'max'`.
   - **Mục tiêu 4 (Kiểm tra toàn diện hệ thống)**: Rà soát Next.js 16 Async Dynamic APIs (`await params`, `await searchParams`), Hydration & Boundary, Query Supabase.
   - **Tiêu chí nghiệm thu**: `cmd /c npx tsc --noEmit` đạt 0 lỗi, `cmd /c npm run build` thành công 100% (30/30 routes), commit cục bộ an toàn.
+
+
+---
+
+- [x] **Phase 30**: Xây dựng trang Quản lý Môn học độc lập cho Admin (/admin/subjects) & Chuẩn hóa font tiếng Việt
+  - **Mục tiêu 1 (Khắc phục lỗi điều hướng Admin)**: Cập nhật `app/admin/layout.tsx` để nút 'Môn học' trỏ về `/admin/subjects` thay vì `/teacher/subjects`. Cập nhật `app/subjects/page.tsx` điều hướng `role === 'admin'` về `/admin/subjects`.
+  - **Mục tiêu 2 (Xây dựng trang Quản lý Môn học cho Admin)**:
+    - Tạo Server Component `app/admin/subjects/page.tsx` kế thừa trọn vẹn `app/admin/layout.tsx` (giữ Header ngang Admin, không xuất hiện TeacherSidebar).
+    - Thẻ thống kê: Tổng số môn học, Số giảng viên đã được phân môn, Tổng số lớp đang mở.
+    - Tạo Server Actions `app/admin/subjects/actions.ts`: Tạo môn mới, Sửa môn, Lưu trữ/Kích hoạt lại, Xóa môn, Gán/Hủy nhanh giảng viên phụ trách.
+    - Tạo Client Component `app/admin/subjects/subjects-manager-client.tsx`: Dialog thêm/sửa môn học, Dialog gán nhanh giảng viên, tìm kiếm và lọc trạng thái, bảng danh sách môn học sắc nét.
+  - **Mục tiêu 3 (Chuẩn hóa font tiếng Việt 'Giảng viên demo')**:
+    - Chuẩn hóa hàm `sanitizeVietnameseText` trong `lib/utils.ts`.
+    - Tích hợp hàm làm sạch vào `TeacherSidebar`, `lib/auth-cache.ts`, `lib/teacher-dashboard.ts`, `lib/student-dashboard.ts`, `lib/admin-students.ts`, `app/admin/teacher-access/page.tsx`.
+    - Viết migration `supabase/migrations/20261103_fix_corrupted_vietnamese_names.sql`.
+  - **Tiêu chí nghiệm thu**: `cmd /c npx tsc --noEmit` đạt 0 lỗi, `cmd /c npm run build` thành công 100%, commit cục bộ an toàn.

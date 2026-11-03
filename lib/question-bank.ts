@@ -1,3 +1,4 @@
+import { sanitizeVietnameseText } from '@/lib/utils';
 import 'server-only';
 
 import { redirect } from 'next/navigation';
@@ -82,7 +83,7 @@ export async function getTeacherQuestionsData(params?: {
     .eq('id', user.id)
     .maybeSingle();
 
-  const teacherName = profile?.full_name ?? user.email ?? 'Giảng viên';
+  const teacherName = sanitizeVietnameseText(profile?.full_name) || user.email || 'Giảng viên';
 
   // 2. Fetch Assigned Subjects (or all subjects if admin)
   let assignedSubjects: SubjectSummary[] = [];

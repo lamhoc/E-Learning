@@ -71,10 +71,10 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             </Link>
             <Link
               prefetch={true}
-              href="/teacher/subjects"
+              href="/admin/subjects"
               className={buttonVariants({ variant: 'ghost', size: 'sm' })}
             >
-              <BookOpen className="size-4 text-muted-foreground" />
+              <BookOpen className="size-4 text-[#154C99] dark:text-[#3B82F6]" />
               <span className="hidden lg:inline">Môn học</span>
             </Link>
 

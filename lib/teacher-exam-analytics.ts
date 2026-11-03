@@ -1,3 +1,4 @@
+import { sanitizeVietnameseText } from '@/lib/utils';
 import 'server-only';
 
 import { redirect } from 'next/navigation';
@@ -83,7 +84,7 @@ export async function getTeacherExamAnalytics(examId: string): Promise<TeacherEx
     .eq('id', user.id)
     .maybeSingle();
 
-  const teacherName = teacherProfile?.full_name ?? user.email ?? 'Giảng viên';
+  const teacherName = sanitizeVietnameseText(teacherProfile?.full_name) || user.email || 'Giảng viên';
 
   const adminClient = process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : supabase;
 

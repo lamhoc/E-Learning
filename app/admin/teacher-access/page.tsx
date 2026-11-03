@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { createClient } from '@/lib/supabase/server';
+import { sanitizeVietnameseText } from '@/lib/utils';
 import {
   AcademicAccess,
   type AcademicAssignment,
@@ -105,7 +106,7 @@ export default async function TeacherAccessAdminPage({
     : { data: [], error: null };
 
   const profileNames = new Map(
-    (profilesResult.data ?? []).map((profile) => [profile.id, profile.full_name]),
+    (profilesResult.data ?? []).map((profile) => [profile.id, sanitizeVietnameseText(profile.full_name)]),
   );
 
   const allSubjects = (subjectsResult.data ?? []) as (AcademicSubject & {

@@ -3,6 +3,7 @@ import 'server-only';
 import { cache } from 'react';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { sanitizeVietnameseText } from '@/lib/utils';
 
 /**
  * Trả về Supabase user hiện tại, cached trong cùng 1 request.
@@ -87,7 +88,7 @@ export const getCurrentProfile = cache(async () => {
   return {
     user,
     supabase,
-    fullName: profile?.full_name || user.email || '',
+    fullName: sanitizeVietnameseText(profile?.full_name || user.email || ''),
     studentCode: profile?.student_code ?? null,
   };
 });

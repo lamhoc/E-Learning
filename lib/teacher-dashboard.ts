@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { requireRole } from '@/lib/auth-cache';
+import { sanitizeVietnameseText } from '@/lib/utils';
 
 export type TeacherClass = {
   id: string;
@@ -222,7 +223,7 @@ export async function getTeacherDashboardData(): Promise<TeacherDashboardData> {
 
   return {
     teacherId: user.id,
-    teacherName: profileResult.data?.full_name || user.email || 'Giảng viên',
+    teacherName: sanitizeVietnameseText(profileResult.data?.full_name || user.email || 'Giảng viên'),
     classes,
     assignedSubjects,
     exams,

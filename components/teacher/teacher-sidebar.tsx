@@ -11,6 +11,7 @@ import { signOut } from '@/app/subjects/actions';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { BrandLogo } from '@/components/ui/brand-logo';
+import { sanitizeVietnameseText } from '@/lib/utils';
 
 type TeacherSidebarProps = {
   activeRoute: 'dashboard' | 'questions' | 'subjects' | 'grading' | 'ai-tutor';
@@ -18,7 +19,8 @@ type TeacherSidebarProps = {
 };
 
 export function TeacherSidebar({ activeRoute, teacherName }: TeacherSidebarProps) {
-  const initials = teacherName
+  const cleanTeacherName = sanitizeVietnameseText(teacherName) || 'Giảng viên';
+  const initials = cleanTeacherName
     .split(/[\s@.]+/)
     .filter(Boolean)
     .slice(0, 2)
@@ -110,7 +112,7 @@ export function TeacherSidebar({ activeRoute, teacherName }: TeacherSidebarProps
             {initials || 'GV'}
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-sm font-medium text-white">{teacherName}</span>
+            <span className="block truncate text-sm font-medium text-white">{cleanTeacherName}</span>
             <span className="block text-xs text-white/60">Giảng viên LHU</span>
           </span>
         </div>

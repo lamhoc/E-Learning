@@ -1,3 +1,4 @@
+import { sanitizeVietnameseText } from '@/lib/utils';
 import 'server-only';
 
 import { redirect, notFound } from 'next/navigation';
@@ -93,7 +94,7 @@ export async function getTeacherGradingData(attemptId: string): Promise<TeacherG
     .eq('id', user.id)
     .maybeSingle();
 
-  const teacherName = teacherProfile?.full_name ?? user.email ?? 'Giảng viên';
+  const teacherName = sanitizeVietnameseText(teacherProfile?.full_name) || user.email || 'Giảng viên';
 
   // Use Admin Client if service role key is present, otherwise fall back to authenticated supabase client
   const adminClient = process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : supabase;
@@ -347,7 +348,7 @@ export async function getTeacherGradingQueue(): Promise<TeacherGradingQueueData>
     .eq('id', user.id)
     .maybeSingle();
 
-  const teacherName = teacherProfile?.full_name ?? user.email ?? 'Giảng viên';
+  const teacherName = sanitizeVietnameseText(teacherProfile?.full_name) || user.email || 'Giảng viên';
 
   const adminClient = process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : supabase;
 
