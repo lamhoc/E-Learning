@@ -108,6 +108,7 @@ export async function approveTeacher(userId: string) {
       message: 'Hồ sơ xin cấp quyền giáo viên của bạn đã được phê duyệt thành công. Bạn đã có quyền tạo đề thi, quản lý lớp và chấm bài.',
     });
 
+    await revalidateSubjectsCache(userId);
     revalidatePath('/admin/teacher-access');
     revalidatePath('/teacher/dashboard');
     revalidatePath('/teacher/subjects');
@@ -208,6 +209,7 @@ export async function assignSubject(teacherId: string, subjectId: string) {
       return { success: false, error: 'Không thể lưu phân công môn học.' };
     }
 
+    await revalidateSubjectsCache(teacherId);
     revalidatePath('/admin/teacher-access');
     revalidatePath('/teacher/dashboard');
     revalidatePath('/teacher/subjects');
@@ -246,6 +248,7 @@ export async function unassignSubject(teacherId: string, subjectId: string) {
       return { success: false, error: 'Không thể gỡ phân công môn học.' };
     }
 
+    await revalidateSubjectsCache(teacherId);
     revalidatePath('/admin/teacher-access');
     revalidatePath('/teacher/dashboard');
     revalidatePath('/teacher/subjects');
@@ -284,6 +287,7 @@ export async function createSubject(formData: FormData) {
     redirect(`/admin/teacher-access?error=${error.code === '23505' ? 'subject-duplicate' : 'subject-create'}`);
   }
 
+  await revalidateSubjectsCache();
   revalidatePath('/admin/teacher-access');
   revalidatePath('/teacher/subjects');
   revalidatePath('/subjects');

@@ -1,7 +1,6 @@
 import 'server-only';
 
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
 import { getCurrentUserWithRole, getCurrentProfile } from '@/lib/auth-cache';
 import { getCachedTeacherAssignedSubjectIds } from '@/lib/data-cache';
 
@@ -59,12 +58,28 @@ export async function getTeacherSubjectsData(): Promise<TeacherSubjectsData> {
     try {
       subjectIds = await getCachedTeacherAssignedSubjectIds(user.id);
     } catch (err: unknown) {
-      lookupError = err instanceof Error ? err.message : 'Lỗi truy vấn môn học';
-      subjectIds = [];
+      console.warn('[getTeacherSubjectsData] Cache fetch failed, fallback to direct query:', err);
+      lookupError = err instanceof Error ? err.message : 'Lỗi cache phân môn';
+      subjectIds = null;
+    }
+
+    // Fallback: Nếu cache trả về rỗng hoặc lỗi, truy vấn trực tiếp bằng client xác thực của người dùng
+    if (!subjectIds || subjectIds.length === 0) {
+      const { data: directAssignments, error: directError } = await supabase
+        .from('teacher_subject_assignments')
+        .select('subject_id')
+        .eq('teacher_id', user.id);
+
+      if (!directError && directAssignments && directAssignments.length > 0) {
+        subjectIds = directAssignments.map((row) => row.subject_id as string);
+        lookupError = undefined;
+      } else {
+        subjectIds = [];
+      }
     }
   }
 
-  // Nếu giảng viên chưa được phân công môn nào
+  // Nếu giảng viên thực sự chưa được phân công môn nào
   if (role === 'teacher' && subjectIds && subjectIds.length === 0) {
     return {
       teacherId: user.id,
@@ -91,22 +106,31 @@ export async function getTeacherSubjectsData(): Promise<TeacherSubjectsData> {
     subjectsQuery = subjectsQuery.is('archived_at', null);
   }
 
+  let classesQuery = supabase
+    .from('classes')
+    .select('id, name, class_code, academic_year, subject_id')
+    .is('archived_at', null);
+
+  let questionsQuery = supabase
+    .from('question_bank')
+    .select('id, subject_id')
+    .is('archived_at', null);
+
+  let examsQuery = supabase
+    .from('exams')
+    .select('id, subject_id');
+
+  if (role !== 'admin') {
+    classesQuery = classesQuery.eq('teacher_id', user.id);
+    questionsQuery = questionsQuery.eq('created_by', user.id).is('archived_at', null);
+    examsQuery = examsQuery.eq('created_by', user.id);
+  }
+
   const [subjectsResult, classesResult, questionsResult, examsResult] = await Promise.all([
     subjectsQuery,
-    supabase
-      .from('classes')
-      .select('id, name, class_code, academic_year, subject_id')
-      .eq('teacher_id', user.id)
-      .is('archived_at', null),
-    supabase
-      .from('question_bank')
-      .select('id, subject_id')
-      .eq('created_by', user.id)
-      .is('archived_at', null),
-    supabase
-      .from('exams')
-      .select('id, subject_id')
-      .eq('created_by', user.id),
+    classesQuery,
+    questionsQuery,
+    examsQuery,
   ]);
 
   if (subjectsResult.error) {
@@ -158,4 +182,3 @@ export async function getTeacherSubjectsData(): Promise<TeacherSubjectsData> {
     errorMessage: lookupError,
   };
 }
-

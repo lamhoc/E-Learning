@@ -6,12 +6,10 @@ import {
   ArrowLeft,
   ArrowRight,
   BookOpen,
-  GraduationCap,
   HelpCircle,
   LibraryBig,
   PlusCircle,
   Users,
-  FileText,
   Sparkles,
 } from 'lucide-react';
 import { getTeacherSubjectsData } from '@/lib/teacher-subjects';
@@ -22,8 +20,8 @@ import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
 export const metadata: Metadata = {
-  title: 'Môn học phụ trách | Mầm Học',
-  description: 'Danh sách môn học được phân công và quản lý học liệu cho giảng viên',
+  title: 'Môn học phụ trách | Đại học Lạc Hồng',
+  description: 'Danh sách môn học được phân công và quản lý học liệu cho giảng viên Đại học Lạc Hồng',
 };
 
 export default async function TeacherSubjectsPage() {
@@ -36,7 +34,7 @@ export default async function TeacherSubjectsPage() {
   }).format(new Date());
 
   return (
-    <main className="min-h-screen bg-[#f3f6f3] text-foreground lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
+    <main className="min-h-screen bg-background text-foreground lg:grid lg:grid-cols-[248px_minmax(0,1fr)] transition-colors">
       <TeacherSidebar activeRoute="subjects" teacherName={data.teacherName} />
 
       <div className="min-w-0">
@@ -45,8 +43,8 @@ export default async function TeacherSubjectsPage() {
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="lg:hidden">
-              <BrandLogo size="sm" />
-            </div>
+                <BrandLogo size="sm" />
+              </div>
               <Link
                 href="/teacher/dashboard"
                 className={buttonVariants({ variant: 'ghost', size: 'sm', className: 'gap-1.5' })}
@@ -63,7 +61,7 @@ export default async function TeacherSubjectsPage() {
             <div className="ml-auto flex items-center gap-3">
               <NotificationBell userId={data.teacherId} />
               <ThemeToggle />
-              <Badge variant="outline" className="border-primary/20 bg-primary/10 text-primary text-xs">
+              <Badge variant="outline" className="border-primary/20 bg-primary/10 text-primary text-xs font-medium">
                 {data.totalAssignedSubjects} môn phụ trách
               </Badge>
             </div>
@@ -76,7 +74,7 @@ export default async function TeacherSubjectsPage() {
           <section className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="flex items-center gap-2.5">
-                <span className="grid size-9 place-items-center rounded-xl bg-[#e5f0e9] text-[#246348]">
+                <span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary">
                   <BookOpen className="size-5" />
                 </span>
                 <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
@@ -84,7 +82,7 @@ export default async function TeacherSubjectsPage() {
                 </h1>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
-                Các môn học bạn được phân công quản lý học liệu, ngân hàng câu hỏi và tổ chức kỳ thi.
+                Các môn học bạn được phân công quản lý học liệu, ngân hàng câu hỏi và tổ chức kỳ thi tại LHU.
               </p>
             </div>
 
@@ -100,7 +98,7 @@ export default async function TeacherSubjectsPage() {
                 href="/teacher/dashboard#create-class"
                 className={buttonVariants({
                   size: 'sm',
-                  className: 'gap-2 bg-[#17372e] text-white shadow-xs hover:bg-[#20493e]',
+                  className: 'gap-2 bg-primary text-white shadow-xs hover:bg-primary/90',
                 })}
               >
                 <PlusCircle className="size-4" />
@@ -113,7 +111,7 @@ export default async function TeacherSubjectsPage() {
           {data.errorMessage && (
             <div
               role="alert"
-              className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 shadow-xs"
+              className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-600 dark:text-amber-400 shadow-xs"
             >
               Không thể tải toàn bộ thông tin môn học: {data.errorMessage}
             </div>
@@ -121,44 +119,44 @@ export default async function TeacherSubjectsPage() {
 
           {/* Quick Metrics Bar */}
           <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Card className="rounded-2xl border-slate-200/80 bg-white shadow-xs">
+            <Card className="rounded-2xl border-border bg-card dark:bg-[#111C2D] shadow-xs">
               <CardContent className="flex items-center gap-4 p-5">
-                <span className="grid size-11 place-items-center rounded-xl bg-emerald-50 text-emerald-700">
+                <span className="grid size-11 place-items-center rounded-xl bg-primary/10 text-primary">
                   <BookOpen className="size-5" />
                 </span>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Môn phụ trách
                   </p>
-                  <p className="mt-0.5 text-2xl font-bold text-slate-900">{data.totalAssignedSubjects}</p>
+                  <p className="mt-0.5 text-2xl font-bold text-foreground">{data.totalAssignedSubjects}</p>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border-slate-200/80 bg-white shadow-xs">
+            <Card className="rounded-2xl border-border bg-card dark:bg-[#111C2D] shadow-xs">
               <CardContent className="flex items-center gap-4 p-5">
-                <span className="grid size-11 place-items-center rounded-xl bg-blue-50 text-blue-700">
+                <span className="grid size-11 place-items-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
                   <Users className="size-5" />
                 </span>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Lớp đang mở
                   </p>
-                  <p className="mt-0.5 text-2xl font-bold text-slate-900">{data.totalClassesCount}</p>
+                  <p className="mt-0.5 text-2xl font-bold text-foreground">{data.totalClassesCount}</p>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border-slate-200/80 bg-white shadow-xs">
+            <Card className="rounded-2xl border-border bg-card dark:bg-[#111C2D] shadow-xs">
               <CardContent className="flex items-center gap-4 p-5">
-                <span className="grid size-11 place-items-center rounded-xl bg-amber-50 text-amber-700">
+                <span className="grid size-11 place-items-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
                   <LibraryBig className="size-5" />
                 </span>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Câu hỏi trong kho
                   </p>
-                  <p className="mt-0.5 text-2xl font-bold text-slate-900">{data.totalQuestionsCount}</p>
+                  <p className="mt-0.5 text-2xl font-bold text-foreground">{data.totalQuestionsCount}</p>
                 </div>
               </CardContent>
             </Card>
@@ -166,16 +164,16 @@ export default async function TeacherSubjectsPage() {
 
           {/* Danh sách thẻ môn học */}
           {data.subjects.length === 0 ? (
-            <Card className="rounded-2xl border-dashed border-slate-300 bg-white p-10 text-center shadow-xs">
-              <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+            <Card className="rounded-2xl border-dashed border-border bg-card dark:bg-[#111C2D] p-10 text-center shadow-xs">
+              <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
                 <BookOpen className="size-7" />
               </div>
-              <CardTitle className="mt-4 text-lg font-semibold text-slate-800">
+              <CardTitle className="mt-4 text-lg font-semibold text-foreground">
                 Chưa có môn học được phân công
               </CardTitle>
-              <CardDescription className="mx-auto mt-2 max-w-md text-sm text-slate-500">
+              <CardDescription className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
                 Quản trị viên cần phân công môn học trước khi môn hiển thị tại đây. Thầy/cô có thể liên hệ
-                quản trị viên hệ thống để kiểm tra danh mục phân môn.
+                quản trị viên hệ thống Đại học Lạc Hồng để kiểm tra danh mục phân môn.
               </CardDescription>
               <div className="mt-6 flex justify-center gap-3">
                 <Link
@@ -185,8 +183,8 @@ export default async function TeacherSubjectsPage() {
                   <ArrowLeft className="size-4" /> Quay lại Dashboard
                 </Link>
                 <Link
-                  href="/chat"
-                  className={buttonVariants({ size: 'sm', className: 'gap-1.5 bg-[#17372e] text-white hover:bg-[#20493e]' })}
+                  href="/teacher/ai-tutor"
+                  className={buttonVariants({ size: 'sm', className: 'gap-1.5 bg-primary text-white hover:bg-primary/90' })}
                 >
                   <Sparkles className="size-4" /> Hỏi gia sư AI
                 </Link>
@@ -197,44 +195,44 @@ export default async function TeacherSubjectsPage() {
               {data.subjects.map((subject) => (
                 <Card
                   key={subject.id}
-                  className="flex flex-col justify-between rounded-2xl border-slate-200/80 bg-white shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md"
+                  className="flex flex-col justify-between rounded-2xl border-border bg-card dark:bg-[#111C2D] shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:shadow-md"
                 >
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between gap-2">
-                      <Badge className="bg-[#17372e] px-2.5 py-0.5 font-mono text-xs uppercase tracking-wider text-white">
+                      <Badge className="bg-primary px-2.5 py-0.5 font-mono text-xs uppercase tracking-wider text-white">
                         {subject.code}
                       </Badge>
-                      <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-[11px] font-medium text-emerald-800">
+                      <Badge variant="outline" className="border-primary/20 bg-primary/10 text-[11px] font-medium text-primary">
                         Đang giảng dạy
                       </Badge>
                     </div>
-                    <CardTitle className="mt-3 text-lg font-bold text-slate-900">
+                    <CardTitle className="mt-3 text-lg font-bold text-foreground">
                       {subject.name}
                     </CardTitle>
-                    <CardDescription className="line-clamp-2 min-h-[40px] text-xs leading-relaxed text-slate-500">
+                    <CardDescription className="line-clamp-2 min-h-[40px] text-xs leading-relaxed text-muted-foreground">
                       {subject.description || 'Chưa có mô tả chi tiết cho môn học này.'}
                     </CardDescription>
                   </CardHeader>
 
                   <CardContent className="space-y-4 pt-0">
-                    <div className="grid grid-cols-3 gap-2 rounded-xl bg-slate-50 p-3 text-center border border-slate-100">
+                    <div className="grid grid-cols-3 gap-2 rounded-xl bg-muted/40 p-3 text-center border border-border/60">
                       <div>
-                        <p className="text-[11px] font-medium text-slate-500">Lớp học</p>
-                        <p className="mt-0.5 text-base font-bold text-slate-900">{subject.classesCount}</p>
+                        <p className="text-[11px] font-medium text-muted-foreground">Lớp học</p>
+                        <p className="mt-0.5 text-base font-bold text-foreground">{subject.classesCount}</p>
                       </div>
-                      <div className="border-x border-slate-200">
-                        <p className="text-[11px] font-medium text-slate-500">Câu hỏi</p>
-                        <p className="mt-0.5 text-base font-bold text-slate-900">{subject.questionsCount}</p>
+                      <div className="border-x border-border/60">
+                        <p className="text-[11px] font-medium text-muted-foreground">Câu hỏi</p>
+                        <p className="mt-0.5 text-base font-bold text-foreground">{subject.questionsCount}</p>
                       </div>
                       <div>
-                        <p className="text-[11px] font-medium text-slate-500">Đề thi</p>
-                        <p className="mt-0.5 text-base font-bold text-slate-900">{subject.examsCount}</p>
+                        <p className="text-[11px] font-medium text-muted-foreground">Đề thi</p>
+                        <p className="mt-0.5 text-base font-bold text-foreground">{subject.examsCount}</p>
                       </div>
                     </div>
 
                     {subject.classes.length > 0 && (
                       <div className="space-y-1.5">
-                        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                           Các lớp đang mở
                         </p>
                         <div className="flex flex-wrap gap-1.5">
@@ -242,13 +240,13 @@ export default async function TeacherSubjectsPage() {
                             <Link
                               key={c.id}
                               href={`/teacher/classes/${c.id}`}
-                              className="inline-flex items-center rounded-md border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
+                              className="inline-flex items-center rounded-md border border-border bg-card px-2 py-0.5 text-xs font-medium text-foreground transition hover:border-primary hover:bg-primary/5 hover:text-primary"
                             >
                               {c.name}
                             </Link>
                           ))}
                           {subject.classes.length > 4 && (
-                            <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
+                            <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                               +{subject.classes.length - 4} lớp khác
                             </span>
                           )}
@@ -257,17 +255,17 @@ export default async function TeacherSubjectsPage() {
                     )}
                   </CardContent>
 
-                  <CardFooter className="flex flex-col gap-2 border-t border-slate-100 pt-4">
+                  <CardFooter className="flex flex-col gap-2 border-t border-border pt-4">
                     <Link
                       href={`/teacher/questions?subject=${subject.id}`}
                       className={buttonVariants({
                         variant: 'outline',
                         size: 'sm',
-                        className: 'w-full justify-between border-slate-200 text-xs font-medium hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800',
+                        className: 'w-full justify-between border-border text-xs font-medium hover:border-primary hover:bg-primary/5 hover:text-primary',
                       })}
                     >
                       <span className="flex items-center gap-1.5">
-                        <HelpCircle className="size-3.5 text-emerald-700" />
+                        <HelpCircle className="size-3.5 text-primary" />
                         Kho câu hỏi môn học
                       </span>
                       <ArrowRight className="size-3.5" />
@@ -278,11 +276,11 @@ export default async function TeacherSubjectsPage() {
                       className={buttonVariants({
                         variant: 'ghost',
                         size: 'sm',
-                        className: 'w-full justify-between text-xs text-slate-600 hover:text-slate-900',
+                        className: 'w-full justify-between text-xs text-muted-foreground hover:text-foreground',
                       })}
                     >
                       <span className="flex items-center gap-1.5">
-                        <PlusCircle className="size-3.5 text-slate-500" />
+                        <PlusCircle className="size-3.5 text-muted-foreground" />
                         Mở thêm lớp mới
                       </span>
                       <ArrowRight className="size-3.5" />
@@ -297,4 +295,3 @@ export default async function TeacherSubjectsPage() {
     </main>
   );
 }
-
