@@ -201,7 +201,7 @@
 
 ---
 
-- [x] **Phase 30**: Xây dựng trang Quản lý Môn học độc lập cho Admin (/admin/subjects) & Chuẩn hóa font tiếng Việt
+- [x] **Phase 30 (Commit \1e0b23b\)**: Xây dựng trang Quản lý Môn học độc lập cho Admin (/admin/subjects) & Chuẩn hóa font tiếng Việt
   - **Mục tiêu 1 (Khắc phục lỗi điều hướng Admin)**: Cập nhật `app/admin/layout.tsx` để nút 'Môn học' trỏ về `/admin/subjects` thay vì `/teacher/subjects`. Cập nhật `app/subjects/page.tsx` điều hướng `role === 'admin'` về `/admin/subjects`.
   - **Mục tiêu 2 (Xây dựng trang Quản lý Môn học cho Admin)**:
     - Tạo Server Component `app/admin/subjects/page.tsx` kế thừa trọn vẹn `app/admin/layout.tsx` (giữ Header ngang Admin, không xuất hiện TeacherSidebar).
