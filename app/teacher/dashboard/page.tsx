@@ -180,12 +180,20 @@ const QUICK_ACTIONS = [
     iconBg: 'bg-emerald-600 text-white',
   },
   {
-    icon: Upload,
-    label: 'Upload tài liệu',
-    desc: 'DOCX / PPTX',
-    href: '/teacher/questions',
+    icon: FileText,
+    label: 'Tài liệu giảng dạy',
+    desc: 'Slide / PDF / Video',
+    href: '/teacher/materials',
     color: 'bg-teal-50 text-teal-700 hover:bg-teal-100 border-teal-100',
     iconBg: 'bg-teal-600 text-white',
+  },
+  {
+    icon: ClipboardList,
+    label: 'Bài tập về nhà',
+    desc: 'Giao & chấm bài',
+    href: '/teacher/assignments',
+    color: 'bg-blue-50 text-[#154C99] hover:bg-blue-100 border-blue-100',
+    iconBg: 'bg-[#154C99] text-white',
   },
   {
     icon: Plus,
@@ -739,7 +747,7 @@ export default async function TeacherDashboardPage() {
             <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-400">
               Thao tác nhanh
             </p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8">
               {QUICK_ACTIONS.map((action) => {
                 const Icon = action.icon;
                 return (

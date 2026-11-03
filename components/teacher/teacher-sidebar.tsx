@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import {
   BookOpen,
+  ClipboardList,
   FileCheck,
+  FileText,
   HelpCircle,
   LayoutDashboard,
   LogOut,
@@ -13,8 +15,17 @@ import { Separator } from '@/components/ui/separator';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import { sanitizeVietnameseText } from '@/lib/utils';
 
+export type TeacherSidebarActiveRoute =
+  | 'dashboard'
+  | 'materials'
+  | 'assignments'
+  | 'grading'
+  | 'questions'
+  | 'subjects'
+  | 'ai-tutor';
+
 type TeacherSidebarProps = {
-  activeRoute: 'dashboard' | 'questions' | 'subjects' | 'grading' | 'ai-tutor';
+  activeRoute: TeacherSidebarActiveRoute;
   teacherName: string;
 };
 
@@ -34,6 +45,20 @@ export function TeacherSidebar({ activeRoute, teacherName }: TeacherSidebarProps
       href: '/teacher/dashboard',
       icon: LayoutDashboard,
       active: activeRoute === 'dashboard',
+    },
+    {
+      id: 'materials',
+      label: 'Tài liệu giảng dạy',
+      href: '/teacher/materials',
+      icon: FileText,
+      active: activeRoute === 'materials',
+    },
+    {
+      id: 'assignments',
+      label: 'Bài tập về nhà',
+      href: '/teacher/assignments',
+      icon: ClipboardList,
+      active: activeRoute === 'assignments',
     },
     {
       id: 'grading',

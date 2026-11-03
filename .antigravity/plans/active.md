@@ -6,31 +6,29 @@
 - [x] **Phase 28 (Commit `e48754b`)**: Đồng bộ nhận diện thương hiệu Đại học Lạc Hồng & Thêm nút chuyển đổi giao diện Sáng / Tối (Light/Dark Mode).
 - [x] **Phase 29 (Commit `99e1ef8`)**: Sửa lỗi `cookies() inside unstable_cache()` và tối ưu hệ thống cache Next.js 16.
 - [x] **Phase 30 (Commit `6ac63c0`)**: Tạo trang Quản lý Môn học riêng cho Admin `/admin/subjects`, sửa điều hướng và khắc phục triệt để lỗi mã hóa ký tự tên user tiếng Việt.
-- [x] **Phase 31 (Commit `5062e16`)**: Đồng bộ triệt để màu sắc & độ tương phản trong Dark Mode
-  - **Mục tiêu 1 (Khung Layout chính & Nền trang)**:
-    - Tạo `app/teacher/layout.tsx` và `app/student/layout.tsx` chuẩn hóa nền `bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors`.
-    - Cập nhật `app/admin/layout.tsx` với `<main className="flex-1 bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors">`.
-    - Thay thế toàn bộ mã màu nền cũ `bg-[#f3f6f3]` và `bg-slate-50 text-slate-900` trên mọi trang con và `loading.tsx` thành `bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors`.
-  - **Mục tiêu 2 (Sửa lỗi mất chữ & Tương phản /teacher/questions)**:
-    - 4 Thẻ thống kê: Quy chuẩn hóa sang `bg-white dark:bg-[#111C2D] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white shadow-xs`.
-    - Toolbar lọc câu hỏi: Nền thẻ `bg-white dark:bg-[#111C2D] border-slate-200 dark:border-slate-800`.
-    - Nút outline "Xem trước đề": Thêm `dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-100 dark:hover:bg-slate-700`.
-    - Nút outline "Upload tài liệu": Thêm `dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-900/60`.
-    - Nút "AI Sinh câu hỏi": Thêm `dark:border-blue-700 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/50`.
-    - Ô `input`, dropdown `select`: `bg-white dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100`.
-    - Thẻ câu hỏi và thẻ rỗng: `bg-white dark:bg-[#111C2D] border-slate-200 dark:border-slate-800`.
-  - **Mục tiêu 3 (Sửa lỗi trang Admin Quản lý Sinh viên /admin/student-management)**:
-    - Tiêu đề: `text-slate-900 dark:text-white`. Mô tả: `text-slate-600 dark:text-slate-400`.
-    - Thẻ "Tổng sinh viên": `bg-white dark:bg-[#111C2D] border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white`.
-    - Thẻ "Đang hoạt động": `bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/60`, số liệu `dark:text-emerald-300`.
-    - Thẻ "Đang bị khóa": `bg-rose-50/70 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800/60`, số liệu `dark:text-rose-300`.
-    - Card bảng và các hàng dữ liệu: `bg-white dark:bg-[#111C2D] border-slate-200 dark:border-slate-800`, text `dark:text-slate-100`.
-    - Nút hành động Mở khóa / Khóa: Tương phản rõ nét trong Dark Mode.
-  - **Mục tiêu 4 (Rà soát toàn diện các trang Sinh viên, Giảng viên & Admin)**:
-    - `/student/materials`, `/student/dashboard`, `/student/classes`, `/student/assignments`, `/student/exams`, `/student/exams/[examId]`.
-    - `/teacher/dashboard`, `/teacher/grading`, `/teacher/subjects`, `/teacher/exams/[examId]`, `/teacher/exams/create`, `/teacher/classes/[classId]/...`.
-    - `ClassMaterialUploadForm`, `ClassMaterialList`, `EssayGradingClient`, `ExamCreateForm`, `ExamScoreChart`, `ExamTakingClient`, `AIGeneratorModal`, `ExamPreviewModal`.
-  - **Tiêu chí nghiệm thu**:
-    - `cmd /c npx tsc --noEmit` đạt 0 lỗi (Exit Code 0).
-    - `cmd /c npm run build` đạt 100% (31/31 routes compile thành công, Exit Code 0).
-    - Cam kết kỷ luật: Commit `5062e16` đã push lên remote `origin/main` an toàn.
+- [x] **Phase 31 (Commit `5062e16`)**: Đồng bộ triệt để màu sắc & độ tương phản trong Dark Mode.
+- [x] **Phase 32 (Commit `local`)**: Bổ sung mục "Tài liệu" và "Bài tập" vào giao diện Giảng viên
+  - **Mục tiêu 1 (Cập nhật TeacherSidebar)**:
+    - Bổ sung 2 mục điều hướng:
+      - `Tài liệu giảng dạy` (`/teacher/materials` - Icon `FileText`)
+      - `Bài tập về nhà` (`/teacher/assignments` - Icon `ClipboardList`)
+    - Cập nhật kiểu `activeRoute` và highlight chuẩn khi đang truy cập 2 trang này.
+  - **Mục tiêu 2 (Xây dựng trang Quản lý Tài liệu Giảng dạy `/teacher/materials`)**:
+    - Data layer: `lib/teacher-materials.ts` lấy danh sách lớp học và tài liệu của giảng viên từ bảng `class_materials`.
+    - UI: `app/teacher/materials/page.tsx` + `loading.tsx` + `components/teacher/teacher-materials-client.tsx`.
+    - Thống kê đầu trang: Tổng tài liệu, Số lớp phụ trách, Phân loại Document vs Video/Link.
+    - Bộ lọc: Theo lớp học, theo tuần học, tìm kiếm theo tên tài liệu.
+    - Modal / Form upload: Chọn lớp nhận tài liệu, tuần học (1-16), tiêu đề, mô tả, upload file (PDF, DOCX, PPTX, ZIP) hoặc dán link video/Drive.
+    - Danh sách tài liệu: Phân loại theo tuần/lớp, nút tải xuống, nút xóa tài liệu.
+    - Đồng bộ: Dùng chung bảng `class_materials` với `/student/materials`.
+  - **Mục tiêu 3 (Xây dựng trang Quản lý & Chấm Bài tập `/teacher/assignments`)**:
+    - Data layer: `lib/teacher-all-assignments.ts` lấy danh sách lớp, bài tập và bài nộp từ `assignments` & `assignment_submissions`.
+    - UI: `app/teacher/assignments/page.tsx` + `loading.tsx` + `components/teacher/teacher-assignments-client.tsx`.
+    - Thống kê đầu trang: Tổng bài tập đã giao, Số bài nộp chờ chấm, Số bài đã chấm điểm.
+    - Modal / Form tạo bài tập: Chọn lớp học, tiêu đề, hướng dẫn chi tiết, hạn nộp (due_date), điểm tối đa (mặc định 10), đính kèm file đề bài.
+    - Danh sách bài tập: Tỷ lệ nộp bài, trạng thái.
+    - Chấm điểm bài nộp: Modal/view chi tiết xem danh sách bài nộp của sinh viên, tải file bài làm, nhập Điểm số và Nhận xét (Feedback), lưu điểm ngay lập tức.
+    - Đồng bộ: Dùng chung bảng `assignments` và `assignment_submissions` với `/student/assignments`.
+  - **Mục tiêu 4 (Tiêu chuẩn kỹ thuật & Giao diện)**:
+    - Thiết kế chuẩn LHU (Arizona State University), hỗ trợ 100% Light/Dark Mode (không lỗi chữ chìm).
+    - `npx tsc --noEmit` đạt 0 lỗi, `npm run build` thành công 100% (33/33 static & dynamic routes).

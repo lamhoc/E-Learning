@@ -155,6 +155,8 @@ export async function uploadClassMaterialAction(
   revalidatePath(`/teacher/classes/${classId}/materials`);
   revalidatePath(`/teacher/classes/${classId}`);
   revalidatePath('/student/dashboard');
+  revalidatePath('/teacher/materials');
+  revalidatePath('/student/materials');
 
   return { status: 'success', message: 'Đã tải lên và lưu tài liệu học tập thành công!' };
 }
@@ -213,6 +215,8 @@ export async function deleteClassMaterialAction(
   revalidatePath(`/teacher/classes/${classId}/materials`);
   revalidatePath(`/teacher/classes/${classId}`);
   revalidatePath('/student/dashboard');
+  revalidatePath('/teacher/materials');
+  revalidatePath('/student/materials');
 
   return { status: 'success', message: 'Đã xóa tài liệu học tập thành công.' };
 }
