@@ -6,7 +6,7 @@
 - [x] **Phase 28 (Commit `e48754b`)**: Đồng bộ nhận diện thương hiệu Đại học Lạc Hồng & Thêm nút chuyển đổi giao diện Sáng / Tối (Light/Dark Mode).
 - [x] **Phase 29 (Commit `99e1ef8`)**: Sửa lỗi `cookies() inside unstable_cache()` và tối ưu hệ thống cache Next.js 16.
 - [x] **Phase 30 (Commit `6ac63c0`)**: Tạo trang Quản lý Môn học riêng cho Admin `/admin/subjects`, sửa điều hướng và khắc phục triệt để lỗi mã hóa ký tự tên user tiếng Việt.
-- [x] **Phase 31 (Commit `local`)**: Đồng bộ triệt để màu sắc & độ tương phản trong Dark Mode
+- [x] **Phase 31 (Commit `5062e16`)**: Đồng bộ triệt để màu sắc & độ tương phản trong Dark Mode
   - **Mục tiêu 1 (Khung Layout chính & Nền trang)**:
     - Tạo `app/teacher/layout.tsx` và `app/student/layout.tsx` chuẩn hóa nền `bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors`.
     - Cập nhật `app/admin/layout.tsx` với `<main className="flex-1 bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors">`.
@@ -33,4 +33,4 @@
   - **Tiêu chí nghiệm thu**:
     - `cmd /c npx tsc --noEmit` đạt 0 lỗi (Exit Code 0).
     - `cmd /c npm run build` đạt 100% (31/31 routes compile thành công, Exit Code 0).
-    - Cam kết kỷ luật: Tạo Local Commit, không tự ý `git push` khi chưa có lệnh.
+    - Cam kết kỷ luật: Commit `5062e16` đã push lên remote `origin/main` an toàn.
