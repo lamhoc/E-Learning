@@ -72,7 +72,7 @@ export function StudentAssignments({ assignments }: StudentAssignmentsProps) {
   return (
     <div className="space-y-4">
       {/* Thanh lọc trạng thái */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-xl border border-[#d9e3dc]">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-[#111C2D] p-3 rounded-xl border border-slate-200 dark:border-slate-800">
         <div className="flex flex-wrap items-center gap-1.5">
           <Button
             size="sm"
@@ -131,7 +131,7 @@ export function StudentAssignments({ assignments }: StudentAssignmentsProps) {
 
       {/* Danh sách bài tập */}
       {filteredAssignments.length === 0 ? (
-        <Card className="border-dashed border-2 border-[#d9e3dc] p-10 text-center bg-white/70">
+        <Card className="border-dashed border-2 border-slate-200 dark:border-slate-800 p-10 text-center bg-white dark:bg-[#111C2D]">
           <div className="mx-auto size-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mb-3">
             <FileCheck2 className="size-6" />
           </div>
@@ -151,7 +151,7 @@ export function StudentAssignments({ assignments }: StudentAssignmentsProps) {
             return (
               <Card
                 key={assignment.id}
-                className="border-[#d9e3dc] bg-white hover:border-emerald-300 transition-all shadow-xs overflow-hidden"
+                className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] text-slate-900 dark:text-slate-100 hover:border-[#154C99]/50 transition-all shadow-xs overflow-hidden"
               >
                 <CardContent className="p-5 space-y-4">
                   {/* Top Header */}
@@ -194,7 +194,7 @@ export function StudentAssignments({ assignments }: StudentAssignmentsProps) {
                   <div className="space-y-2">
                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
                       <div>
-                        <h3 className="text-base font-bold text-slate-900">
+                        <h3 className="text-base font-bold text-slate-900 dark:text-white">
                           {assignment.title}
                         </h3>
                         <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-1">
@@ -224,7 +224,7 @@ export function StudentAssignments({ assignments }: StudentAssignmentsProps) {
                     </div>
 
                     {assignment.description && (
-                      <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line bg-slate-50/70 p-3 rounded-lg border border-slate-100">
+                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line bg-slate-50/70 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700/60">
                         {assignment.description}
                       </p>
                     )}
@@ -274,7 +274,7 @@ export function StudentAssignments({ assignments }: StudentAssignmentsProps) {
                           target="_blank"
                           rel="noopener noreferrer"
                           download={submission.file_name}
-                          className="inline-flex items-center gap-1 text-xs text-emerald-800 font-semibold hover:underline bg-white px-2.5 py-1 rounded border border-slate-200"
+                          className="inline-flex items-center gap-1 text-xs text-slate-700 dark:text-slate-200 font-semibold hover:underline bg-white dark:bg-slate-800 px-2.5 py-1 rounded border border-slate-200 dark:border-slate-700"
                         >
                           <Download className="size-3" />
                           <span>Tải bài làm</span>
@@ -410,7 +410,7 @@ function StudentSubmissionForm({
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isPending}
-              className="w-full flex flex-col items-center justify-center gap-1.5 border border-dashed border-emerald-300 hover:border-emerald-500 bg-white hover:bg-emerald-50/40 rounded-lg p-3 text-center transition cursor-pointer h-[80px]"
+              className="w-full flex flex-col items-center justify-center gap-1.5 border border-dashed border-slate-300 dark:border-slate-700 hover:border-primary bg-white dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg p-3 text-center transition cursor-pointer h-[80px]"
             >
               <FileUp className="size-4 text-emerald-700" />
               <p className="text-xs font-medium text-slate-700">
@@ -451,7 +451,7 @@ function StudentSubmissionForm({
             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNote(e.target.value)}
             placeholder="Lời nhắn gửi giảng viên (nếu có): link repo github, pass giải nén..."
             disabled={isPending}
-            className="text-xs h-[80px] resize-none bg-white"
+            className="text-xs h-[80px] resize-none bg-white dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100"
           />
         </div>
       </div>

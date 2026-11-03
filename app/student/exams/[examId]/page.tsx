@@ -49,7 +49,7 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
   const latestAttempt = attempts[0] ?? null;
 
   return (
-    <main className="min-h-screen bg-[#f3f6f3] text-foreground">
+    <main className="min-h-screen bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors">
       {/* Top Header */}
       <header className="border-b border-[#dfe5dd] bg-white px-5 py-3.5 sm:px-8">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">

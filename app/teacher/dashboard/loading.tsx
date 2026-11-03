@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function TeacherDashboardLoading() {
   return (
-    <main className="min-h-screen bg-[#f3f6f3] lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
+    <main className="min-h-screen bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
       <aside className="hidden border-r border-[#e1e8e2] bg-white p-5 lg:block">
         <Skeleton className="mb-10 h-9 w-36" />
         <div className="space-y-3">

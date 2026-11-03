@@ -1,22 +1,16 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import {
   AlertTriangle,
   ArrowRight,
-  BookOpen,
-  Calendar,
   CheckCircle2,
-  Clock,
   ExternalLink,
   FileCheck,
   FileQuestion,
-  GraduationCap,
   PenTool,
   Search,
-  Sparkles,
-  Users,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -31,98 +25,108 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { TeacherGradingQueueData, TeacherGradingQueueItem } from '@/lib/teacher-grading';
+import type { TeacherGradingQueueData } from '@/lib/teacher-grading';
 
-function formatDate(value: string | null) {
-  if (!value) return '—';
-  try {
-    return new Intl.DateTimeFormat('vi-VN', {
-      dateStyle: 'short',
-      timeStyle: 'short',
-    }).format(new Date(value));
-  } catch {
-    return value;
-  }
-}
-
-export function GradingQueueClient({ data }: { data: TeacherGradingQueueData }) {
+export function GradingQueueClient({
+  data,
+}: {
+  data: TeacherGradingQueueData;
+}) {
   const { pendingAttempts, completedAttempts, totalPendingCount, totalCompletedCount } = data;
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTab, setSelectedTab] = useState<'pending' | 'completed'>('pending');
 
-  const filterItems = (list: TeacherGradingQueueItem[]) => {
-    if (!searchTerm.trim()) return list;
-    const query = searchTerm.toLowerCase();
-    return list.filter(
+  const filterItems = <T extends { studentName: string; studentCode: string | null; examTitle: string; subjectName: string }>(
+    items: T[]
+  ) => {
+    if (!searchTerm.trim()) return items;
+    const q = searchTerm.toLowerCase().trim();
+    return items.filter(
       (item) =>
-        item.studentName.toLowerCase().includes(query) ||
-        (item.studentCode && item.studentCode.toLowerCase().includes(query)) ||
-        item.examTitle.toLowerCase().includes(query) ||
-        item.subjectName.toLowerCase().includes(query),
+        item.studentName.toLowerCase().includes(q) ||
+        item.examTitle.toLowerCase().includes(q) ||
+        item.subjectName.toLowerCase().includes(q) ||
+        (item.studentCode && item.studentCode.toLowerCase().includes(q))
     );
   };
 
-  const filteredPending = useMemo(() => filterItems(pendingAttempts), [pendingAttempts, searchTerm]);
-  const filteredCompleted = useMemo(() => filterItems(completedAttempts), [completedAttempts, searchTerm]);
+  const filteredPending = filterItems(pendingAttempts);
+  const filteredCompleted = filterItems(completedAttempts);
+
+  const formatDate = (isoString?: string | null) => {
+    if (!isoString) return '—';
+    try {
+      return new Intl.DateTimeFormat('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(new Date(isoString));
+    } catch {
+      return isoString;
+    }
+  };
 
   return (
     <div className="space-y-6">
-      {/* ── Summary Stats Bento Grid ── */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card className="border-amber-200/80 bg-amber-50/40">
+      {/* ── Metric Summary Cards ── */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Card className="border-amber-200/80 dark:border-amber-800/60 bg-amber-50/40 dark:bg-amber-950/30 shadow-xs">
           <CardContent className="flex items-center justify-between p-5">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-amber-800">
+              <p className="text-xs font-semibold uppercase tracking-wider text-amber-800 dark:text-amber-400">
                 Chờ chấm tự luận
               </p>
-              <p className="mt-2 text-3xl font-extrabold text-amber-900 tabular-nums">
+              <p className="mt-2 text-3xl font-extrabold text-amber-900 dark:text-amber-300 tabular-nums">
                 {totalPendingCount}
               </p>
-              <p className="mt-0.5 text-xs text-amber-700/80">
+              <p className="mt-0.5 text-xs text-amber-700/80 dark:text-amber-400/80">
                 {totalPendingCount === 0
                   ? 'Tuyệt vời! Tất cả bài thi đã được chấm'
                   : 'Cần giảng viên chấm và công bố điểm'}
               </p>
             </div>
-            <span className="grid size-12 place-items-center rounded-2xl bg-amber-100 text-amber-800 shadow-xs">
+            <span className="grid size-12 place-items-center rounded-2xl bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 shadow-xs">
               <PenTool className="size-6" />
             </span>
           </CardContent>
         </Card>
 
-        <Card className="border-emerald-200/80 bg-emerald-50/40">
+        <Card className="border-emerald-200/80 dark:border-emerald-800/60 bg-emerald-50/40 dark:bg-emerald-950/30 shadow-xs">
           <CardContent className="flex items-center justify-between p-5">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-emerald-800">
+              <p className="text-xs font-semibold uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
                 Đã hoàn tất chấm
               </p>
-              <p className="mt-2 text-3xl font-extrabold text-emerald-900 tabular-nums">
+              <p className="mt-2 text-3xl font-extrabold text-emerald-900 dark:text-emerald-300 tabular-nums">
                 {totalCompletedCount}
               </p>
-              <p className="mt-0.5 text-xs text-emerald-700/80">
+              <p className="mt-0.5 text-xs text-emerald-700/80 dark:text-emerald-400/80">
                 Đã công bố điểm cho thí sinh
               </p>
             </div>
-            <span className="grid size-12 place-items-center rounded-2xl bg-emerald-100 text-emerald-800 shadow-xs">
+            <span className="grid size-12 place-items-center rounded-2xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 shadow-xs">
               <CheckCircle2 className="size-6" />
             </span>
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 bg-white sm:col-span-2 lg:col-span-1">
+        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs sm:col-span-2 lg:col-span-1">
           <CardContent className="flex items-center justify-between p-5">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Tổng bài nộp có tự luận
               </p>
-              <p className="mt-2 text-3xl font-extrabold text-slate-900 tabular-nums">
+              <p className="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white tabular-nums">
                 {totalPendingCount + totalCompletedCount}
               </p>
-              <p className="mt-0.5 text-xs text-slate-500">
+              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                 Trên tất cả các đề do bạn phụ trách
               </p>
             </div>
-            <span className="grid size-12 place-items-center rounded-2xl bg-slate-100 text-slate-700 shadow-xs">
+            <span className="grid size-12 place-items-center rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 shadow-xs">
               <FileCheck className="size-6" />
             </span>
           </CardContent>
@@ -136,10 +140,10 @@ export function GradingQueueClient({ data }: { data: TeacherGradingQueueData }) 
         className="w-full space-y-4"
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <TabsList className="h-10 bg-slate-100 p-1">
+          <TabsList className="h-10 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl">
             <TabsTrigger
               value="pending"
-              className="gap-2 px-3 data-[state=active]:bg-white data-[state=active]:text-amber-900 data-[state=active]:shadow-xs"
+              className="gap-2 px-3 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-amber-900 dark:data-[state=active]:text-amber-300 data-[state=active]:shadow-xs text-xs"
             >
               <PenTool className="size-3.5" />
               <span>Chờ chấm điểm</span>
@@ -151,7 +155,7 @@ export function GradingQueueClient({ data }: { data: TeacherGradingQueueData }) 
             </TabsTrigger>
             <TabsTrigger
               value="completed"
-              className="gap-2 px-3 data-[state=active]:bg-white data-[state=active]:text-emerald-900 data-[state=active]:shadow-xs"
+              className="gap-2 px-3 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-emerald-900 dark:data-[state=active]:text-emerald-300 data-[state=active]:shadow-xs text-xs"
             >
               <CheckCircle2 className="size-3.5" />
               <span>Đã chấm xong ({totalCompletedCount})</span>
@@ -159,31 +163,31 @@ export function GradingQueueClient({ data }: { data: TeacherGradingQueueData }) 
           </TabsList>
 
           <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
             <Input
               type="text"
               placeholder="Tìm theo tên SV, MSSV, đề thi..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="h-9 pl-9 pr-3 text-xs bg-white"
+              className="h-9 pl-9 pr-3 text-xs bg-white dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-muted-foreground"
             />
           </div>
         </div>
 
         {/* ── Tab: Chờ chấm tự luận ── */}
         <TabsContent value="pending" className="mt-0">
-          <Card className="overflow-hidden rounded-2xl shadow-sm">
-            <CardHeader className="border-b border-slate-100 bg-white/70 px-6 py-4">
+          <Card className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs">
+            <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 bg-white/70 dark:bg-[#111C2D]/80 px-6 py-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-base font-semibold text-slate-900">
+                  <CardTitle className="text-base font-semibold text-slate-900 dark:text-white">
                     Danh sách bài thi chờ chấm tự luận
                   </CardTitle>
-                  <CardDescription className="text-xs">
+                  <CardDescription className="text-xs text-slate-500 dark:text-slate-400">
                     Bài thi sinh viên đã nộp có phần tự luận cần giáo viên chấm điểm và nhập nhận xét.
                   </CardDescription>
                 </div>
-                <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800">
+                <Badge variant="outline" className="border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-xs">
                   {filteredPending.length} bài cần xử lý
                 </Badge>
               </div>
@@ -191,13 +195,13 @@ export function GradingQueueClient({ data }: { data: TeacherGradingQueueData }) 
             <CardContent className="p-0">
               {filteredPending.length === 0 ? (
                 <div className="flex min-h-[220px] flex-col items-center justify-center p-8 text-center">
-                  <span className="grid size-12 place-items-center rounded-full bg-emerald-100 text-emerald-700">
+                  <span className="grid size-12 place-items-center rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400">
                     <CheckCircle2 className="size-6" />
                   </span>
-                  <h4 className="mt-3 text-sm font-semibold text-slate-800">
+                  <h4 className="mt-3 text-sm font-semibold text-slate-800 dark:text-slate-200">
                     {searchTerm ? 'Không tìm thấy kết quả phù hợp' : 'Không có bài thi nào đang chờ chấm!'}
                   </h4>
-                  <p className="mt-1 max-w-sm text-xs text-slate-500">
+                  <p className="mt-1 max-w-sm text-xs text-slate-500 dark:text-slate-400">
                     {searchTerm
                       ? 'Thử tìm kiếm với từ khóa khác hoặc xóa bộ lọc tìm kiếm.'
                       : 'Khi sinh viên hoàn thành bài thi tự luận, danh sách sẽ tự động hiển thị tại đây.'}
@@ -206,68 +210,71 @@ export function GradingQueueClient({ data }: { data: TeacherGradingQueueData }) 
               ) : (
                 <div className="overflow-x-auto">
                   <Table>
-                    <TableHeader className="bg-slate-50/80">
-                      <TableRow>
-                        <TableHead className="w-12 pl-5 text-center">#</TableHead>
-                        <TableHead className="min-w-[180px]">Thí sinh</TableHead>
-                        <TableHead className="min-w-[200px]">Đề thi & Môn học</TableHead>
-                        <TableHead className="text-center">Số câu TL</TableHead>
-                        <TableHead>Thời gian nộp</TableHead>
-                        <TableHead>Giám sát thi</TableHead>
-                        <TableHead className="pr-5 text-right">Thao tác</TableHead>
+                    <TableHeader className="bg-slate-50/80 dark:bg-slate-900/60">
+                      <TableRow className="border-slate-200 dark:border-slate-800">
+                        <TableHead className="w-12 pl-5 text-center text-slate-700 dark:text-slate-300">#</TableHead>
+                        <TableHead className="min-w-[180px] text-slate-700 dark:text-slate-300">Thí sinh</TableHead>
+                        <TableHead className="min-w-[200px] text-slate-700 dark:text-slate-300">Đề thi & Môn học</TableHead>
+                        <TableHead className="text-center text-slate-700 dark:text-slate-300">Số câu TL</TableHead>
+                        <TableHead className="text-slate-700 dark:text-slate-300">Thời gian nộp</TableHead>
+                        <TableHead className="text-slate-700 dark:text-slate-300">Giám sát thi</TableHead>
+                        <TableHead className="pr-5 text-right text-slate-700 dark:text-slate-300">Thao tác</TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody>
+                    <TableBody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {filteredPending.map((item, idx) => (
-                        <TableRow key={item.attemptId} className="hover:bg-amber-50/20 transition">
-                          <TableCell className="pl-5 text-center font-mono text-xs text-slate-400">
+                        <TableRow
+                          key={item.attemptId}
+                          className="hover:bg-amber-50/20 dark:hover:bg-amber-950/20 border-slate-100 dark:border-slate-800/80 transition"
+                        >
+                          <TableCell className="pl-5 text-center font-mono text-xs text-slate-400 dark:text-slate-500">
                             {idx + 1}
                           </TableCell>
                           <TableCell>
-                            <p className="font-semibold text-slate-900 leading-tight">
+                            <p className="font-semibold text-slate-900 dark:text-slate-100 leading-tight">
                               {item.studentName}
                             </p>
                             {item.studentCode ? (
-                              <p className="mt-0.5 font-mono text-[11px] font-medium text-slate-500">
+                              <p className="mt-0.5 font-mono text-[11px] font-medium text-slate-500 dark:text-slate-400">
                                 MSSV: {item.studentCode}
                               </p>
                             ) : (
-                              <p className="mt-0.5 text-[11px] text-slate-400 italic">
+                              <p className="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500 italic">
                                 Chưa có MSSV
                               </p>
                             )}
                           </TableCell>
                           <TableCell>
-                            <p className="font-medium text-slate-800 line-clamp-1">
+                            <p className="font-medium text-slate-800 dark:text-slate-200 line-clamp-1">
                               {item.examTitle}
                             </p>
-                            <p className="mt-0.5 text-xs text-slate-400">
+                            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                               {item.subjectName} ({item.subjectCode}) · Lần {item.attemptNo}
                             </p>
                           </TableCell>
                           <TableCell className="text-center">
-                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-100/80 px-2 py-0.5 text-xs font-semibold text-amber-900">
+                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-100/80 dark:bg-amber-950/60 px-2 py-0.5 text-xs font-semibold text-amber-900 dark:text-amber-300">
                               <FileQuestion className="size-3" />
                               {item.essayCount} câu
                             </span>
                           </TableCell>
-                          <TableCell className="text-xs text-slate-600">
+                          <TableCell className="text-xs text-slate-600 dark:text-slate-400">
                             {formatDate(item.submittedAt)}
                           </TableCell>
                           <TableCell>
                             {item.tabSwitchCount > 0 ? (
-                              <Badge variant="outline" className="gap-1 border-rose-200 bg-rose-50 text-rose-800 text-[11px]">
+                              <Badge variant="outline" className="gap-1 border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 text-[11px]">
                                 <AlertTriangle className="size-3" />
                                 Rời tab {item.tabSwitchCount} lần
                               </Badge>
                             ) : (
-                              <span className="text-xs text-slate-400">Bình thường</span>
+                              <span className="text-xs text-slate-400 dark:text-slate-500">Bình thường</span>
                             )}
                           </TableCell>
                           <TableCell className="pr-5 text-right">
                             <Link
                               href={`/teacher/grading/${item.attemptId}`}
-                              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition hover:bg-primary/90"
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-[#154C99] hover:bg-[#0F3D8A] dark:bg-[#1E5BBB] dark:hover:bg-[#154C99] px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition"
                             >
                               <PenTool className="size-3.5" />
                               <span>Chấm bài</span>
@@ -286,18 +293,18 @@ export function GradingQueueClient({ data }: { data: TeacherGradingQueueData }) 
 
         {/* ── Tab: Đã chấm xong ── */}
         <TabsContent value="completed" className="mt-0">
-          <Card className="overflow-hidden rounded-2xl shadow-sm">
-            <CardHeader className="border-b border-slate-100 bg-white/70 px-6 py-4">
+          <Card className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs">
+            <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 bg-white/70 dark:bg-[#111C2D]/80 px-6 py-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-base font-semibold text-slate-900">
+                  <CardTitle className="text-base font-semibold text-slate-900 dark:text-white">
                     Bài thi đã chấm xong & Công bố điểm
                   </CardTitle>
-                  <CardDescription className="text-xs">
+                  <CardDescription className="text-xs text-slate-500 dark:text-slate-400">
                     Xem lại kết quả chấm thi, điểm số và nhận xét đã lưu.
                   </CardDescription>
                 </div>
-                <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-800">
+                <Badge variant="outline" className="border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-xs">
                   {filteredCompleted.length} bài đã hoàn tất
                 </Badge>
               </div>
@@ -305,74 +312,77 @@ export function GradingQueueClient({ data }: { data: TeacherGradingQueueData }) 
             <CardContent className="p-0">
               {filteredCompleted.length === 0 ? (
                 <div className="flex min-h-[220px] flex-col items-center justify-center p-8 text-center">
-                  <span className="grid size-12 place-items-center rounded-full bg-slate-100 text-slate-400">
+                  <span className="grid size-12 place-items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500">
                     <FileCheck className="size-6" />
                   </span>
-                  <h4 className="mt-3 text-sm font-semibold text-slate-800">
+                  <h4 className="mt-3 text-sm font-semibold text-slate-800 dark:text-slate-200">
                     {searchTerm ? 'Không tìm thấy kết quả phù hợp' : 'Chưa có bài thi nào được chấm xong'}
                   </h4>
-                  <p className="mt-1 max-w-sm text-xs text-slate-500">
+                  <p className="mt-1 max-w-sm text-xs text-slate-500 dark:text-slate-400">
                     Sau khi giáo viên lưu điểm và hoàn tất chấm thi, bài làm sẽ chuyển sang khu vực này.
                   </p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <Table>
-                    <TableHeader className="bg-slate-50/80">
-                      <TableRow>
-                        <TableHead className="w-12 pl-5 text-center">#</TableHead>
-                        <TableHead className="min-w-[180px]">Thí sinh</TableHead>
-                        <TableHead className="min-w-[200px]">Đề thi</TableHead>
-                        <TableHead className="text-right">Tổng điểm</TableHead>
-                        <TableHead>Ngày công bố</TableHead>
-                        <TableHead>Giám sát thi</TableHead>
-                        <TableHead className="pr-5 text-right">Thao tác</TableHead>
+                    <TableHeader className="bg-slate-50/80 dark:bg-slate-900/60">
+                      <TableRow className="border-slate-200 dark:border-slate-800">
+                        <TableHead className="w-12 pl-5 text-center text-slate-700 dark:text-slate-300">#</TableHead>
+                        <TableHead className="min-w-[180px] text-slate-700 dark:text-slate-300">Thí sinh</TableHead>
+                        <TableHead className="min-w-[200px] text-slate-700 dark:text-slate-300">Đề thi</TableHead>
+                        <TableHead className="text-right text-slate-700 dark:text-slate-300">Tổng điểm</TableHead>
+                        <TableHead className="text-slate-700 dark:text-slate-300">Ngày công bố</TableHead>
+                        <TableHead className="text-slate-700 dark:text-slate-300">Giám sát thi</TableHead>
+                        <TableHead className="pr-5 text-right text-slate-700 dark:text-slate-300">Thao tác</TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody>
+                    <TableBody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {filteredCompleted.map((item, idx) => (
-                        <TableRow key={item.attemptId} className="hover:bg-slate-50/70 transition">
-                          <TableCell className="pl-5 text-center font-mono text-xs text-slate-400">
+                        <TableRow
+                          key={item.attemptId}
+                          className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 border-slate-100 dark:border-slate-800/80 transition"
+                        >
+                          <TableCell className="pl-5 text-center font-mono text-xs text-slate-400 dark:text-slate-500">
                             {idx + 1}
                           </TableCell>
                           <TableCell>
-                            <p className="font-semibold text-slate-900 leading-tight">
+                            <p className="font-semibold text-slate-900 dark:text-slate-100 leading-tight">
                               {item.studentName}
                             </p>
                             {item.studentCode && (
-                              <p className="mt-0.5 font-mono text-[11px] text-slate-500">
+                              <p className="mt-0.5 font-mono text-[11px] font-medium text-slate-500 dark:text-slate-400">
                                 MSSV: {item.studentCode}
                               </p>
                             )}
                           </TableCell>
                           <TableCell>
-                            <p className="font-medium text-slate-800 line-clamp-1">
+                            <p className="font-medium text-slate-800 dark:text-slate-200 line-clamp-1">
                               {item.examTitle}
                             </p>
-                            <p className="mt-0.5 text-xs text-slate-400">
+                            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                               {item.subjectName} · Lần {item.attemptNo}
                             </p>
                           </TableCell>
-                          <TableCell className="text-right font-mono font-bold text-sm text-emerald-800">
+                          <TableCell className="text-right font-mono font-bold text-sm text-emerald-700 dark:text-emerald-400">
                             {item.totalScore !== null ? item.totalScore.toFixed(2) : '—'}
                           </TableCell>
-                          <TableCell className="text-xs text-slate-600">
+                          <TableCell className="text-xs text-slate-600 dark:text-slate-400">
                             {formatDate(item.releasedAt)}
                           </TableCell>
                           <TableCell>
                             {item.tabSwitchCount > 0 ? (
-                              <Badge variant="outline" className="gap-1 border-rose-200 bg-rose-50 text-rose-800 text-[11px]">
+                              <Badge variant="outline" className="gap-1 border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 text-[11px]">
                                 <AlertTriangle className="size-3" />
                                 Rời tab {item.tabSwitchCount} lần
                               </Badge>
                             ) : (
-                              <span className="text-xs text-slate-400">Bình thường</span>
+                              <span className="text-xs text-slate-400 dark:text-slate-500">Bình thường</span>
                             )}
                           </TableCell>
                           <TableCell className="pr-5 text-right">
                             <Link
                               href={`/teacher/grading/${item.attemptId}`}
-                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:text-emerald-800"
+                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-2xs transition hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-[#154C99] dark:hover:text-[#60A5FA]"
                             >
                               <span>Xem lại bài</span>
                               <ExternalLink className="size-3" />
@@ -391,4 +401,3 @@ export function GradingQueueClient({ data }: { data: TeacherGradingQueueData }) 
     </div>
   );
 }
-

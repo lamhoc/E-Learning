@@ -103,8 +103,8 @@ export function ExamPreviewModal({
         </div>
 
         {/* Paper Document Preview Body */}
-        <div className="flex-1 overflow-y-auto bg-slate-50/70 p-4 sm:p-8 print:bg-white print:p-0">
-          <div className="mx-auto max-w-[800px] rounded-xl border border-slate-200/80 bg-white p-6 sm:p-10 shadow-sm print:border-none print:p-0 print:shadow-none">
+        <div className="flex-1 overflow-y-auto bg-slate-50/70 dark:bg-[#09111E] p-4 sm:p-8 print:bg-white print:p-0">
+          <div className="mx-auto max-w-[800px] rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#111C2D] text-slate-900 dark:text-slate-100 p-6 sm:p-10 shadow-sm print:border-none print:p-0 print:shadow-none">
             {/* Header Kiểu Đề Thi Quốc Gia / Học Phần */}
             <div className="border-b-2 border-slate-900 pb-5 text-center">
               <div className="grid grid-cols-2 gap-4 text-xs font-semibold uppercase tracking-wider text-slate-700">

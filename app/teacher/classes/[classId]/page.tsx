@@ -58,7 +58,7 @@ export default async function ClassRosterPage({ params }: ClassRosterPageProps) 
   }));
 
   return (
-    <main className="min-h-screen bg-[#f3f6f3] px-4 py-7 text-foreground sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors px-4 py-7 text-foreground sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl space-y-5">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <Link href={role === 'admin' ? '/admin/teacher-access' : '/teacher/dashboard'} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>

@@ -1,24 +1,20 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import Papa from 'papaparse';
 import {
-  Award,
   BarChart3,
   CheckCircle2,
-  Clock,
   Download,
   ExternalLink,
-  FileSpreadsheet,
   GraduationCap,
   Mail,
   Search,
-  Sparkles,
+  Table as TableIcon,
   TrendingUp,
   Users,
-  XCircle,
 } from 'lucide-react';
+import Papa from 'papaparse';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,35 +27,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import dynamic from 'next/dynamic';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { StudentExamResultItem, TeacherExamAnalyticsData } from '@/lib/teacher-exam-analytics';
-
-// Lazy loading biểu đồ Recharts nhằm loại bỏ tắc nghẽn main-thread bundle
-const ExamScoreChart = dynamic(
-  () => import('./exam-score-chart').then((mod) => mod.ExamScoreChart),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex h-72 w-full items-center justify-center rounded-xl bg-slate-50/50 p-6">
-        <Skeleton className="h-60 w-full rounded-xl" />
-      </div>
-    ),
-  }
-);
-
-function formatDate(value: string | null) {
-  if (!value) return '—';
-  try {
-    return new Intl.DateTimeFormat('vi-VN', {
-      dateStyle: 'short',
-      timeStyle: 'short',
-    }).format(new Date(value));
-  } catch {
-    return value;
-  }
-}
+import { ExamScoreChart } from '@/components/teacher/exam-score-chart';
+import type { TeacherExamAnalyticsData } from '@/lib/teacher-exam-analytics';
 
 export function ExamAnalyticsClient({
   data,
@@ -67,76 +37,67 @@ export function ExamAnalyticsClient({
   data: TeacherExamAnalyticsData;
 }) {
   const { exam, metrics, distribution, studentResults } = data;
+
   const [searchTerm, setSearchTerm] = useState('');
   const [resultFilter, setResultFilter] = useState<'all' | 'passed' | 'failed'>('all');
-  const [isExporting, setIsExporting] = useState(false);
 
-  // Lọc danh sách sinh viên
-  const filteredResults = useMemo(() => {
-    return studentResults.filter((item) => {
-      const query = searchTerm.toLowerCase();
-      const matchesSearch =
-        item.studentName.toLowerCase().includes(query) ||
-        item.studentEmail.toLowerCase().includes(query) ||
-        (item.studentCode && item.studentCode.toLowerCase().includes(query));
+  // Lọc danh sách sinh viên theo từ khóa và trạng thái đạt/chưa đạt
+  const filteredResults = studentResults.filter((item) => {
+    const term = searchTerm.toLowerCase().trim();
+    const matchesSearch =
+      !term ||
+      item.studentName.toLowerCase().includes(term) ||
+      item.studentEmail.toLowerCase().includes(term) ||
+      (item.studentCode && item.studentCode.toLowerCase().includes(term));
 
-      if (!matchesSearch) return false;
+    if (!matchesSearch) return false;
 
-      if (resultFilter === 'passed') return item.isPassed;
-      if (resultFilter === 'failed') return !item.isPassed;
-      return true;
-    });
-  }, [studentResults, searchTerm, resultFilter]);
+    if (resultFilter === 'passed') return item.isPassed;
+    if (resultFilter === 'failed') return !item.isPassed;
+    return true;
+  });
 
-  // Hàm tiện ích xuất file CSV (tương thích 100% Microsoft Excel tiếng Việt UTF-8)
-  const handleExportCSV = () => {
-    if (studentResults.length === 0) {
-      alert('Chưa có dữ liệu bài thi đã chấm để xuất.');
-      return;
-    }
-
-    setIsExporting(true);
+  // Xuất file CSV báo cáo bảng điểm chi tiết (UTF-8 BOM hỗ trợ tiếng Việt có dấu trong Excel)
+  const handleExportCsv = () => {
     try {
-      const exportRows = studentResults.map((s, index) => ({
+      const csvRows = studentResults.map((item, index) => ({
         'STT': index + 1,
-        'Mã Sinh Viên': s.studentCode || 'N/A',
-        'Họ và Tên': s.studentName,
-        'Email': s.studentEmail,
-        'Lượt Thi': `Lượt ${s.attemptNo}`,
-        'Điểm Trắc Nghiệm': s.mcScore.toFixed(2),
-        'Điểm Tự Luận': s.essayScore.toFixed(2),
-        'Tổng Điểm': s.totalScore.toFixed(2),
-        'Kết Quả': s.isPassed ? 'Đạt' : 'Không đạt',
-        'Thời Gian Nộp': s.submittedAt ? formatDate(s.submittedAt) : '—',
-        'Ngày Công Bố Điểm': formatDate(s.releasedAt),
+        'Họ và tên': item.studentName,
+        'Mã sinh viên': item.studentCode || '',
+        'Email': item.studentEmail,
+        'Lượt thi': item.attemptNo,
+        'Điểm trắc nghiệm': item.mcScore.toFixed(2),
+        'Điểm tự luận': item.essayScore.toFixed(2),
+        'Tổng điểm': item.totalScore.toFixed(2),
+        'Kết quả': item.isPassed ? 'Đạt' : 'Không đạt',
+        'Thời gian nộp bài': item.submittedAt
+          ? new Intl.DateTimeFormat('vi-VN', {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+            }).format(new Date(item.submittedAt))
+          : '—',
       }));
 
-      // Chuyển sang chuỗi CSV bằng papaparse
-      const csvString = Papa.unparse(exportRows, {
-        quotes: true,
-        header: true,
-      });
-
-      // Thêm Byte Order Mark (BOM) UTF-8 để Microsoft Excel hiển thị tiếng Việt có dấu chuẩn xác
-      const blob = new Blob(['\uFEFF' + csvString], {
-        type: 'text/csv;charset=utf-8;',
-      });
-
+      const csvString = Papa.unparse(csvRows);
+      const bom = '\uFEFF';
+      const blob = new Blob([bom + csvString], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
+
+      const safeTitle = (exam.title || 'de-thi')
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/g, '_')
+        .slice(0, 40);
+
       const link = document.createElement('a');
-      const safeExamTitle = exam.title.replace(/[^a-zA-Z0-9\u00C0-\u024F\u1EA0-\u1EF9_-]/g, '_');
-      const dateStr = new Date().toISOString().slice(0, 10);
       link.href = url;
-      link.setAttribute('download', `BangDiem_${safeExamTitle}_${dateStr}.csv`);
+      link.setAttribute('download', `BangDiem_${safeTitle}_${new Date().toISOString().slice(0, 10)}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('Export error:', err);
-      alert('Đã xảy ra lỗi khi xuất file dữ liệu.');
-    } finally {
-      setIsExporting(false);
+      console.error('Lỗi khi xuất file CSV bảng điểm:', err);
+      alert('Không thể xuất file CSV. Vui lòng thử lại.');
     }
   };
 
@@ -144,117 +105,116 @@ export function ExamAnalyticsClient({
     <div className="space-y-6">
       {/* 4 Quick Metric Cards */}
       <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-4">
-        <Card className="border-slate-200 shadow-xs bg-white">
+        <Card className="border-slate-200 dark:border-slate-800 shadow-xs bg-white dark:bg-[#111C2D]">
           <CardContent className="p-4 sm:p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Bài thi đã chấm
               </p>
-              <p className="mt-1 text-2xl font-bold text-slate-900">{metrics.totalGraded}</p>
-              <p className="mt-0.5 text-[11px] text-slate-400">lượt làm bài</p>
+              <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{metrics.totalGraded}</p>
+              <p className="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">lượt làm bài</p>
             </div>
-            <div className="grid size-11 place-items-center rounded-xl bg-primary/10 text-primary">
+            <div className="grid size-11 place-items-center rounded-xl bg-primary/10 text-primary dark:bg-blue-900/40 dark:text-blue-300">
               <Users className="size-5" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 shadow-xs bg-white">
+        <Card className="border-slate-200 dark:border-slate-800 shadow-xs bg-white dark:bg-[#111C2D]">
           <CardContent className="p-4 sm:p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Điểm trung bình
               </p>
-              <p className="mt-1 text-2xl font-bold text-primary">
+              <p className="mt-1 text-2xl font-bold text-[#154C99] dark:text-[#60A5FA]">
                 {metrics.averageScore.toFixed(2)}
               </p>
-              <p className="mt-0.5 text-[11px] text-slate-400">thang điểm {exam.maxScore}</p>
+              <p className="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">thang điểm {exam.maxScore}</p>
             </div>
-            <div className="grid size-11 place-items-center rounded-xl bg-emerald-50 text-emerald-800">
+            <div className="grid size-11 place-items-center rounded-xl bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
               <TrendingUp className="size-5" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 shadow-xs bg-white">
+        <Card className="border-slate-200 dark:border-slate-800 shadow-xs bg-white dark:bg-[#111C2D]">
           <CardContent className="p-4 sm:p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Tỉ lệ đạt (≥ 5.0)
               </p>
-              <p className="mt-1 text-2xl font-bold text-emerald-700">{metrics.passRate}%</p>
-              <p className="mt-0.5 text-[11px] text-slate-400">
+              <p className="mt-1 text-2xl font-bold text-emerald-700 dark:text-emerald-400">{metrics.passRate}%</p>
+              <p className="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">
                 {metrics.passedCount}/{metrics.totalGraded} thí sinh
               </p>
             </div>
-            <div className="grid size-11 place-items-center rounded-xl bg-emerald-100/70 text-emerald-800">
+            <div className="grid size-11 place-items-center rounded-xl bg-emerald-100/70 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200">
               <CheckCircle2 className="size-5" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 shadow-xs bg-white">
+        <Card className="border-slate-200 dark:border-slate-800 shadow-xs bg-white dark:bg-[#111C2D]">
           <CardContent className="p-4 sm:p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Điểm cao nhất
               </p>
-              <p className="mt-1 text-2xl font-bold text-amber-700">
+              <p className="mt-1 text-2xl font-bold text-amber-700 dark:text-amber-400">
                 {metrics.highestScore.toFixed(2)}
               </p>
-              <p className="mt-0.5 text-[11px] text-slate-400">
+              <p className="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">
                 Thấp nhất: {metrics.lowestScore.toFixed(2)}
               </p>
             </div>
-            <div className="grid size-11 place-items-center rounded-xl bg-amber-50 text-amber-700">
-              <Award className="size-5" />
+            <div className="grid size-11 place-items-center rounded-xl bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+              <GraduationCap className="size-5" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Analytics & Export Tabs */}
-      <Tabs defaultValue="chart" className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-200 pb-3">
-          <TabsList className="bg-slate-200/80 p-1 rounded-xl w-fit">
-            <TabsTrigger value="chart" className="gap-2 text-xs font-semibold px-4 py-2 cursor-pointer">
+      {/* Tabs View: Phổ điểm & Danh sách Bảng điểm */}
+      <Tabs defaultValue="chart" className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <TabsList className="bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl">
+            <TabsTrigger value="chart" className="gap-1.5 text-xs">
               <BarChart3 className="size-3.5" />
-              Phổ điểm Thí sinh
+              <span>Phổ điểm</span>
             </TabsTrigger>
-            <TabsTrigger value="table" className="gap-2 text-xs font-semibold px-4 py-2 cursor-pointer">
-              <FileSpreadsheet className="size-3.5" />
-              Bảng điểm Chi tiết ({studentResults.length})
+            <TabsTrigger value="table" className="gap-1.5 text-xs">
+              <TableIcon className="size-3.5" />
+              <span>Bảng điểm chi tiết ({studentResults.length})</span>
             </TabsTrigger>
           </TabsList>
 
-          {/* Action Export Button */}
           <Button
             type="button"
+            variant="outline"
             size="sm"
-            onClick={handleExportCSV}
-            disabled={isExporting || studentResults.length === 0}
-            className="gap-2 bg-primary hover:bg-primary/90 text-white text-xs font-medium px-4 h-9 shadow-xs"
+            onClick={handleExportCsv}
+            className="gap-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-2xs self-start sm:self-auto"
           >
             <Download className="size-4" />
-            Xuất file CSV (Excel)
+            <span>Xuất file CSV</span>
           </Button>
         </div>
 
         {/* TAB 1: PHỔ ĐIỂM (RECHARTS BAR CHART) */}
         <TabsContent value="chart" className="space-y-6 outline-none">
-          <Card className="border-slate-200 shadow-xs bg-white">
-            <CardHeader className="border-b border-slate-100 pb-4">
+          <Card className="border-slate-200 dark:border-slate-800 shadow-xs bg-white dark:bg-[#111C2D]">
+            <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 pb-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <BarChart3 className="size-5 text-primary" />
+                  <CardTitle className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <BarChart3 className="size-5 text-[#154C99] dark:text-[#3B82F6]" />
                     Biểu đồ Phân phối Phổ điểm
                   </CardTitle>
-                  <CardDescription className="mt-0.5 text-xs">
+                  <CardDescription className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                     Số lượng sinh viên đạt điểm trong các khoảng: 0-2 (Kém), 3-4 (Yếu), 5-6 (Trung bình), 7-8 (Khá), 9-10 (Giỏi).
                   </CardDescription>
                 </div>
-                <Badge variant="outline" className="bg-slate-50 font-mono text-xs">
+                <Badge variant="outline" className="border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono text-xs text-slate-700 dark:text-slate-300">
                   {metrics.totalGraded} bài thi
                 </Badge>
               </div>
@@ -270,29 +230,29 @@ export function ExamAnalyticsClient({
 
         {/* TAB 2: BẢNG ĐIỂM CHI TIẾT & BỘ LỌC */}
         <TabsContent value="table" className="space-y-6 outline-none">
-          <Card className="border-slate-200 shadow-xs bg-white">
-            <CardHeader className="border-b border-slate-100 pb-4">
+          <Card className="border-slate-200 dark:border-slate-800 shadow-xs bg-white dark:bg-[#111C2D]">
+            <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 pb-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
-                  <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <GraduationCap className="size-5 text-primary" />
+                  <CardTitle className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <GraduationCap className="size-5 text-[#154C99] dark:text-[#3B82F6]" />
                     Danh sách Điểm Thí sinh
                   </CardTitle>
-                  <CardDescription className="mt-0.5 text-xs">
+                  <CardDescription className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                     Chi tiết điểm trắc nghiệm, tự luận và tổng kết quả của từng sinh viên dự thi.
                   </CardDescription>
                 </div>
 
                 {/* Filter & Search Bar */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                  <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+                  <div className="flex rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 p-1">
                     <button
                       type="button"
                       onClick={() => setResultFilter('all')}
                       className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
                         resultFilter === 'all'
-                          ? 'bg-white text-slate-900 shadow-2xs font-semibold'
-                          : 'text-slate-500 hover:text-slate-900'
+                          ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-semibold'
+                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       Tất cả ({studentResults.length})
@@ -302,8 +262,8 @@ export function ExamAnalyticsClient({
                       onClick={() => setResultFilter('passed')}
                       className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
                         resultFilter === 'passed'
-                          ? 'bg-white text-emerald-800 shadow-2xs font-semibold'
-                          : 'text-slate-500 hover:text-slate-900'
+                          ? 'bg-white dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 shadow-2xs font-semibold'
+                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       Đạt ({metrics.passedCount})
@@ -313,8 +273,8 @@ export function ExamAnalyticsClient({
                       onClick={() => setResultFilter('failed')}
                       className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
                         resultFilter === 'failed'
-                          ? 'bg-white text-rose-800 shadow-2xs font-semibold'
-                          : 'text-slate-500 hover:text-slate-900'
+                          ? 'bg-white dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 shadow-2xs font-semibold'
+                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       Không đạt ({studentResults.length - metrics.passedCount})
@@ -322,13 +282,13 @@ export function ExamAnalyticsClient({
                   </div>
 
                   <div className="relative min-w-56">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
                     <Input
                       type="search"
                       placeholder="Tìm tên, mã SV, email..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-9 h-9 text-xs bg-white border-slate-300"
+                      className="pl-9 h-9 text-xs bg-white dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-muted-foreground"
                     />
                   </div>
                 </div>
@@ -337,9 +297,9 @@ export function ExamAnalyticsClient({
 
             <CardContent className="p-0">
               {filteredResults.length === 0 ? (
-                <div className="flex min-h-40 flex-col items-center justify-center p-8 text-center text-xs text-slate-500">
-                  <p className="font-semibold text-slate-700">Không tìm thấy sinh viên phù hợp</p>
-                  <p className="mt-1 text-slate-400">
+                <div className="flex min-h-40 flex-col items-center justify-center p-8 text-center text-xs text-slate-500 dark:text-slate-400">
+                  <p className="font-semibold text-slate-700 dark:text-slate-300">Không tìm thấy sinh viên phù hợp</p>
+                  <p className="mt-1 text-slate-400 dark:text-slate-500">
                     Thử tìm kiếm với từ khóa khác hoặc bỏ chọn bộ lọc kết quả.
                   </p>
                 </div>
@@ -347,65 +307,68 @@ export function ExamAnalyticsClient({
                 <div className="overflow-x-auto">
                   <Table className="text-xs">
                     <TableHeader>
-                      <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
-                        <TableHead className="w-12 pl-5 font-semibold text-slate-700">STT</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Thí sinh</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Email</TableHead>
-                        <TableHead className="text-center font-semibold text-slate-700">Lượt thi</TableHead>
-                        <TableHead className="text-right font-semibold text-slate-700">Điểm TN</TableHead>
-                        <TableHead className="text-right font-semibold text-slate-700">Điểm TL</TableHead>
-                        <TableHead className="text-right font-semibold text-slate-700">Tổng điểm</TableHead>
-                        <TableHead className="text-center font-semibold text-slate-700">Kết quả</TableHead>
-                        <TableHead className="pr-5 text-right font-semibold text-slate-700">Hành động</TableHead>
+                      <TableRow className="bg-slate-50/80 dark:bg-slate-900/60 hover:bg-slate-50/80 dark:hover:bg-slate-900/60 border-slate-200 dark:border-slate-800">
+                        <TableHead className="w-12 pl-5 font-semibold text-slate-700 dark:text-slate-300">STT</TableHead>
+                        <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Thí sinh</TableHead>
+                        <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Email</TableHead>
+                        <TableHead className="text-center font-semibold text-slate-700 dark:text-slate-300">Lượt thi</TableHead>
+                        <TableHead className="text-right font-semibold text-slate-700 dark:text-slate-300">Điểm TN</TableHead>
+                        <TableHead className="text-right font-semibold text-slate-700 dark:text-slate-300">Điểm TL</TableHead>
+                        <TableHead className="text-right font-semibold text-slate-700 dark:text-slate-300">Tổng điểm</TableHead>
+                        <TableHead className="text-center font-semibold text-slate-700 dark:text-slate-300">Kết quả</TableHead>
+                        <TableHead className="pr-5 text-right font-semibold text-slate-700 dark:text-slate-300">Hành động</TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody className="divide-y divide-slate-100">
+                    <TableBody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {filteredResults.map((item, index) => (
-                        <TableRow key={item.attemptId} className="hover:bg-slate-50/50 transition">
-                          <TableCell className="pl-5 text-slate-400 font-mono text-[11px]">
+                        <TableRow
+                          key={item.attemptId}
+                          className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 border-slate-100 dark:border-slate-800/80 transition"
+                        >
+                          <TableCell className="pl-5 text-slate-400 dark:text-slate-500 font-mono text-[11px]">
                             {index + 1}
                           </TableCell>
                           <TableCell>
-                            <p className="font-semibold text-slate-900 leading-tight">
+                            <p className="font-semibold text-slate-900 dark:text-slate-100 leading-tight">
                               {item.studentName}
                             </p>
                             {item.studentCode ? (
-                              <p className="mt-0.5 text-[11px] font-mono font-medium text-slate-500">
+                              <p className="mt-0.5 text-[11px] font-mono font-medium text-slate-500 dark:text-slate-400">
                                 Mã SV: {item.studentCode}
                               </p>
                             ) : (
-                              <p className="mt-0.5 text-[11px] text-slate-400 italic">
+                              <p className="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500 italic">
                                 Chưa có mã SV
                               </p>
                             )}
                           </TableCell>
-                          <TableCell className="text-slate-600">
+                          <TableCell className="text-slate-600 dark:text-slate-400">
                             <span className="inline-flex items-center gap-1 font-mono text-[11px]">
-                              <Mail className="size-3 text-slate-400" />
+                              <Mail className="size-3 text-slate-400 dark:text-slate-500" />
                               {item.studentEmail}
                             </span>
                           </TableCell>
                           <TableCell className="text-center">
-                            <span className="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[11px] text-slate-700">
+                            <span className="rounded-md bg-slate-100 dark:bg-slate-800 px-2 py-0.5 font-mono text-[11px] text-slate-700 dark:text-slate-300">
                               #{item.attemptNo}
                             </span>
                           </TableCell>
-                          <TableCell className="text-right font-mono text-slate-700">
+                          <TableCell className="text-right font-mono text-slate-700 dark:text-slate-300">
                             {item.mcScore.toFixed(2)}
                           </TableCell>
-                          <TableCell className="text-right font-mono text-slate-700">
+                          <TableCell className="text-right font-mono text-slate-700 dark:text-slate-300">
                             {item.essayScore.toFixed(2)}
                           </TableCell>
-                          <TableCell className="text-right font-mono font-bold text-sm text-primary">
+                          <TableCell className="text-right font-mono font-bold text-sm text-[#154C99] dark:text-[#60A5FA]">
                             {item.totalScore.toFixed(2)}
                           </TableCell>
                           <TableCell className="text-center">
                             {item.isPassed ? (
-                              <Badge className="border-emerald-200 bg-emerald-50 text-emerald-800 text-[11px] font-semibold">
+                              <Badge className="border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[11px] font-semibold">
                                 Đạt
                               </Badge>
                             ) : (
-                              <Badge className="border-rose-200 bg-rose-50 text-rose-800 text-[11px] font-semibold">
+                              <Badge className="border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 text-[11px] font-semibold">
                                 Không đạt
                               </Badge>
                             )}
@@ -413,7 +376,7 @@ export function ExamAnalyticsClient({
                           <TableCell className="pr-5 text-right">
                             <Link
                               href={`/teacher/grading/${item.attemptId}`}
-                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-emerald-800"
+                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:text-slate-300 transition hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-[#154C99] dark:hover:text-[#60A5FA]"
                             >
                               <span>Xem bài</span>
                               <ExternalLink className="size-3" />
@@ -432,4 +395,3 @@ export function ExamAnalyticsClient({
     </div>
   );
 }
-

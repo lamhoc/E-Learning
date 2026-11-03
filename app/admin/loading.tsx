@@ -16,7 +16,7 @@ export default function AdminHubLoading() {
 
       {/* Grid 2 Cards Skeleton */}
       <div className="grid gap-6 md:grid-cols-2">
-        <div className="h-80 rounded-2xl border border-slate-200 bg-white p-7 flex flex-col justify-between">
+        <div className="h-80 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-7 flex flex-col justify-between">
           <div className="space-y-4">
             <div className="flex justify-between items-start">
               <Skeleton className="size-14 rounded-2xl bg-slate-100" />
@@ -29,7 +29,7 @@ export default function AdminHubLoading() {
           <Skeleton className="h-10 w-full rounded-xl bg-slate-50" />
         </div>
 
-        <div className="h-80 rounded-2xl border border-slate-200 bg-white p-7 flex flex-col justify-between">
+        <div className="h-80 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-7 flex flex-col justify-between">
           <div className="space-y-4">
             <div className="flex justify-between items-start">
               <Skeleton className="size-14 rounded-2xl bg-slate-100" />

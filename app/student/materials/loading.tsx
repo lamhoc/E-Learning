@@ -11,7 +11,7 @@ export default function StudentMaterialsLoading() {
 
       <div className="space-y-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-xl border border-slate-200 bg-white p-5 space-y-3">
+          <div key={i} className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-5 space-y-3">
             <div className="flex justify-between items-center">
               <Skeleton className="h-6 w-48 rounded-md" />
               <Skeleton className="h-5 w-24 rounded-md" />

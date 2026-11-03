@@ -446,7 +446,7 @@ export function AIGeneratorModal({
                         key={draft.tempId}
                         className={`relative rounded-xl border p-4 transition ${
                           isSelected
-                            ? 'border-[#246348] bg-white ring-1 ring-[#246348]/25'
+                            ? 'border-[#246348] dark:border-emerald-500 bg-white dark:bg-[#111C2D] ring-1 ring-[#246348]/25'
                             : 'border-border/60 bg-muted/20 opacity-60 hover:opacity-100'
                         }`}
                       >
@@ -513,7 +513,7 @@ export function AIGeneratorModal({
                                 onChange={(e) =>
                                   setEditForm({ ...editForm, question_text: e.target.value })
                                 }
-                                className="w-full rounded-md border border-input bg-white p-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                                className="w-full rounded-md border border-input dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                               />
                             </div>
 
@@ -538,7 +538,7 @@ export function AIGeneratorModal({
                                         className={`flex items-center gap-2 rounded-md border p-2 ${
                                           isCorrect
                                             ? 'border-emerald-500 bg-emerald-50'
-                                            : 'border-border bg-white'
+                                            : 'border-border dark:border-slate-800 bg-white dark:bg-[#111C2D]'
                                         }`}
                                       >
                                         <button
@@ -592,7 +592,7 @@ export function AIGeneratorModal({
                                     onChange={(e) =>
                                       setEditForm({ ...editForm, model_answer: e.target.value })
                                     }
-                                    className="w-full rounded-md border border-input bg-white p-2 text-xs text-foreground focus:outline-none"
+                                    className="w-full rounded-md border border-input dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-xs text-foreground focus:outline-none"
                                   />
                                 </div>
                                 <div className="space-y-1">
@@ -605,7 +605,7 @@ export function AIGeneratorModal({
                                     onChange={(e) =>
                                       setEditForm({ ...editForm, grading_rubric: e.target.value })
                                     }
-                                    className="w-full rounded-md border border-input bg-white p-2 text-xs text-foreground focus:outline-none"
+                                    className="w-full rounded-md border border-input dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-xs text-foreground focus:outline-none"
                                   />
                                 </div>
                               </div>
@@ -622,7 +622,7 @@ export function AIGeneratorModal({
                                 onChange={(e) =>
                                   setEditForm({ ...editForm, explanation: e.target.value })
                                 }
-                                className="w-full rounded-md border border-input bg-white p-2 text-xs text-foreground focus:outline-none"
+                                className="w-full rounded-md border border-input dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-xs text-foreground focus:outline-none"
                               />
                             </div>
 

@@ -69,7 +69,7 @@ export function AcademicAccess({
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Card Tạo môn học mới */}
         <Card className="border-slate-200 shadow-xs lg:col-span-1">
-          <CardHeader className="border-b border-slate-100 bg-white pb-3.5">
+          <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111C2D] pb-3.5">
             <CardTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
               <BookPlus aria-hidden="true" className="size-4 text-[#17372e]" />
               Thêm môn học mới
@@ -124,7 +124,7 @@ export function AcademicAccess({
 
         {/* Card Lớp và Giảng viên phụ trách */}
         <Card className="border-slate-200 shadow-xs lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-white pb-3.5">
+          <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111C2D] pb-3.5">
             <div>
               <CardTitle className="text-base font-bold text-slate-900">
                 Lớp học & Giảng viên phụ trách
@@ -182,7 +182,7 @@ export function AcademicAccess({
                                 name="teacherId"
                                 required
                                 defaultValue={classItem.teacherId}
-                                className="h-8 min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-2.5 text-xs text-slate-800"
+                                className="h-8 min-w-0 flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/80 px-2.5 text-xs text-slate-800 dark:text-slate-100"
                               >
                                 {classItem.eligibleTeachers.map((teacher) => (
                                   <option key={teacher.id} value={teacher.id}>

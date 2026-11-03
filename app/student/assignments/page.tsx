@@ -37,7 +37,7 @@ export default async function StudentAssignmentsPage() {
   const pendingCount = data.assignments.filter((a) => !a.submission).length;
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900 lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
+    <main className="min-h-screen bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
       <StudentSidebar studentName={data.studentName} activeRoute="assignments" />
 
       <div className="min-w-0">

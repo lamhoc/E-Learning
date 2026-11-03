@@ -96,7 +96,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         </div>
       </header>
 
-      <main className="flex-1">
+      <main className="flex-1 bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors">
         {children}
       </main>
     </div>

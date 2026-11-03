@@ -111,7 +111,7 @@ export default function StudentAiTutorPage() {
   const isFirstMessage = messages.length === 1;
 
   return (
-    <main className="min-h-screen bg-[#f3f6f3] text-foreground lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
+    <main className="min-h-screen bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
       {/* 1. Sidebar bên trái đồng bộ khu vực Sinh viên */}
       <StudentSidebar studentName={studentName} activeRoute="ai-tutor" />
 

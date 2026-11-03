@@ -89,7 +89,7 @@ function getAttemptStatus(attempt: StudentAttempt): { label: string; className: 
     case 'voided':
       return { label: 'Đã hủy', className: 'border-rose-200 bg-rose-50 text-rose-800' };
     default:
-      return { label: 'Không rõ', className: 'border-slate-200 bg-slate-50 text-slate-700' };
+      return { label: 'Không rõ', className: 'border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] bg-slate-50 text-slate-700' };
   }
 }
 
@@ -148,11 +148,11 @@ function MetricCard({
     <Card className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md border-slate-200">
       <CardContent className="flex min-h-[126px] items-start justify-between gap-4 p-5">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
           <p className={`mt-3 text-3xl font-bold tabular-nums tracking-tight ${styles[tone].value}`}>
             {value}
           </p>
-          <p className="mt-1 text-xs text-slate-400">{detail}</p>
+          <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{detail}</p>
         </div>
         <span className={`grid size-10 shrink-0 place-items-center rounded-xl ${styles[tone].icon}`}>
           <Icon aria-hidden="true" className="size-5" />
@@ -256,20 +256,20 @@ async function StudentDashboardDataContent() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Link
             href="/student/classes"
-            className="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 transition-all duration-200 hover:-translate-y-1 hover:border-emerald-300 hover:shadow-md"
+            className="group flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-5 transition-all duration-200 hover:-translate-y-1 hover:border-[#154C99]/50 hover:shadow-md"
           >
             <div>
               <span className="grid size-11 place-items-center rounded-xl bg-emerald-50 text-emerald-700 transition-colors group-hover:bg-emerald-600 group-hover:text-white">
                 <BookOpen className="size-5" />
               </span>
-              <h3 className="mt-4 font-bold text-slate-900 group-hover:text-emerald-800">
+              <h3 className="mt-4 font-bold text-slate-900 dark:text-white group-hover:text-primary dark:group-hover:text-[#60A5FA]">
                 Lớp học của tôi
               </h3>
-              <p className="mt-1 text-xs text-slate-500 line-clamp-2">
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
                 Xem toàn bộ các lớp bạn đang theo học, thông tin giảng viên và năm học.
               </p>
             </div>
-            <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs font-semibold text-emerald-800">
+            <div className="mt-4 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 pt-3 text-xs font-semibold text-emerald-800">
               <span>{data.classes.length} lớp học</span>
               <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
             </div>
@@ -277,20 +277,20 @@ async function StudentDashboardDataContent() {
 
           <Link
             href="/student/materials"
-            className="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 transition-all duration-200 hover:-translate-y-1 hover:border-sky-300 hover:shadow-md"
+            className="group flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-5 transition-all duration-200 hover:-translate-y-1 hover:border-[#154C99]/50 hover:shadow-md"
           >
             <div>
               <span className="grid size-11 place-items-center rounded-xl bg-sky-50 text-sky-700 transition-colors group-hover:bg-sky-600 group-hover:text-white">
                 <FileText className="size-5" />
               </span>
-              <h3 className="mt-4 font-bold text-slate-900 group-hover:text-sky-800">
+              <h3 className="mt-4 font-bold text-slate-900 dark:text-white group-hover:text-primary dark:group-hover:text-[#60A5FA]">
                 Kho tài liệu học tập
               </h3>
-              <p className="mt-1 text-xs text-slate-500 line-clamp-2">
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
                 Tải slide bài giảng, giáo trình PDF, file DOCX và tài liệu theo tuần học.
               </p>
             </div>
-            <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs font-semibold text-sky-800">
+            <div className="mt-4 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 pt-3 text-xs font-semibold text-sky-800">
               <span>{data.materials.length} tài liệu</span>
               <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
             </div>
@@ -298,20 +298,20 @@ async function StudentDashboardDataContent() {
 
           <Link
             href="/student/assignments"
-            className="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 transition-all duration-200 hover:-translate-y-1 hover:border-orange-300 hover:shadow-md"
+            className="group flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-5 transition-all duration-200 hover:-translate-y-1 hover:border-[#154C99]/50 hover:shadow-md"
           >
             <div>
               <span className="grid size-11 place-items-center rounded-xl bg-orange-50 text-orange-700 transition-colors group-hover:bg-orange-600 group-hover:text-white">
                 <FileCheck2 className="size-5" />
               </span>
-              <h3 className="mt-4 font-bold text-slate-900 group-hover:text-orange-800">
+              <h3 className="mt-4 font-bold text-slate-900 dark:text-white group-hover:text-primary dark:group-hover:text-[#60A5FA]">
                 Bài tập & Đồ án
               </h3>
-              <p className="mt-1 text-xs text-slate-500 line-clamp-2">
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
                 Nộp bài tập tự luận, báo cáo thực hành và xem điểm số, nhận xét của giảng viên.
               </p>
             </div>
-            <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs font-semibold text-orange-800">
+            <div className="mt-4 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 pt-3 text-xs font-semibold text-orange-800">
               <span>{activeAssignmentsCount} bài cần nộp</span>
               <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
             </div>
@@ -319,20 +319,20 @@ async function StudentDashboardDataContent() {
 
           <Link
             href="/student/exams"
-            className="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 transition-all duration-200 hover:-translate-y-1 hover:border-amber-300 hover:shadow-md"
+            className="group flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-5 transition-all duration-200 hover:-translate-y-1 hover:border-[#154C99]/50 hover:shadow-md"
           >
             <div>
               <span className="grid size-11 place-items-center rounded-xl bg-amber-50 text-amber-700 transition-colors group-hover:bg-amber-600 group-hover:text-white">
                 <ClipboardList className="size-5" />
               </span>
-              <h3 className="mt-4 font-bold text-slate-900 group-hover:text-amber-800">
+              <h3 className="mt-4 font-bold text-slate-900 dark:text-white group-hover:text-primary dark:group-hover:text-[#60A5FA]">
                 Phòng thi trực tuyến
               </h3>
-              <p className="mt-1 text-xs text-slate-500 line-clamp-2">
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
                 Làm bài thi trắc nghiệm & tự luận trực tuyến, theo dõi thời gian và lịch sử điểm thi.
               </p>
             </div>
-            <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs font-semibold text-amber-800">
+            <div className="mt-4 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 pt-3 text-xs font-semibold text-amber-800">
               <span>{data.openExams.length} đề đang mở</span>
               <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
             </div>
@@ -351,7 +351,7 @@ async function StudentDashboardDataContent() {
           />
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {data.openExams.slice(0, 3).map((exam) => (
-              <Card key={exam.id} className="border-emerald-200 bg-emerald-50/20">
+              <Card key={exam.id} className="border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/20 dark:bg-emerald-950/20">
                 <CardHeader className="p-4 pb-2">
                   <div className="flex items-center justify-between gap-2">
                     <Badge className="border-primary/20 bg-primary/10 text-primary text-[10px]">
@@ -364,7 +364,7 @@ async function StudentDashboardDataContent() {
                       </span>
                     )}
                   </div>
-                  <CardTitle className="mt-2 text-sm font-bold text-slate-900 line-clamp-1">
+                  <CardTitle className="mt-2 text-sm font-bold text-slate-900 dark:text-white line-clamp-1">
                     {exam.title}
                   </CardTitle>
                   <p className="text-xs text-slate-500">
@@ -376,7 +376,7 @@ async function StudentDashboardDataContent() {
                     href={`/student/exams/${exam.id}`}
                     className={buttonVariants({
                       size: 'sm',
-                      className: 'w-full gap-1.5 bg-[#17372e] text-white hover:bg-[#20493e] text-xs h-8',
+                      className: 'w-full gap-1.5 bg-[#154C99] hover:bg-[#0F3D8A] text-white text-xs h-8 shadow-xs',
                     })}
                   >
                     <span>Bắt đầu làm bài</span>
@@ -397,7 +397,7 @@ async function StudentDashboardDataContent() {
           detail="Điểm số chỉ xuất hiện sau khi giảng viên công bố kết quả"
           action={{ label: 'Xem toàn bộ hồ sơ thi', href: '/student/exams' }}
         />
-        <Card>
+        <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
           <CardContent className="p-0">
             {data.attempts.length ? (
               <div className="overflow-x-auto">
@@ -421,7 +421,7 @@ async function StudentDashboardDataContent() {
                           <TableCell className="min-w-48">
                             <Link
                               href={`/student/exams/${attempt.exam_id}`}
-                              className="block font-medium text-slate-800 transition hover:text-emerald-700 hover:underline"
+                              className="block font-medium text-slate-800 dark:text-slate-200 transition hover:text-[#154C99] dark:hover:text-[#60A5FA] hover:underline"
                             >
                               {exam?.title || 'Đề thi'}
                             </Link>
@@ -504,7 +504,7 @@ export default async function StudentDashboardPage() {
   }).format(new Date());
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900 lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
+    <main className="min-h-screen bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
       <StudentSidebar studentName={fullName || 'Sinh viên'} activeRoute="dashboard" />
 
       <div className="min-w-0">

@@ -314,7 +314,7 @@ export function ExamTakingClient({
           {/* Questions Container (Left / Center) */}
           <main className="space-y-6">
             {exam.instructions && (
-              <div className="rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-600 shadow-2xs">
+              <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-4 text-xs text-slate-600 dark:text-slate-300 shadow-2xs">
                 <span className="font-bold text-slate-800">Hướng dẫn bài thi:</span>{' '}
                 {exam.instructions}
               </div>
@@ -332,7 +332,7 @@ export function ExamTakingClient({
                   key={q.id}
                   id={`q-${q.id}`}
                   className={`scroll-mt-24 transition ${
-                    isAnswered ? 'border-emerald-200 bg-white' : 'border-slate-200 bg-white'
+                    isAnswered ? 'border-emerald-200 dark:border-emerald-800 bg-white dark:bg-[#111C2D]' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]'
                   }`}
                 >
                   <CardContent className="p-5 sm:p-6 space-y-4">
@@ -382,7 +382,7 @@ export function ExamTakingClient({
                                 className={`flex size-6 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
                                   isSelected
                                     ? 'bg-emerald-600 text-white'
-                                    : 'border border-slate-300 bg-white text-slate-700'
+                                    : 'border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'
                                 }`}
                               >
                                 {opt.key}
@@ -408,7 +408,7 @@ export function ExamTakingClient({
                           onChange={(e) => handleEssayChange(q.id, e.target.value)}
                           onBlur={() => handleEssayBlur(q.id)}
                           placeholder="Nhập nội dung bài làm hoặc các bước giải toán tại đây (hỗ trợ $công thức$ nếu cần)..."
-                          className="w-full rounded-xl border border-slate-200 bg-white p-3.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 shadow-2xs"
+                          className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3.5 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 shadow-2xs"
                         />
                         <div className="flex items-center justify-between text-[11px] text-slate-400">
                           <span>Dữ liệu được tự động lưu khi bạn rời khỏi ô nhập liệu (blur).</span>
@@ -422,7 +422,7 @@ export function ExamTakingClient({
             })}
 
             {/* Bottom Actions */}
-            <div className="flex flex-col items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-6 sm:flex-row shadow-2xs">
+            <div className="flex flex-col items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] text-slate-900 dark:text-slate-100 p-6 sm:flex-row shadow-2xs">
               <div>
                 <p className="text-sm font-bold text-slate-900">
                   Đã trả lời {answeredCount} / {questions.length} câu hỏi
@@ -444,7 +444,7 @@ export function ExamTakingClient({
 
           {/* Right Question Palette / Navigator (Sticky Sidebar) */}
           <aside className="space-y-4">
-            <div className="sticky top-20 rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+            <div className="sticky top-20 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] text-slate-900 dark:text-slate-100 p-5 shadow-xs">
               <h2 className="text-sm font-bold text-slate-900">Mục lục câu hỏi</h2>
               <p className="mt-1 text-xs text-slate-500">
                 Tiến độ: <strong className="text-slate-800">{answeredCount}</strong> / {questions.length} câu
@@ -504,7 +504,7 @@ export function ExamTakingClient({
       {/* Manual Submit Confirmation Dialog */}
       {isSubmitModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] text-slate-900 dark:text-slate-100 p-6 shadow-2xl">
             <div className="flex items-center gap-3">
               <span className="grid size-10 place-items-center rounded-xl bg-emerald-100 text-emerald-800">
                 <Send className="size-5" />

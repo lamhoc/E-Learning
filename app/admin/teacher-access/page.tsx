@@ -200,15 +200,15 @@ export default async function TeacherAccessAdminPage({
 
         {/* Quick Stats Badges */}
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline" className="gap-1.5 bg-white border-amber-200 text-amber-900 px-3 py-1 text-xs">
+          <Badge variant="outline" className="gap-1.5 bg-white dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-300 px-3 py-1 text-xs">
             <Clock3 aria-hidden="true" className="size-3.5 text-amber-600" />
             <strong>{pendingApplications.length}</strong> đơn chờ duyệt
           </Badge>
-          <Badge variant="outline" className="gap-1.5 bg-white border-slate-200 px-3 py-1 text-xs">
+          <Badge variant="outline" className="gap-1.5 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 dark:text-slate-200 px-3 py-1 text-xs">
             <GraduationCap aria-hidden="true" className="size-3.5 text-[#17372e]" />
             <strong>{academicTeachers.length}</strong> giáo viên
           </Badge>
-          <Badge variant="outline" className="gap-1.5 bg-white border-slate-200 px-3 py-1 text-xs">
+          <Badge variant="outline" className="gap-1.5 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 dark:text-slate-200 px-3 py-1 text-xs">
             <BookOpen aria-hidden="true" className="size-3.5 text-blue-600" />
             <strong>{academicSubjects.length}</strong> môn học
           </Badge>
@@ -294,7 +294,7 @@ export default async function TeacherAccessAdminPage({
         <TabsContent value="applications" className="space-y-6 outline-none">
           {/* Data Table: Teacher Applications */}
           <Card className="border-slate-200 shadow-xs">
-            <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-white pb-4">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111C2D] pb-4">
               <div>
                 <CardTitle className="text-base font-bold text-slate-900">
                   Danh sách Hồ sơ xin cấp quyền Giáo viên
@@ -384,7 +384,7 @@ export default async function TeacherAccessAdminPage({
             <InvitationForm />
 
             <Card className="border-slate-200 shadow-xs">
-              <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-white pb-3.5">
+              <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111C2D] pb-3.5">
                 <div>
                   <CardTitle className="text-base font-bold text-slate-900">
                     Mã mời gần đây

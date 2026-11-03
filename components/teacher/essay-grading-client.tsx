@@ -243,12 +243,12 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
         <div className="flex items-center gap-3">
           <Link
             href="/teacher/grading"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-emerald-800 transition shadow-2xs"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-emerald-800 dark:hover:text-emerald-300 transition shadow-2xs"
           >
             <ArrowLeft className="size-3.5" /> Danh sách bài thi
           </Link>
           <span className="text-slate-300">/</span>
-          <span className="text-xs font-bold text-slate-600 truncate max-w-[240px] sm:max-w-none">
+          <span className="text-xs font-bold text-slate-600 dark:text-slate-300 truncate max-w-[240px] sm:max-w-none">
             {data.exam.title}
           </span>
         </div>
@@ -265,7 +265,7 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
       )}
 
       {/* Candidate & Exam Metadata Banner */}
-      <Card className="overflow-hidden shadow-xs border-slate-200">
+      <Card className="overflow-hidden shadow-xs border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
         <CardContent className="p-5 sm:p-6">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             {/* Student & Exam Info */}
@@ -281,7 +281,7 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
 
               <div className="min-w-0 space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-base font-bold text-slate-900 truncate">
+                  <h2 className="text-base font-bold text-slate-900 dark:text-white truncate">
                     {data.student.fullName}
                   </h2>
                   {data.student.studentCode && (
@@ -294,13 +294,13 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
                   </Badge>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                   <span>{data.exam.subjectCode} · {data.exam.subjectName}</span>
                   <span>•</span>
                   <span>Thời gian làm bài: {data.exam.durationMinutes} phút</span>
                 </div>
 
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-slate-400 dark:text-slate-500">
                   Nộp bài lúc:{' '}
                   {data.submittedAt
                     ? new Intl.DateTimeFormat('vi-VN', {
@@ -313,27 +313,27 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
             </div>
 
             {/* Score Strip */}
-            <div className="flex flex-wrap items-center gap-3 sm:gap-4 border-t border-slate-100 pt-4 lg:border-t-0 lg:pt-0">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 border-t border-slate-100 dark:border-slate-800 pt-4 lg:border-t-0 lg:pt-0">
               {/* Trắc nghiệm */}
-              <div className="rounded-xl border border-blue-100 bg-blue-50/60 px-4 py-2.5 text-center min-w-[110px]">
-                <p className="text-[11px] font-semibold text-blue-700">Điểm Trắc nghiệm</p>
-                <p className="mt-0.5 text-lg font-bold text-blue-900">
+              <div className="rounded-xl border border-blue-100 dark:border-blue-900/40 bg-blue-50/60 dark:bg-blue-950/30 px-4 py-2.5 text-center min-w-[110px]">
+                <p className="text-[11px] font-semibold text-blue-700 dark:text-blue-300">Điểm Trắc nghiệm</p>
+                <p className="mt-0.5 text-lg font-bold text-blue-900 dark:text-blue-200 dark:text-blue-100">
                   {data.mcAwardedScore} <span className="text-xs font-normal text-blue-600">/ {data.mcTotalScore}</span>
                 </p>
               </div>
 
               {/* Tự luận (Live Calculation) */}
-              <div className="rounded-xl border border-purple-100 bg-purple-50/60 px-4 py-2.5 text-center min-w-[110px]">
-                <p className="text-[11px] font-semibold text-purple-700">Điểm Tự luận (Live)</p>
-                <p className="mt-0.5 text-lg font-bold text-purple-900">
+              <div className="rounded-xl border border-purple-100 dark:border-purple-900/40 bg-purple-50/60 dark:bg-purple-950/30 px-4 py-2.5 text-center min-w-[110px]">
+                <p className="text-[11px] font-semibold text-purple-700 dark:text-purple-300">Điểm Tự luận (Live)</p>
+                <p className="mt-0.5 text-lg font-bold text-purple-900 dark:text-purple-200 dark:text-purple-100">
                   {currentEssayAwardedScore} <span className="text-xs font-normal text-purple-600">/ {data.essayMaxScore}</span>
                 </p>
               </div>
 
               {/* Tổng điểm */}
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-center min-w-[120px] ring-1 ring-emerald-300">
-                <p className="text-[11px] font-bold text-emerald-800">TỔNG ĐIỂM</p>
-                <p className="mt-0.5 text-xl font-bold text-emerald-950">
+              <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 px-4 py-2.5 text-center min-w-[120px] ring-1 ring-emerald-300 dark:ring-emerald-700">
+                <p className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300">TỔNG ĐIỂM</p>
+                <p className="mt-0.5 text-xl font-bold text-emerald-950 dark:text-emerald-100">
                   {totalScorePreview} <span className="text-xs font-normal text-emerald-700">/ {maxTotalScore}</span>
                 </p>
               </div>
@@ -371,17 +371,17 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
             <span className="grid size-6 place-items-center rounded-md bg-primary text-[11px] font-bold text-white">
               {data.essayQuestions.length}
             </span>
-            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide">
               Danh sách câu hỏi tự luận cần chấm điểm
             </h3>
           </div>
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-slate-500 dark:text-slate-400">
             Điểm tối đa phần tự luận: <strong>{data.essayMaxScore} điểm</strong>
           </span>
         </div>
 
         {data.essayQuestions.length === 0 ? (
-          <Card className="border-dashed">
+          <Card className="border-dashed border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
             <CardContent className="py-12 text-center text-xs text-slate-400">
               Đề thi này không có câu hỏi tự luận (100% trắc nghiệm đã được hệ thống tự động chấm).
             </CardContent>
@@ -394,21 +394,21 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
             return (
               <Card
                 key={q.questionId}
-                className="overflow-hidden shadow-xs border-slate-200 transition hover:border-slate-300"
+                className="overflow-hidden shadow-xs border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] transition hover:border-slate-300 dark:hover:border-slate-700"
               >
                 {/* Question Header */}
-                <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-slate-50/70 py-3 px-5">
+                <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 py-3 px-5">
                   <div className="flex items-center gap-2.5">
                     <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-xs font-bold text-white">
                       Câu {q.position}
                     </span>
-                    <Badge variant="outline" className="border-purple-200 bg-purple-50 text-purple-700 text-xs font-semibold">
+                    <Badge variant="outline" className="border-purple-200 dark:border-purple-800/60 bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-xs font-semibold">
                       Tự luận · Tối đa {q.points} điểm
                     </Badge>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-700">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
                       Đang cho: <span className="text-emerald-700 text-sm font-extrabold">{currentPoints}</span> / {q.points} đ
                     </span>
                   </div>
@@ -416,27 +416,27 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
 
                 <CardContent className="p-0">
                   {/* SPLIT VIEW: 2 COLUMNS ON DESKTOP */}
-                  <div className="grid lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
+                  <div className="grid lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-slate-200 dark:divide-slate-800">
                     {/* CỘT TRÁI: ĐỀ BÀI, ĐÁP ÁN MẪU & RUBRIC CHẤM ĐIỂM (KATEX) */}
-                    <div className="p-5 sm:p-6 space-y-4 bg-slate-50/30">
+                    <div className="p-5 sm:p-6 space-y-4 bg-slate-50/30 dark:bg-slate-900/30">
                       {/* Đề bài */}
                       <div className="space-y-1">
                         <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                           Đề bài câu hỏi #{q.position}:
                         </Label>
-                        <div className="rounded-xl border border-slate-200 bg-white p-3.5 text-sm font-medium text-slate-900 leading-relaxed shadow-2xs">
+                        <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/60 p-3.5 text-sm font-medium text-slate-900 dark:text-slate-100 leading-relaxed shadow-2xs">
                           <MathText content={q.questionText} />
                         </div>
                       </div>
 
                       {/* Đáp án mẫu (Model Answer) */}
                       {q.modelAnswer && (
-                        <div className="space-y-1.5 rounded-xl border border-purple-200/80 bg-purple-50/50 p-4 text-xs">
+                        <div className="space-y-1.5 rounded-xl border border-purple-200/80 dark:border-purple-900/50 bg-purple-50/50 dark:bg-purple-950/30 p-4 text-xs">
                           <div className="flex items-center gap-1.5 font-bold text-purple-900">
                             <Sparkles className="size-3.5 text-purple-600" />
                             <span>Đáp án tham khảo / Bài giải mẫu:</span>
                           </div>
-                          <div className="mt-1 text-purple-950 leading-relaxed font-normal">
+                          <div className="mt-1 text-purple-950 dark:text-purple-200 leading-relaxed font-normal">
                             <MathText content={q.modelAnswer} />
                           </div>
                         </div>
@@ -444,12 +444,12 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
 
                       {/* Thang điểm & Rubric */}
                       {q.gradingRubric && (
-                        <div className="space-y-1.5 rounded-xl border border-blue-200/80 bg-blue-50/50 p-4 text-xs">
+                        <div className="space-y-1.5 rounded-xl border border-blue-200/80 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-950/30 p-4 text-xs">
                           <div className="flex items-center gap-1.5 font-bold text-blue-900">
                             <Layers className="size-3.5 text-blue-600" />
                             <span>Thang điểm & Tiêu chuẩn chấm (Rubric):</span>
                           </div>
-                          <div className="mt-1 text-blue-950 leading-relaxed font-normal">
+                          <div className="mt-1 text-blue-950 dark:text-blue-200 leading-relaxed font-normal">
                             <MathText content={q.gradingRubric} />
                           </div>
                         </div>
@@ -457,14 +457,14 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
 
                       {/* Lời giải chi tiết / Ghi chú */}
                       {q.explanation && (
-                        <div className="rounded-xl border border-amber-200/70 bg-amber-50/40 p-3 text-[11px] text-amber-900 leading-relaxed">
+                        <div className="rounded-xl border border-amber-200/70 dark:border-amber-900/50 bg-amber-50/40 dark:bg-amber-950/30 p-3 text-[11px] text-amber-900 dark:text-amber-200 leading-relaxed">
                           <strong>Ghi chú:</strong> <MathText content={q.explanation} className="inline" />
                         </div>
                       )}
                     </div>
 
                     {/* CỘT PHẢI: BÀI LÀM CỦA SINH VIÊN, Ô NHẬP ĐIỂM & NHẬN XÉT */}
-                    <div className="p-5 sm:p-6 space-y-5 bg-white flex flex-col justify-between">
+                    <div className="p-5 sm:p-6 space-y-5 bg-white dark:bg-[#111C2D] flex flex-col justify-between">
                       {/* Bài làm của thí sinh */}
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
@@ -477,7 +477,7 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
                           </span>
                         </div>
 
-                        <div className="min-h-[160px] rounded-xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-900 leading-relaxed shadow-inner">
+                        <div className="min-h-[160px] rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 p-4 text-sm text-slate-900 dark:text-slate-100 leading-relaxed shadow-inner">
                           {q.studentAnswerText && q.studentAnswerText.trim() ? (
                             <MathText content={q.studentAnswerText} />
                           ) : (
@@ -489,11 +489,11 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
                       </div>
 
                       {/* Khung Nhập Điểm & Feedback có Zod Validation */}
-                      <div className="space-y-3.5 rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+                      <div className="space-y-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 p-4">
                         {/* Ô nhập điểm */}
                         <div>
                           <div className="flex items-center justify-between gap-2 mb-1.5">
-                            <Label className="text-xs font-bold text-slate-800">
+                            <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">
                               Điểm số chấm:
                             </Label>
                             <span className="text-[11px] text-slate-500">
@@ -510,7 +510,7 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
                               {...register(`grades.${q.questionId}.points` as never, {
                                 valueAsNumber: true,
                               })}
-                              className={`h-9 w-32 rounded-xl bg-white font-mono text-sm font-bold text-center ${
+                              className={`h-9 w-32 rounded-xl bg-white dark:bg-slate-900 font-mono text-sm font-bold text-center dark:text-white ${
                                 fieldError ? 'border-red-500 focus:ring-red-500' : 'border-slate-300'
                               }`}
                             />
@@ -522,7 +522,7 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
                                 size="xs"
                                 variant="outline"
                                 onClick={() => handleQuickPoints(q.questionId, 0, q.points)}
-                                className="h-8 rounded-lg text-xs hover:bg-slate-100"
+                                className="h-8 rounded-lg text-xs dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:bg-slate-700"
                                 title="0% điểm"
                               >
                                 0%
@@ -532,7 +532,7 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
                                 size="xs"
                                 variant="outline"
                                 onClick={() => handleQuickPoints(q.questionId, 0.5, q.points)}
-                                className="h-8 rounded-lg text-xs hover:bg-slate-100"
+                                className="h-8 rounded-lg text-xs dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:bg-slate-700"
                                 title="50% điểm"
                               >
                                 50%
@@ -542,7 +542,7 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
                                 size="xs"
                                 variant="outline"
                                 onClick={() => handleQuickPoints(q.questionId, 0.75, q.points)}
-                                className="h-8 rounded-lg text-xs hover:bg-slate-100"
+                                className="h-8 rounded-lg text-xs dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:bg-slate-700"
                                 title="75% điểm"
                               >
                                 75%
@@ -552,7 +552,7 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
                                 size="xs"
                                 variant="outline"
                                 onClick={() => handleQuickPoints(q.questionId, 1, q.points)}
-                                className="h-8 rounded-lg text-xs hover:bg-slate-100"
+                                className="h-8 rounded-lg text-xs dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:bg-slate-700"
                                 title="100% điểm"
                               >
                                 100%
@@ -578,7 +578,7 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
                             rows={2}
                             {...register(`grades.${q.questionId}.feedback` as never)}
                             placeholder="Nhận xét ưu điểm, lỗi sai hoặc giải pháp cải thiện cho thí sinh..."
-                            className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 placeholder:text-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 shadow-2xs"
+                            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 shadow-2xs"
                           />
                         </div>
                       </div>
@@ -591,14 +591,14 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
         )}
 
         {/* BOTTOM ACTION BAR (STICKY) */}
-        <div className="sticky bottom-4 z-20 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-lg backdrop-blur-md">
+        <div className="sticky bottom-4 z-20 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-[#0B1628]/95 p-4 shadow-lg backdrop-blur-md text-slate-900 dark:text-slate-100">
           <div className="flex items-center gap-3">
-            <span className="grid size-10 place-items-center rounded-xl bg-emerald-50 text-emerald-800">
+            <span className="grid size-10 place-items-center rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300">
               <Trophy className="size-5" />
             </span>
             <div>
               <p className="text-xs text-slate-400">Tổng kết quả chấm:</p>
-              <p className="text-base font-extrabold text-slate-900">
+              <p className="text-base font-extrabold text-slate-900 dark:text-white">
                 {totalScorePreview}{' '}
                 <span className="text-xs font-normal text-slate-500">
                   / {maxTotalScore} điểm (TN: {data.mcAwardedScore} + TL: {currentEssayAwardedScore})
@@ -614,7 +614,7 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
               variant="outline"
               disabled={isSubmitting}
               onClick={handleSubmit((values) => onValidSubmit(values, false))}
-              className="flex-1 sm:flex-none gap-2 rounded-xl"
+              className="flex-1 sm:flex-none gap-2 rounded-xl dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:bg-slate-700"
             >
               {isSubmitting ? (
                 <LoaderCircle className="size-4 animate-spin" />

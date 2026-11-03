@@ -157,64 +157,68 @@ export function QuestionManager({
     <div className="space-y-6">
       {/* Metrics Row */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border border-[#dce7e0] bg-white p-5 shadow-xs">
+        {/* Metric 1: Tổng câu hỏi */}
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Tổng câu hỏi
             </span>
-            <span className="grid size-9 place-items-center rounded-lg bg-[#e5f0e9] text-[#246348]">
+            <span className="grid size-9 place-items-center rounded-lg bg-[#154C99]/10 text-[#154C99] dark:bg-[#3B82F6]/20 dark:text-[#60A5FA]">
               <LibraryBig className="size-4" />
             </span>
           </div>
-          <p className="mt-3 text-2xl font-bold tracking-tight text-foreground">
+          <p className="mt-3 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
             {totalCount.toLocaleString('vi-VN')}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">Toàn bộ ngân hàng đề</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Toàn bộ ngân hàng đề</p>
         </div>
 
-        <div className="rounded-xl border border-[#dce7e0] bg-white p-5 shadow-xs">
+        {/* Metric 2: Trắc nghiệm */}
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Trắc nghiệm
             </span>
-            <span className="grid size-9 place-items-center rounded-lg bg-blue-50 text-blue-700">
+            <span className="grid size-9 place-items-center rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
               <CheckCircle2 className="size-4" />
             </span>
           </div>
-          <p className="mt-3 text-2xl font-bold tracking-tight text-foreground">
+          <p className="mt-3 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
             {mcCount.toLocaleString('vi-VN')}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">4 phương án A-B-C-D</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">4 phương án A-B-C-D</p>
         </div>
 
-        <div className="rounded-xl border border-[#dce7e0] bg-white p-5 shadow-xs">
+        {/* Metric 3: Tự luận */}
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Tự luận
             </span>
-            <span className="grid size-9 place-items-center rounded-lg bg-purple-50 text-purple-700">
+            <span className="grid size-9 place-items-center rounded-lg bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300">
               <FileQuestion className="size-4" />
             </span>
           </div>
-          <p className="mt-3 text-2xl font-bold tracking-tight text-foreground">
+          <p className="mt-3 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
             {essayCount.toLocaleString('vi-VN')}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">Có thang điểm & gợi ý</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Có thang điểm & gợi ý</p>
         </div>
 
-        <div className="rounded-xl border border-[#dce7e0] bg-white p-5 shadow-xs">
+        {/* Metric 4: Môn học */}
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Môn học phụ trách
             </span>
-            <span className="grid size-9 place-items-center rounded-lg bg-amber-50 text-amber-700">
+            <span className="grid size-9 place-items-center rounded-lg bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
               <BookOpen className="size-4" />
             </span>
           </div>
-          <p className="mt-3 text-2xl font-bold tracking-tight text-foreground">
+          <p className="mt-3 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
             {subjects.length}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">Đã được phân công</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Đã được phân công</p>
         </div>
       </div>
 
@@ -228,24 +232,24 @@ export function QuestionManager({
       )}
 
       {/* Action & Filter Toolbar */}
-      <Card>
+      <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs">
         <CardContent className="p-4 sm:p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             {/* Search Input */}
             <div className="relative flex-1">
-              <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
               <Input
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Tìm kiếm nội dung câu hỏi, mã môn, tên môn..."
-                className="pl-9"
+                className="pl-9 bg-white dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-muted-foreground"
               />
             </div>
 
             {/* Filter Dropdowns & Action Buttons */}
             <div className="flex flex-wrap items-center gap-2.5">
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                 <Filter className="size-3.5" /> Lọc:
               </div>
 
@@ -254,7 +258,7 @@ export function QuestionManager({
                 value={selectedSubject}
                 onChange={(e) => setSelectedSubject(e.target.value)}
                 aria-label="Lọc theo môn học"
-                className="h-9 rounded-md border border-input bg-background px-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                className="h-9 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/80 px-2.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-1 focus:ring-primary"
               >
                 <option value="all">Tất cả môn học ({subjects.length})</option>
                 {subjects.map((sub) => (
@@ -269,7 +273,7 @@ export function QuestionManager({
                 value={filterExplanation}
                 onChange={(e) => setFilterExplanation(e.target.value as 'all' | 'with' | 'without')}
                 aria-label="Lọc theo lời giải"
-                className="h-9 rounded-md border border-input bg-background px-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                className="h-9 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/80 px-2.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-1 focus:ring-primary"
               >
                 <option value="all">Mọi lời giải</option>
                 <option value="with">Đã có lời giải chi tiết</option>
@@ -277,14 +281,14 @@ export function QuestionManager({
               </select>
 
               {/* Type Filter */}
-              <div className="flex rounded-md border border-input bg-muted/30 p-0.5">
+              <div className="flex rounded-md border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60 p-0.5">
                 <button
                   type="button"
                   onClick={() => setSelectedType('all')}
                   className={`rounded px-2.5 py-1 text-xs font-medium transition ${
                     selectedType === 'all'
-                      ? 'bg-background text-foreground shadow-2xs'
-                      : 'text-muted-foreground hover:text-foreground'
+                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-semibold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   Tất cả ({totalCount})
@@ -294,8 +298,8 @@ export function QuestionManager({
                   onClick={() => setSelectedType('multiple_choice')}
                   className={`rounded px-2.5 py-1 text-xs font-medium transition ${
                     selectedType === 'multiple_choice'
-                      ? 'bg-background text-foreground shadow-2xs'
-                      : 'text-muted-foreground hover:text-foreground'
+                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-semibold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   Trắc nghiệm ({mcCount})
@@ -305,8 +309,8 @@ export function QuestionManager({
                   onClick={() => setSelectedType('essay')}
                   className={`rounded px-2.5 py-1 text-xs font-medium transition ${
                     selectedType === 'essay'
-                      ? 'bg-background text-foreground shadow-2xs'
-                      : 'text-muted-foreground hover:text-foreground'
+                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-semibold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   Tự luận ({essayCount})
@@ -317,10 +321,10 @@ export function QuestionManager({
               <Button
                 onClick={() => setIsPreviewOpen(true)}
                 variant="outline"
-                className="gap-1.5 border-slate-300 text-slate-700 hover:bg-slate-100"
+                className="gap-1.5 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700"
                 title="Xem đề thi tổng hợp từ danh sách câu hỏi đã lọc"
               >
-                <Eye className="size-4 text-slate-600" />
+                <Eye className="size-4 text-slate-600 dark:text-slate-300" />
                 Xem trước đề ({filteredQuestions.length})
               </Button>
 
@@ -328,9 +332,9 @@ export function QuestionManager({
               <Button
                 onClick={() => setIsAIModalOpen(true)}
                 variant="outline"
-                className="gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+                className="gap-1.5 border-primary/30 dark:border-blue-700 bg-white dark:bg-blue-950/40 text-primary dark:text-blue-300 hover:bg-primary/10 dark:hover:bg-blue-900/50"
               >
-                <Sparkles className="size-4 text-[#246348]" />
+                <Sparkles className="size-4 text-primary dark:text-blue-400" />
                 AI Sinh câu hỏi
               </Button>
 
@@ -338,16 +342,16 @@ export function QuestionManager({
               <Button
                 onClick={() => setIsUploadModalOpen(true)}
                 variant="outline"
-                className="gap-1.5 border-emerald-600 text-emerald-800 hover:bg-emerald-50"
+                className="gap-1.5 border-emerald-600 dark:border-emerald-700 bg-white dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/60"
               >
-                <FileUp className="size-4 text-emerald-700" />
+                <FileUp className="size-4 text-emerald-700 dark:text-emerald-400" />
                 Upload tài liệu (DOCX/PDF)
               </Button>
 
               {/* Create Question Button */}
               <Button
                 onClick={handleOpenCreate}
-                className="gap-1.5 bg-primary text-white hover:bg-primary/90"
+                className="gap-1.5 bg-[#154C99] hover:bg-[#0F3D8A] text-white shadow-xs dark:bg-[#1E5BBB] dark:hover:bg-[#154C99]"
               >
                 <Plus className="size-4" />
                 Thêm câu hỏi
@@ -360,8 +364,8 @@ export function QuestionManager({
       {/* Questions List */}
       <div className="space-y-3.5">
         <div className="flex items-center justify-between px-1">
-          <p className="text-xs font-medium text-muted-foreground">
-            Hiển thị <span className="font-semibold text-foreground">{filteredQuestions.length}</span> / {totalCount} câu hỏi
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+            Hiển thị <span className="font-semibold text-slate-900 dark:text-slate-100">{filteredQuestions.length}</span> / {totalCount} câu hỏi
           </p>
           {(searchQuery || selectedSubject !== 'all' || selectedType !== 'all' || filterExplanation !== 'all') && (
             <button
@@ -372,7 +376,7 @@ export function QuestionManager({
                 setSelectedType('all');
                 setFilterExplanation('all');
               }}
-              className="text-xs text-primary hover:underline"
+              className="text-xs text-[#154C99] dark:text-[#60A5FA] hover:underline"
             >
               Đặt lại bộ lọc
             </button>
@@ -380,17 +384,17 @@ export function QuestionManager({
         </div>
 
         {filteredQuestions.length === 0 ? (
-          <Card className="border-dashed">
+          <Card className="border-dashed border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-              <span className="grid size-12 place-items-center rounded-2xl bg-muted text-muted-foreground">
+              <span className="grid size-12 place-items-center rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500">
                 <FileQuestion className="size-6" />
               </span>
-              <h3 className="mt-4 text-base font-semibold text-foreground">
+              <h3 className="mt-4 text-base font-semibold text-slate-900 dark:text-white">
                 {totalCount === 0
                   ? 'Chưa có câu hỏi nào trong kho'
                   : 'Không có câu hỏi nào phù hợp'}
               </h3>
-              <p className="mt-1.5 max-w-sm text-xs text-muted-foreground">
+              <p className="mt-1.5 max-w-sm text-xs text-slate-500 dark:text-slate-400">
                 {totalCount === 0
                   ? 'Bắt đầu xây dựng ngân hàng đề thi bằng cách tạo câu hỏi thủ công hoặc sử dụng AI sinh tự động.'
                   : 'Hãy thử thay đổi từ khóa tìm kiếm hoặc bỏ chọn các bộ lọc môn học/loại câu hỏi.'}
@@ -400,13 +404,13 @@ export function QuestionManager({
                   <Button
                     onClick={() => setIsAIModalOpen(true)}
                     variant="outline"
-                    className="gap-2 border-primary/30 text-primary hover:bg-primary/10"
+                    className="gap-2 border-primary/30 dark:border-blue-700 bg-white dark:bg-blue-950/40 text-primary dark:text-blue-300 hover:bg-primary/10 dark:hover:bg-blue-900/50"
                   >
-                    <Sparkles className="size-4 text-[#246348]" /> AI sinh câu hỏi tự động
+                    <Sparkles className="size-4 text-primary dark:text-blue-400" /> AI sinh câu hỏi tự động
                   </Button>
                   <Button
                     onClick={handleOpenCreate}
-                    className="gap-2 bg-primary text-white hover:bg-primary/90"
+                    className="gap-2 bg-[#154C99] hover:bg-[#0F3D8A] text-white shadow-xs dark:bg-[#1E5BBB]"
                   >
                     <Plus className="size-4" /> Tạo câu hỏi thủ công
                   </Button>
@@ -423,22 +427,22 @@ export function QuestionManager({
             return (
               <Card
                 key={q.id}
-                className="overflow-hidden transition hover:border-primary/30 hover:shadow-xs"
+                className="overflow-hidden border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] text-slate-900 dark:text-slate-100 transition hover:border-[#154C99]/40 dark:hover:border-blue-500/40 hover:shadow-xs"
               >
                 <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 pb-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="flex size-6 items-center justify-center rounded-md bg-muted text-xs font-semibold text-muted-foreground">
+                    <span className="flex size-6 items-center justify-center rounded-md bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300">
                       #{idx + 1}
                     </span>
-                    <Badge variant="outline" className="gap-1 bg-muted/40 font-medium">
+                    <Badge variant="outline" className="gap-1 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 font-medium text-slate-700 dark:text-slate-300">
                       <BookOpen className="size-3" />
                       {q.subject?.code} · {q.subject?.name}
                     </Badge>
                     <Badge
                       className={
                         isMC
-                          ? 'border-blue-200 bg-blue-50 text-blue-700'
-                          : 'border-purple-200 bg-purple-50 text-purple-700'
+                          ? 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300'
+                          : 'border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300'
                       }
                     >
                       {isMC ? 'Trắc nghiệm' : 'Tự luận'}
@@ -450,13 +454,13 @@ export function QuestionManager({
                       size="sm"
                       variant="ghost"
                       onClick={() => handleCopyQuestion(q)}
-                      className="h-8 gap-1 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+                      className="h-8 gap-1 px-2.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                       title="Sao chép nội dung câu hỏi và đáp án"
                     >
                       {copiedId === q.id ? (
                         <>
-                          <Check className="size-3.5 text-emerald-600" />
-                          <span className="text-emerald-600">Đã chép</span>
+                          <Check className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                          <span className="text-emerald-600 dark:text-emerald-400">Đã chép</span>
                         </>
                       ) : (
                         <>
@@ -469,7 +473,7 @@ export function QuestionManager({
                       size="sm"
                       variant="ghost"
                       onClick={() => handleOpenEdit(q)}
-                      className="h-8 gap-1 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+                      className="h-8 gap-1 px-2.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                     >
                       <Pencil className="size-3.5" />
                       Sửa
@@ -479,7 +483,7 @@ export function QuestionManager({
                       variant="ghost"
                       disabled={isDeleting}
                       onClick={() => handleDelete(q.id)}
-                      className="h-8 gap-1 px-2.5 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      className="h-8 gap-1 px-2.5 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50"
                     >
                       {isDeleting ? (
                         <LoaderCircle className="size-3.5 animate-spin" />
@@ -495,7 +499,7 @@ export function QuestionManager({
                   {/* Question Text */}
                   <MathText
                     content={q.question_text}
-                    className="text-sm font-medium leading-relaxed text-foreground"
+                    className="text-sm font-medium leading-relaxed text-slate-900 dark:text-slate-100"
                   />
 
                   {/* Multiple Choice Options List */}
@@ -508,15 +512,15 @@ export function QuestionManager({
                             key={opt.option_key}
                             className={`flex items-start gap-2.5 rounded-lg border p-2.5 text-xs transition ${
                               isCorrect
-                                ? 'border-[#246348] bg-[#eef6f1] text-[#1b4e38]'
-                                : 'border-border/70 bg-card text-foreground'
+                                ? 'border-[#246348] dark:border-emerald-700 bg-[#eef6f1] dark:bg-emerald-950/50 text-[#1b4e38] dark:text-emerald-200'
+                                : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-200'
                             }`}
                           >
                             <span
                               className={`flex size-5 shrink-0 items-center justify-center rounded-full font-bold ${
                                 isCorrect
-                                  ? 'bg-[#246348] text-white'
-                                  : 'bg-muted text-muted-foreground'
+                                  ? 'bg-[#246348] dark:bg-emerald-600 text-white'
+                                  : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
                               }`}
                             >
                               {opt.option_key}
@@ -528,7 +532,7 @@ export function QuestionManager({
                             {isCorrect && (
                               <Badge
                                 variant="outline"
-                                className="shrink-0 border-[#246348]/40 bg-white text-[10px] text-[#246348]"
+                                className="shrink-0 border-[#246348]/40 dark:border-emerald-600 bg-white dark:bg-emerald-900/60 text-[10px] text-[#246348] dark:text-emerald-200"
                               >
                                 Đáp án đúng
                               </Badge>
@@ -541,26 +545,26 @@ export function QuestionManager({
 
                   {/* Essay Model Answer & Rubric */}
                   {!isMC && q.answer_key && (
-                    <div className="space-y-2 rounded-lg border border-purple-100 bg-purple-50/40 p-3 text-xs">
+                    <div className="space-y-2 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-purple-50/40 dark:bg-purple-950/30 p-3 text-xs">
                       {q.answer_key.model_answer && (
                         <div>
-                          <span className="font-semibold text-purple-900">
+                          <span className="font-semibold text-purple-900 dark:text-purple-300">
                             Đáp án tham khảo:
                           </span>{' '}
                           <MathText
                             content={q.answer_key.model_answer}
-                            className="text-purple-950"
+                            className="text-purple-950 dark:text-purple-200"
                           />
                         </div>
                       )}
                       {q.answer_key.grading_rubric && (
                         <div>
-                          <span className="font-semibold text-purple-900">
+                          <span className="font-semibold text-purple-900 dark:text-purple-300">
                             Thang điểm / Hướng dẫn chấm:
                           </span>{' '}
                           <MathText
                             content={q.answer_key.grading_rubric}
-                            className="text-purple-950"
+                            className="text-purple-950 dark:text-purple-200"
                           />
                         </div>
                       )}
@@ -569,13 +573,13 @@ export function QuestionManager({
 
                   {/* Explanation Note */}
                   {q.explanation && (
-                    <div className="flex items-start gap-2 rounded-lg bg-muted/40 p-2.5 text-xs text-muted-foreground">
-                      <Sparkles className="mt-0.5 size-3.5 shrink-0 text-amber-600" />
+                    <div className="flex items-start gap-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 p-2.5 text-xs text-slate-600 dark:text-slate-400">
+                      <Sparkles className="mt-0.5 size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
                       <div>
-                        <span className="font-semibold text-foreground">
+                        <span className="font-semibold text-slate-900 dark:text-slate-200">
                           Giải thích chi tiết:
                         </span>{' '}
-                        <MathText content={q.explanation} />
+                        <MathText content={q.explanation} className="text-slate-700 dark:text-slate-300" />
                       </div>
                     </div>
                   )}

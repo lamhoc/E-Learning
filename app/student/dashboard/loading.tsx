@@ -4,7 +4,7 @@ export default function StudentDashboardLoading() {
   return (
     <div className="min-h-screen bg-[#f4f6f1] text-[#202b27] lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
       {/* Sidebar Placeholder */}
-      <div className="hidden lg:block border-r border-[#dfe5dd] bg-white p-5 space-y-6">
+      <div className="hidden lg:block border-r border-[#dfe5dd] bg-white dark:bg-[#0B1628] p-5 space-y-6">
         <div className="flex items-center gap-2.5">
           <Skeleton className="size-9 rounded-xl bg-slate-200" />
           <Skeleton className="h-5 w-24 rounded-lg bg-slate-200" />
@@ -35,18 +35,18 @@ export default function StudentDashboardLoading() {
 
           {/* Metric Cards Skeleton */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Skeleton className="h-28 rounded-2xl bg-white border border-slate-200" />
-            <Skeleton className="h-28 rounded-2xl bg-white border border-slate-200" />
-            <Skeleton className="h-28 rounded-2xl bg-white border border-slate-200" />
+            <Skeleton className="h-28 rounded-2xl bg-white dark:bg-[#111C2D] border border-slate-200 dark:border-slate-800" />
+            <Skeleton className="h-28 rounded-2xl bg-white dark:bg-[#111C2D] border border-slate-200 dark:border-slate-800" />
+            <Skeleton className="h-28 rounded-2xl bg-white dark:bg-[#111C2D] border border-slate-200 dark:border-slate-800" />
           </div>
 
           {/* Exams Skeleton Grid */}
           <div className="space-y-4">
             <Skeleton className="h-5 w-40 rounded-lg bg-slate-200" />
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Skeleton className="h-44 rounded-2xl bg-white border border-slate-200" />
-              <Skeleton className="h-44 rounded-2xl bg-white border border-slate-200" />
-              <Skeleton className="h-44 rounded-2xl bg-white border border-slate-200" />
+              <Skeleton className="h-44 rounded-2xl bg-white dark:bg-[#111C2D] border border-slate-200 dark:border-slate-800" />
+              <Skeleton className="h-44 rounded-2xl bg-white dark:bg-[#111C2D] border border-slate-200 dark:border-slate-800" />
+              <Skeleton className="h-44 rounded-2xl bg-white dark:bg-[#111C2D] border border-slate-200 dark:border-slate-800" />
             </div>
           </div>
         </div>

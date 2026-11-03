@@ -35,7 +35,7 @@ export default async function StudentMaterialsPage() {
   }).format(new Date());
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900 lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
+    <main className="min-h-screen bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
       <StudentSidebar studentName={data.studentName} activeRoute="materials" />
 
       <div className="min-w-0">

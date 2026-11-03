@@ -75,7 +75,7 @@ export function TeacherSubjectManager({
 
   return (
     <Card className="border-slate-200 shadow-xs">
-      <CardHeader className="border-b border-slate-100 bg-white pb-4">
+      <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111C2D] pb-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
@@ -153,7 +153,7 @@ export function TeacherSubjectManager({
                           }))
                         }
                         disabled={isPending || availableSubjects.length === 0}
-                        className="h-8 rounded-lg border border-slate-300 bg-white px-2.5 text-xs text-slate-700 outline-none focus:border-emerald-600 disabled:opacity-50 min-w-44"
+                        className="h-8 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/80 px-2.5 text-xs text-slate-700 dark:text-slate-200 outline-none focus:border-emerald-600 disabled:opacity-50 min-w-44"
                       >
                         <option value="">
                           {availableSubjects.length === 0

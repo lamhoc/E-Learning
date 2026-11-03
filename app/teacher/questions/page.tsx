@@ -1,7 +1,7 @@
 import { ThemeToggle } from '@/components/theme-toggle';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import { Suspense } from 'react';
-import { GraduationCap, LibraryBig } from 'lucide-react';
+import { LibraryBig } from 'lucide-react';
 import { getTeacherQuestionsData } from '@/lib/question-bank';
 import { TeacherSidebar } from '@/components/teacher/teacher-sidebar';
 import { QuestionManager } from '@/components/teacher/question-manager';
@@ -20,7 +20,7 @@ function QuestionsSkeleton() {
   return (
     <div className="space-y-6">
       {/* Filter bar skeleton */}
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-4">
         <Skeleton className="h-10 w-64 rounded-lg" />
         <Skeleton className="h-10 w-44 rounded-lg" />
         <Skeleton className="h-10 w-44 rounded-lg" />
@@ -29,7 +29,10 @@ function QuestionsSkeleton() {
       {/* Cards skeleton */}
       <div className="space-y-4">
         {Array.from({ length: 4 }, (_, index) => (
-          <div key={index} className="rounded-xl border border-slate-200 bg-white p-5 space-y-3">
+          <div
+            key={index}
+            className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-5 space-y-3"
+          >
             <div className="flex justify-between items-center">
               <div className="flex gap-2">
                 <Skeleton className="h-5 w-16 rounded" />
@@ -67,7 +70,6 @@ async function QuestionsAsyncContent({ searchParams }: QuestionsPageProps) {
 }
 
 export default async function TeacherQuestionsPage({ searchParams }: QuestionsPageProps) {
-  // Lấy thông tin profile từ cache nhanh (0ms nếu đã authenticate)
   const { fullName } = await getCurrentProfile();
 
   const today = new Intl.DateTimeFormat('vi-VN', {
@@ -77,7 +79,7 @@ export default async function TeacherQuestionsPage({ searchParams }: QuestionsPa
   }).format(new Date());
 
   return (
-    <main className="min-h-screen bg-[#f3f6f3] text-foreground lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
+    <main className="min-h-screen bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
       <TeacherSidebar activeRoute="questions" teacherName={fullName || 'Giảng viên'} />
 
       <div className="min-w-0">
@@ -89,6 +91,9 @@ export default async function TeacherQuestionsPage({ searchParams }: QuestionsPa
             <p className="hidden text-xs font-medium capitalize text-muted-foreground sm:block">
               {today}
             </p>
+            <div className="ml-auto flex items-center gap-3">
+              <ThemeToggle />
+            </div>
           </div>
         </header>
 
@@ -96,14 +101,14 @@ export default async function TeacherQuestionsPage({ searchParams }: QuestionsPa
           <section className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <span className="grid size-8 place-items-center rounded-lg bg-[#e5f0e9] text-[#246348]">
+                <span className="grid size-8 place-items-center rounded-lg bg-[#154C99]/10 text-[#154C99] dark:bg-[#3B82F6]/20 dark:text-[#60A5FA]">
                   <LibraryBig className="size-4" />
                 </span>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-3xl">
                   Ngân hàng câu hỏi
                 </h1>
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                 Quản lý kho câu hỏi trắc nghiệm và tự luận để phục vụ tạo đề thi cho học sinh.
               </p>
             </div>

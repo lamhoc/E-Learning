@@ -403,7 +403,7 @@ export function ExamCreateForm({
                             />
                             <span>{c.name}</span>
                           </div>
-                          <Badge variant="outline" className="text-[10px] bg-white">
+                          <Badge variant="outline" className="text-[10px] bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200">
                             {c.class_code} · {c.academic_year}
                           </Badge>
                         </label>
@@ -540,7 +540,7 @@ export function ExamCreateForm({
                     placeholder="Tìm câu hỏi trong kho..."
                     value={questionSearch}
                     onChange={(e) => setQuestionSearch(e.target.value)}
-                    className="h-8 pl-8 text-xs bg-white"
+                    className="h-8 pl-8 text-xs bg-white dark:bg-slate-800/80 dark:border-slate-700 dark:text-slate-100"
                   />
                 </div>
 
@@ -549,7 +549,7 @@ export function ExamCreateForm({
                   <select
                     value={questionTypeFilter}
                     onChange={(e) => setQuestionTypeFilter(e.target.value as 'all' | 'multiple_choice' | 'essay')}
-                    className="h-8 rounded-md border border-input bg-white px-2.5 text-xs text-foreground focus:outline-none"
+                    className="h-8 rounded-md border border-input dark:border-slate-700 bg-white dark:bg-slate-800/80 px-2.5 text-xs text-foreground focus:outline-none"
                   >
                     <option value="all">Tất cả loại câu</option>
                     <option value="multiple_choice">Trắc nghiệm</option>
@@ -598,7 +598,7 @@ export function ExamCreateForm({
                         className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition select-none ${
                           isSelected
                             ? 'border-[#246348] bg-emerald-50/40 ring-1 ring-[#246348]/20'
-                            : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60'
+                            : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50/60 dark:hover:bg-slate-800/60'
                         }`}
                       >
                         <input
@@ -677,7 +677,7 @@ export function ExamCreateForm({
                       return (
                         <div
                           key={sq.questionId}
-                          className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-2xs"
+                          className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] text-slate-900 dark:text-slate-100 p-3 shadow-2xs"
                         >
                           <div className="flex items-center gap-2.5 min-w-0 flex-1">
                             <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-[11px] font-bold text-white">

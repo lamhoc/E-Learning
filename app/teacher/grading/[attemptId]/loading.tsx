@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function EssayGradingDetailLoading() {
   return (
-    <div className="min-h-screen bg-[#f3f6f3] text-foreground lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors text-foreground lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
       <div className="hidden lg:block border-r border-[#dfe7e0] bg-[#17372e] p-5 space-y-6">
         <Skeleton className="size-9 rounded-xl bg-white/20" />
       </div>

@@ -626,7 +626,7 @@ export default async function TeacherDashboardPage() {
   const shortName = fullName.split(/\s+/).at(-1) ?? fullName;
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900 lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
+    <main className="min-h-screen bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
       <TeacherSidebar activeRoute="dashboard" teacherName={fullName || 'Giảng viên'} />
 
       <div className="min-w-0">

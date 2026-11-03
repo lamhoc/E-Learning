@@ -58,7 +58,7 @@ export function ExamScoreChart({
                 if (!active || !payload?.length) return null;
                 const data = payload[0].payload as ExamScoreDistributionItem;
                 return (
-                  <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-md text-xs">
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] text-slate-900 dark:text-slate-100 p-3 shadow-md text-xs">
                     <p className="font-bold text-slate-900">{data.label}</p>
                     <div className="mt-1.5 space-y-1">
                       <p className="flex items-center justify-between gap-4 text-slate-600">
@@ -92,7 +92,7 @@ export function ExamScoreChart({
         {distribution.map((item) => (
           <div
             key={item.range}
-            className="flex flex-col rounded-xl border border-slate-100 bg-slate-50/70 p-2.5 text-center transition hover:bg-white hover:shadow-2xs"
+            className="flex flex-col rounded-xl border border-slate-100 bg-slate-50/70 p-2.5 text-center transition hover:bg-white dark:hover:bg-slate-800 hover:shadow-2xs"
           >
             <div className="flex items-center justify-center gap-1.5">
               <span

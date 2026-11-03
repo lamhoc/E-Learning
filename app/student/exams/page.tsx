@@ -148,7 +148,7 @@ export default async function StudentExamsPage() {
   }).format(new Date());
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900 lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
+    <main className="min-h-screen bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
       <StudentSidebar studentName={data.studentName} activeRoute="exams" />
 
       <div className="min-w-0">
@@ -182,7 +182,7 @@ export default async function StudentExamsPage() {
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
                 Khảo thí & Đánh giá
               </p>
-              <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900 sm:text-[28px]">
+              <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-[28px]">
                 Đề thi & Kết quả thi
               </h1>
               <p className="mt-1.5 text-sm text-slate-500">
@@ -201,7 +201,7 @@ export default async function StudentExamsPage() {
           <section className="space-y-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Đề thi hiện có</p>
-              <h2 className="mt-1 text-lg font-bold tracking-tight text-slate-900">Đề thi đang mở</h2>
+              <h2 className="mt-1 text-lg font-bold tracking-tight text-slate-900 dark:text-white">Đề thi đang mở</h2>
               <p className="mt-0.5 text-sm text-slate-500">Các đề thi trong lớp của bạn đang còn thời gian làm bài</p>
             </div>
             {data.openExams.length ? (
@@ -211,7 +211,7 @@ export default async function StudentExamsPage() {
                 ))}
               </div>
             ) : (
-              <div className="flex min-h-36 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center">
+              <div className="flex min-h-36 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-6 text-center">
                 <span className="grid size-10 place-items-center rounded-full bg-slate-50 text-slate-400">
                   <CalendarClock className="size-5" />
                 </span>
@@ -224,10 +224,10 @@ export default async function StudentExamsPage() {
           <section className="space-y-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Hồ sơ thi</p>
-              <h2 className="mt-1 text-lg font-bold tracking-tight text-slate-900">Lịch sử làm bài thi</h2>
+              <h2 className="mt-1 text-lg font-bold tracking-tight text-slate-900 dark:text-white">Lịch sử làm bài thi</h2>
               <p className="mt-0.5 text-sm text-slate-500">Điểm số sẽ tự động hiển thị sau khi giảng viên công bố kết quả</p>
             </div>
-            <Card>
+            <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
               <CardContent className="p-0">
                 {data.attempts.length ? (
                   <div className="overflow-x-auto">
@@ -250,14 +250,14 @@ export default async function StudentExamsPage() {
                           return (
                             <TableRow key={attempt.id}>
                               <TableCell className="min-w-48">
-                                <span className="block font-medium text-slate-800">
+                                <span className="block font-medium text-slate-800 dark:text-slate-200">
                                   {exam?.title || 'Đề thi'}
                                 </span>
                                 <span className="mt-0.5 block text-xs text-slate-400">
                                   Lượt thi thứ {attempt.attempt_no}
                                 </span>
                               </TableCell>
-                              <TableCell className="hidden text-slate-500 sm:table-cell">
+                              <TableCell className="hidden text-slate-500 dark:text-slate-400 sm:table-cell">
                                 {formatDate(attempt.started_at, { hour: '2-digit', minute: '2-digit' })}
                               </TableCell>
                               <TableCell>
@@ -273,7 +273,7 @@ export default async function StudentExamsPage() {
                               <TableCell className="text-right">
                                 <Link
                                   href={`/student/exams/${attempt.exam_id}`}
-                                  className={buttonVariants({ variant: 'outline', size: 'sm', className: 'text-xs' })}
+                                  className={buttonVariants({ variant: 'outline', size: 'sm', className: 'text-xs dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-100 dark:hover:bg-slate-700' })}
                                 >
                                   Chi tiết
                                 </Link>
@@ -285,7 +285,7 @@ export default async function StudentExamsPage() {
                     </Table>
                   </div>
                 ) : (
-                  <div className="p-8 text-center text-sm text-slate-400">
+                  <div className="p-8 text-center text-sm text-slate-400 dark:text-slate-500">
                     Bạn chưa tham gia lượt thi nào.
                   </div>
                 )}

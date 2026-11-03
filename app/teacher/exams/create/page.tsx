@@ -15,7 +15,7 @@ export default async function TeacherExamCreatePage() {
   }).format(new Date());
 
   return (
-    <main className="min-h-screen bg-[#f3f6f3] text-foreground lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
+    <main className="min-h-screen bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
       <TeacherSidebar activeRoute="dashboard" teacherName={data.teacherName} />
 
       <div className="min-w-0">

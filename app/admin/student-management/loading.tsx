@@ -10,7 +10,7 @@ export default function AdminStudentManagementLoading() {
       </div>
 
       {/* Table Card Skeleton */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-5">
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-6 space-y-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Skeleton className="h-10 w-full sm:w-72 rounded-xl bg-slate-100" />
           <Skeleton className="h-10 w-44 rounded-xl bg-slate-100" />

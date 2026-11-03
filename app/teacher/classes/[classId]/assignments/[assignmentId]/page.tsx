@@ -90,7 +90,7 @@ export default async function AssignmentSubmissionsPage({
   const lateCount = assignment.submissions.filter((s) => s.is_late).length;
 
   return (
-    <main className="min-h-screen bg-[#f3f6f3] px-4 py-7 text-foreground sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors px-4 py-7 text-foreground sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl space-y-6">
         {/* Navigation Topbar */}
         <header className="flex flex-wrap items-center justify-between gap-3">

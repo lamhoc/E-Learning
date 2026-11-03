@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function TeacherAccessLoading() {
   return (
-    <main className="min-h-screen bg-[#f3f6f3] px-5 py-7 sm:px-8">
+    <main className="min-h-screen bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors px-5 py-7 sm:px-8">
       <div className="mx-auto max-w-6xl space-y-6">
         <div className="flex items-center justify-between">
           <div className="space-y-2">

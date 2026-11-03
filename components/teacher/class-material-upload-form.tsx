@@ -94,21 +94,21 @@ export function ClassMaterialUploadForm({ classId }: ClassMaterialUploadFormProp
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs">
-      <div className="flex items-center gap-2.5 pb-4 border-b border-slate-100">
-        <span className="grid size-9 place-items-center rounded-xl bg-emerald-100 text-emerald-800">
+    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-5 sm:p-6 shadow-xs text-slate-900 dark:text-slate-100">
+      <div className="flex items-center gap-2.5 pb-4 border-b border-slate-100 dark:border-slate-800">
+        <span className="grid size-9 place-items-center rounded-xl bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300">
           <FileUp className="size-5" />
         </span>
         <div>
-          <h3 className="text-base font-bold text-slate-900">Đăng tải tài liệu học tập</h3>
-          <p className="text-xs text-slate-500">Bổ sung slide bài giảng, giáo trình PDF/Word hoặc link video bài học</p>
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">Đăng tải tài liệu học tập</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Bổ sung slide bài giảng, giáo trình PDF/Word hoặc link video bài học</p>
         </div>
       </div>
 
       <form ref={formRef} onSubmit={handleSubmit} className="mt-5 space-y-4">
         {/* Toggle Loại tài liệu */}
         <div>
-          <Label className="text-xs font-semibold text-slate-700">Loại tài liệu</Label>
+          <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Loại tài liệu</Label>
           <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-3">
             <button
               type="button"
@@ -118,8 +118,8 @@ export function ClassMaterialUploadForm({ classId }: ClassMaterialUploadFormProp
               }}
               className={`flex items-center justify-center gap-2 rounded-xl border p-2.5 text-xs font-semibold transition ${
                 materialType === 'document'
-                  ? 'border-emerald-600 bg-emerald-50/70 text-emerald-900 ring-1 ring-emerald-600'
-                  : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+                  ? 'border-emerald-600 dark:border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300 ring-1 ring-emerald-600'
+                  : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
               }`}
             >
               <FileText className="size-4" />
@@ -134,8 +134,8 @@ export function ClassMaterialUploadForm({ classId }: ClassMaterialUploadFormProp
               }}
               className={`flex items-center justify-center gap-2 rounded-xl border p-2.5 text-xs font-semibold transition ${
                 materialType === 'video'
-                  ? 'border-emerald-600 bg-emerald-50/70 text-emerald-900 ring-1 ring-emerald-600'
-                  : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+                  ? 'border-emerald-600 dark:border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300 ring-1 ring-emerald-600'
+                  : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
               }`}
             >
               <Video className="size-4" />
@@ -150,8 +150,8 @@ export function ClassMaterialUploadForm({ classId }: ClassMaterialUploadFormProp
               }}
               className={`flex items-center justify-center gap-2 rounded-xl border p-2.5 text-xs font-semibold transition ${
                 materialType === 'link'
-                  ? 'border-emerald-600 bg-emerald-50/70 text-emerald-900 ring-1 ring-emerald-600'
-                  : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+                  ? 'border-emerald-600 dark:border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300 ring-1 ring-emerald-600'
+                  : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
               }`}
             >
               <LinkIcon className="size-4" />
@@ -163,7 +163,7 @@ export function ClassMaterialUploadForm({ classId }: ClassMaterialUploadFormProp
         {/* Tiêu đề & Tuần học */}
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="sm:col-span-2">
-            <Label htmlFor="title" className="text-xs font-semibold text-slate-700">
+            <Label htmlFor="title" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               Tiêu đề tài liệu <span className="text-red-500">*</span>
             </Label>
             <Input
@@ -171,19 +171,19 @@ export function ClassMaterialUploadForm({ classId }: ClassMaterialUploadFormProp
               name="title"
               required
               placeholder="VD: Bài giảng Tuần 1 - Nhập môn Giải tích"
-              className="mt-1 h-9 rounded-xl text-xs"
+              className="mt-1 h-9 rounded-xl text-xs dark:bg-slate-800/80 dark:border-slate-700 dark:text-slate-100"
             />
           </div>
 
           <div>
-            <Label htmlFor="weekSelect" className="text-xs font-semibold text-slate-700">
+            <Label htmlFor="weekSelect" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               Tuần học <span className="text-red-500">*</span>
             </Label>
             <select
               id="weekSelect"
               value={weekNumber}
               onChange={(e) => setWeekNumber(Number(e.target.value))}
-              className="mt-1 flex h-9 w-full rounded-xl border border-slate-200 bg-white px-3 py-1 text-xs text-slate-900 shadow-2xs focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+              className="mt-1 flex h-9 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 px-3 py-1 text-xs text-slate-900 dark:text-slate-100 shadow-2xs focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
             >
               {Array.from({ length: 16 }, (_, i) => i + 1).map((w) => (
                 <option key={w} value={w}>
@@ -197,17 +197,17 @@ export function ClassMaterialUploadForm({ classId }: ClassMaterialUploadFormProp
         {/* Input File Upload (Nếu là document) */}
         {materialType === 'document' ? (
           <div>
-            <Label className="text-xs font-semibold text-slate-700">
+            <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               Chọn File tải lên (PDF, DOCX, PPTX) <span className="text-red-500">*</span>
             </Label>
             <div className="mt-1.5">
               {!selectedFile ? (
-                <label className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/70 p-5 text-center cursor-pointer transition hover:border-emerald-400 hover:bg-emerald-50/30">
+                <label className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/40 p-5 text-center cursor-pointer transition hover:border-emerald-400 dark:hover:border-emerald-500 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20">
                   <Upload className="size-6 text-slate-400" />
-                  <p className="mt-2 text-xs font-medium text-slate-700">
+                  <p className="mt-2 text-xs font-medium text-slate-700 dark:text-slate-300">
                     Bấm để chọn file hoặc kéo thả tài liệu vào đây
                   </p>
-                  <p className="mt-1 text-[11px] text-slate-400">
+                  <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
                     Hỗ trợ định dạng .pdf, .docx, .doc, .pptx (Tối đa 50 MB)
                   </p>
                   <input
@@ -219,14 +219,14 @@ export function ClassMaterialUploadForm({ classId }: ClassMaterialUploadFormProp
                   />
                 </label>
               ) : (
-                <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 text-xs">
+                <div className="flex items-center justify-between rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/40 p-3 text-xs">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-emerald-700 text-white">
                       <FileText className="size-4" />
                     </span>
                     <div className="min-w-0">
-                      <p className="truncate font-bold text-emerald-950">{selectedFile.name}</p>
-                      <p className="text-[11px] text-emerald-700">{formatFileSize(selectedFile.size)}</p>
+                      <p className="truncate font-bold text-emerald-950 dark:text-emerald-100">{selectedFile.name}</p>
+                      <p className="text-[11px] text-emerald-700 dark:text-emerald-300">{formatFileSize(selectedFile.size)}</p>
                     </div>
                   </div>
                   <button
@@ -244,7 +244,7 @@ export function ClassMaterialUploadForm({ classId }: ClassMaterialUploadFormProp
         ) : (
           /* Input URL (Nếu là Video hoặc Link) */
           <div>
-            <Label htmlFor="videoUrl" className="text-xs font-semibold text-slate-700">
+            <Label htmlFor="videoUrl" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               {materialType === 'video' ? 'Đường dẫn Video (YouTube, Vimeo, Drive...)' : 'Đường dẫn liên kết ngoài'} <span className="text-red-500">*</span>
             </Label>
             <Input
@@ -253,14 +253,14 @@ export function ClassMaterialUploadForm({ classId }: ClassMaterialUploadFormProp
               required
               type="url"
               placeholder="https://www.youtube.com/watch?v=... hoặc https://drive.google.com/..."
-              className="mt-1 h-9 rounded-xl text-xs font-mono"
+              className="mt-1 h-9 rounded-xl text-xs font-mono dark:bg-slate-800/80 dark:border-slate-700 dark:text-slate-100"
             />
           </div>
         )}
 
         {/* Mô tả / Ghi chú */}
         <div>
-          <Label htmlFor="description" className="text-xs font-semibold text-slate-700">
+          <Label htmlFor="description" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
             Mô tả tóm tắt (Tùy chọn)
           </Label>
           <textarea
@@ -268,7 +268,7 @@ export function ClassMaterialUploadForm({ classId }: ClassMaterialUploadFormProp
             name="description"
             rows={2}
             placeholder="Ghi chú thêm về nội dung cần lưu ý cho sinh viên khi ôn tập..."
-            className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 shadow-2xs"
+            className="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 p-2.5 text-xs text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 shadow-2xs"
           />
         </div>
 
@@ -277,8 +277,8 @@ export function ClassMaterialUploadForm({ classId }: ClassMaterialUploadFormProp
           <div
             className={`flex items-center gap-2 rounded-xl p-3 text-xs font-medium ${
               statusMessage.type === 'success'
-                ? 'border border-emerald-200 bg-emerald-50 text-emerald-800'
-                : 'border border-red-200 bg-red-50 text-red-700'
+                ? 'border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300'
+                : 'border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300'
             }`}
           >
             {statusMessage.type === 'success' ? (
