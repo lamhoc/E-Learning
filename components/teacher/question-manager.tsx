@@ -328,7 +328,7 @@ export function QuestionManager({
               <Button
                 onClick={() => setIsAIModalOpen(true)}
                 variant="outline"
-                className="gap-1.5 border-[#246348] text-[#17372e] hover:bg-[#eef6f1]"
+                className="gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
               >
                 <Sparkles className="size-4 text-[#246348]" />
                 AI Sinh câu hỏi
@@ -347,7 +347,7 @@ export function QuestionManager({
               {/* Create Question Button */}
               <Button
                 onClick={handleOpenCreate}
-                className="gap-1.5 bg-[#17372e] text-white hover:bg-[#20493e]"
+                className="gap-1.5 bg-primary text-white hover:bg-primary/90"
               >
                 <Plus className="size-4" />
                 Thêm câu hỏi
@@ -400,13 +400,13 @@ export function QuestionManager({
                   <Button
                     onClick={() => setIsAIModalOpen(true)}
                     variant="outline"
-                    className="gap-2 border-[#246348] text-[#17372e] hover:bg-[#eef6f1]"
+                    className="gap-2 border-primary/30 text-primary hover:bg-primary/10"
                   >
                     <Sparkles className="size-4 text-[#246348]" /> AI sinh câu hỏi tự động
                   </Button>
                   <Button
                     onClick={handleOpenCreate}
-                    className="gap-2 bg-[#17372e] text-white hover:bg-[#20493e]"
+                    className="gap-2 bg-primary text-white hover:bg-primary/90"
                   >
                     <Plus className="size-4" /> Tạo câu hỏi thủ công
                   </Button>
@@ -423,7 +423,7 @@ export function QuestionManager({
             return (
               <Card
                 key={q.id}
-                className="overflow-hidden transition hover:border-[#17372e]/30 hover:shadow-xs"
+                className="overflow-hidden transition hover:border-primary/30 hover:shadow-xs"
               >
                 <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 pb-3">
                   <div className="flex flex-wrap items-center gap-2">

@@ -1,3 +1,5 @@
+import { ThemeToggle } from '@/components/theme-toggle';
+import { BrandLogo } from '@/components/ui/brand-logo';
 import { Suspense } from 'react';
 import Link from 'next/link';
 import {
@@ -83,7 +85,7 @@ function getAttemptStatus(attempt: StudentAttempt): { label: string; className: 
     case 'pending_grading':
       return { label: 'Chờ chấm', className: 'border-sky-200 bg-sky-50 text-sky-800' };
     case 'completed':
-      return { label: 'Hoàn thành', className: 'border-emerald-200 bg-emerald-50 text-emerald-800' };
+      return { label: 'Hoàn thành', className: 'border-primary/20 bg-primary/10 text-primary' };
     case 'voided':
       return { label: 'Đã hủy', className: 'border-rose-200 bg-rose-50 text-rose-800' };
     default:
@@ -352,7 +354,7 @@ async function StudentDashboardDataContent() {
               <Card key={exam.id} className="border-emerald-200 bg-emerald-50/20">
                 <CardHeader className="p-4 pb-2">
                   <div className="flex items-center justify-between gap-2">
-                    <Badge className="border-emerald-200 bg-emerald-50 text-emerald-800 text-[10px]">
+                    <Badge className="border-primary/20 bg-primary/10 text-primary text-[10px]">
                       Đang mở
                     </Badge>
                     {exam.available_until && (
@@ -507,25 +509,23 @@ export default async function StudentDashboardPage() {
 
       <div className="min-w-0">
         {/* Topbar: Static Shell 0ms */}
-        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
+        <header className="sticky top-0 z-20 border-b border-border bg-card/90 dark:bg-[#0B1628]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
-            <div className="flex items-center gap-2 lg:hidden">
-              <span className="grid size-9 place-items-center rounded-lg bg-[#17372e] text-[#c9ed99]">
-                <GraduationCap aria-hidden="true" className="size-5" />
-              </span>
-              <span className="text-sm font-bold text-slate-900">Mầm Học</span>
+            <div className="lg:hidden">
+              <BrandLogo size="sm" />
             </div>
             <p className="hidden text-xs font-medium capitalize text-slate-500 sm:block">{today}</p>
             <div className="ml-auto flex items-center gap-3">
               <NotificationBell userId={user.id} />
+              <ThemeToggle />
               <Badge
                 variant="outline"
-                className="hidden gap-1.5 border-emerald-200 bg-emerald-50 text-emerald-800 sm:inline-flex"
+                className="hidden gap-1.5 border-primary/20 bg-primary/10 text-primary sm:inline-flex"
               >
                 <CheckCircle2 data-icon="inline-start" /> Sinh viên
               </Badge>
               <span
-                className="grid size-9 place-items-center rounded-full bg-[#f0a879] text-xs font-bold text-[#4b2a1b]"
+                className="grid size-9 place-items-center rounded-full bg-primary/15 text-xs font-bold text-primary ring-1 ring-primary/30"
                 aria-label={`Tài khoản ${fullName}`}
               >
                 {initials || 'SV'}

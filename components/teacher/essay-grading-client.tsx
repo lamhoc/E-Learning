@@ -270,7 +270,7 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             {/* Student & Exam Info */}
             <div className="flex items-start gap-3.5 min-w-0">
-              <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-[#17372e] to-[#2d6856] text-white font-bold text-base shadow-xs">
+              <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-[#0A275C] to-[#154C99] text-white font-bold text-base shadow-xs">
                 {data.student.fullName
                   .split(/\s+/)
                   .map((n) => n[0])
@@ -368,7 +368,7 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
       <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
-            <span className="grid size-6 place-items-center rounded-md bg-[#17372e] text-[11px] font-bold text-white">
+            <span className="grid size-6 place-items-center rounded-md bg-primary text-[11px] font-bold text-white">
               {data.essayQuestions.length}
             </span>
             <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
@@ -399,7 +399,7 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
                 {/* Question Header */}
                 <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-slate-50/70 py-3 px-5">
                   <div className="flex items-center gap-2.5">
-                    <span className="flex size-7 items-center justify-center rounded-lg bg-[#17372e] text-xs font-bold text-white">
+                    <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-xs font-bold text-white">
                       Câu {q.position}
                     </span>
                     <Badge variant="outline" className="border-purple-200 bg-purple-50 text-purple-700 text-xs font-semibold">

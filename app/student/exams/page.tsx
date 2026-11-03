@@ -1,3 +1,5 @@
+import { ThemeToggle } from '@/components/theme-toggle';
+import { BrandLogo } from '@/components/ui/brand-logo';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -77,7 +79,7 @@ function getAttemptStatus(attempt: StudentAttempt): { label: string; className: 
     case 'completed':
       return {
         label: 'Đã hoàn thành',
-        className: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+        className: 'border-primary/20 bg-primary/10 text-primary',
       };
     case 'voided':
       return {
@@ -96,7 +98,7 @@ function ExamCard({ exam }: { exam: StudentExam }) {
   return (
     <Card className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md border-emerald-200">
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-3">
-        <Badge className="border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-50">
+        <Badge className="border-primary/20 bg-primary/10 text-primary hover:bg-emerald-50">
           Đang mở thi
         </Badge>
         {exam.available_until && (
@@ -150,24 +152,22 @@ export default async function StudentExamsPage() {
       <StudentSidebar studentName={data.studentName} activeRoute="exams" />
 
       <div className="min-w-0">
-        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
+        <header className="sticky top-0 z-20 border-b border-border bg-card/90 dark:bg-[#0B1628]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
-            <div className="flex items-center gap-2 lg:hidden">
-              <span className="grid size-9 place-items-center rounded-lg bg-[#17372e] text-[#c9ed99]">
-                <GraduationCap aria-hidden="true" className="size-5" />
-              </span>
-              <span className="text-sm font-bold text-slate-900">Mầm Học</span>
+            <div className="lg:hidden">
+              <BrandLogo size="sm" />
             </div>
 
             <p className="hidden text-xs font-medium capitalize text-slate-500 sm:block">{today}</p>
 
             <div className="ml-auto flex items-center gap-3">
               <NotificationBell userId={data.studentId} initialNotifications={data.notifications} />
-              <Badge variant="outline" className="hidden gap-1.5 border-emerald-200 bg-emerald-50 text-emerald-800 sm:inline-flex">
+              <ThemeToggle />
+              <Badge variant="outline" className="hidden gap-1.5 border-primary/20 bg-primary/10 text-primary sm:inline-flex">
                 <CheckCircle2 data-icon="inline-start" /> {data.openExams.length} Đề thi đang mở
               </Badge>
               <span
-                className="grid size-9 place-items-center rounded-full bg-[#f0a879] text-xs font-bold text-[#4b2a1b]"
+                className="grid size-9 place-items-center rounded-full bg-primary/15 text-xs font-bold text-primary ring-1 ring-primary/30"
                 aria-label={`Tài khoản ${data.studentName}`}
               >
                 {initials || 'SV'}

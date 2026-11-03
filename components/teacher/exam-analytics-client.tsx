@@ -153,7 +153,7 @@ export function ExamAnalyticsClient({
               <p className="mt-1 text-2xl font-bold text-slate-900">{metrics.totalGraded}</p>
               <p className="mt-0.5 text-[11px] text-slate-400">lượt làm bài</p>
             </div>
-            <div className="grid size-11 place-items-center rounded-xl bg-slate-100 text-[#17372e]">
+            <div className="grid size-11 place-items-center rounded-xl bg-primary/10 text-primary">
               <Users className="size-5" />
             </div>
           </CardContent>
@@ -165,7 +165,7 @@ export function ExamAnalyticsClient({
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                 Điểm trung bình
               </p>
-              <p className="mt-1 text-2xl font-bold text-[#17372e]">
+              <p className="mt-1 text-2xl font-bold text-primary">
                 {metrics.averageScore.toFixed(2)}
               </p>
               <p className="mt-0.5 text-[11px] text-slate-400">thang điểm {exam.maxScore}</p>
@@ -233,7 +233,7 @@ export function ExamAnalyticsClient({
             size="sm"
             onClick={handleExportCSV}
             disabled={isExporting || studentResults.length === 0}
-            className="gap-2 bg-[#17372e] hover:bg-[#20493e] text-white text-xs font-medium px-4 h-9 shadow-xs"
+            className="gap-2 bg-primary hover:bg-primary/90 text-white text-xs font-medium px-4 h-9 shadow-xs"
           >
             <Download className="size-4" />
             Xuất file CSV (Excel)
@@ -247,7 +247,7 @@ export function ExamAnalyticsClient({
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <BarChart3 className="size-5 text-[#17372e]" />
+                    <BarChart3 className="size-5 text-primary" />
                     Biểu đồ Phân phối Phổ điểm
                   </CardTitle>
                   <CardDescription className="mt-0.5 text-xs">
@@ -275,7 +275,7 @@ export function ExamAnalyticsClient({
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                   <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <GraduationCap className="size-5 text-[#17372e]" />
+                    <GraduationCap className="size-5 text-primary" />
                     Danh sách Điểm Thí sinh
                   </CardTitle>
                   <CardDescription className="mt-0.5 text-xs">
@@ -396,7 +396,7 @@ export function ExamAnalyticsClient({
                           <TableCell className="text-right font-mono text-slate-700">
                             {item.essayScore.toFixed(2)}
                           </TableCell>
-                          <TableCell className="text-right font-mono font-bold text-sm text-[#17372e]">
+                          <TableCell className="text-right font-mono font-bold text-sm text-primary">
                             {item.totalScore.toFixed(2)}
                           </TableCell>
                           <TableCell className="text-center">

@@ -7,7 +7,6 @@ import {
   ClipboardList,
   FileCheck2,
   FileText,
-  GraduationCap,
   LayoutDashboard,
   LogOut,
   Sparkles,
@@ -15,6 +14,7 @@ import {
 import { signOut } from '@/app/subjects/actions';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { BrandLogo } from '@/components/ui/brand-logo';
 
 export type StudentSidebarRoute =
   | 'dashboard'
@@ -49,19 +49,19 @@ export function StudentSidebar({ studentName, activeRoute }: StudentSidebarProps
   ];
 
   return (
-    <aside className="hidden min-h-screen flex-col border-r border-[#d9e3dc] bg-[#17372e] px-4 py-6 text-white lg:sticky lg:top-0 lg:flex lg:h-screen">
-      <Link prefetch={true} href="/student/dashboard" className="flex items-center gap-3 px-2">
-        <span className="grid size-10 place-items-center rounded-xl bg-[#c9ed99] text-[#17372e]">
-          <GraduationCap aria-hidden="true" className="size-6" />
-        </span>
-        <span>
-          <span className="block text-sm font-semibold tracking-wide">Mầm Học</span>
-          <span className="mt-0.5 block text-xs text-white/55">Không gian học tập</span>
-        </span>
-      </Link>
+    <aside className="hidden min-h-screen flex-col border-r border-white/10 bg-[#0A275C] dark:bg-[#0B1628] dark:border-slate-800/80 px-4 py-6 text-white lg:sticky lg:top-0 lg:flex lg:h-screen">
+      {/* Brand Logo LHU ở góc trên bên trái */}
+      <div className="px-1">
+        <BrandLogo
+          href="/student/dashboard"
+          size="md"
+          variant="framed"
+          subtitle="Khu vực Sinh viên"
+        />
+      </div>
 
-      <div className="mt-10 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">
-        Khu vực sinh viên
+      <div className="mt-8 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/50">
+        Menu Sinh viên
       </div>
 
       <nav aria-label="Điều hướng chính" className="mt-3 space-y-1">
@@ -76,15 +76,15 @@ export function StudentSidebar({ studentName, activeRoute }: StudentSidebarProps
               href={href}
               prefetch={true}
               aria-current={isActive ? 'page' : undefined}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                 isActive
-                  ? 'bg-white/12 text-white ring-1 ring-white/10'
-                  : 'text-white/70 hover:bg-white/8 hover:text-white'
+                  ? 'bg-white/15 text-white ring-1 ring-[#FACC15]/50 shadow-xs font-semibold'
+                  : 'text-white/75 hover:bg-white/10 hover:text-white'
               }`}
             >
               <Icon
                 aria-hidden="true"
-                className={`size-4 ${isActive ? 'text-[#c9ed99]' : ''}`}
+                className={`size-4 transition-colors ${isActive ? 'text-[#FACC15]' : 'text-white/70'}`}
               />
               {label}
             </Link>
@@ -92,22 +92,22 @@ export function StudentSidebar({ studentName, activeRoute }: StudentSidebarProps
         })}
       </nav>
 
-      <div className="mt-auto rounded-xl border border-white/10 bg-white/5 p-4">
+      <div className="mt-auto rounded-xl border border-white/10 bg-white/5 p-4 dark:border-slate-800 dark:bg-slate-900/40">
         <div className="flex items-center gap-3">
-          <span className="grid size-9 place-items-center rounded-full bg-[#f0a879] text-xs font-bold text-[#4b2a1b]">
+          <span className="grid size-9 place-items-center rounded-full bg-[#FACC15] text-xs font-bold text-[#0A275C] shadow-xs">
             {initials || 'SV'}
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-sm font-medium">{studentName}</span>
-            <span className="block text-xs text-white/55">Sinh viên</span>
+            <span className="block truncate text-sm font-medium text-white">{studentName}</span>
+            <span className="block text-xs text-white/60">Sinh viên LHU</span>
           </span>
         </div>
-        <Separator className="my-4 bg-white/12" />
+        <Separator className="my-4 bg-white/15 dark:bg-slate-800" />
         <form action={signOut}>
           <Button
             type="submit"
             variant="ghost"
-            className="h-9 w-full justify-start gap-2 px-2 text-white/70 hover:bg-white/10 hover:text-white"
+            className="h-9 w-full justify-start gap-2 px-2 text-white/75 hover:bg-white/10 hover:text-white dark:hover:bg-slate-800"
           >
             <LogOut aria-hidden="true" className="size-4" />
             Đăng xuất

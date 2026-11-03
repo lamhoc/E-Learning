@@ -267,7 +267,7 @@ export function GradingQueueClient({ data }: { data: TeacherGradingQueueData }) 
                           <TableCell className="pr-5 text-right">
                             <Link
                               href={`/teacher/grading/${item.attemptId}`}
-                              className="inline-flex items-center gap-1.5 rounded-lg bg-[#17372e] px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#20493e]"
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition hover:bg-primary/90"
                             >
                               <PenTool className="size-3.5" />
                               <span>Chấm bài</span>

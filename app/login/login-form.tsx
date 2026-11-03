@@ -81,40 +81,14 @@ export function LoginForm() {
       return;
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
-    const currentUrl = new URL(window.location.href);
-    const invitationToken = currentUrl.searchParams.get('claimInvite');
-    if (invitationToken) {
-      const claimUrl = new URL('/register/teacher/claim', window.location.origin);
-      claimUrl.searchParams.set('invite', invitationToken);
-      claimUrl.searchParams.set('email', currentUrl.searchParams.get('claimEmail') || '');
-      router.replace(`${claimUrl.pathname}${claimUrl.search}`);
-      return;
-    }
-
-    const { data: roleRecord } = user
-      ? await supabase.from('user_roles').select('role').eq('user_id', user.id).maybeSingle()
-      : { data: null };
-
-    // Kiểm tra vai trò người dùng (ưu tiên metadata admin, sau đó bảng user_roles)
-    const userRole = (user?.app_metadata?.role as string) || roleRecord?.role;
-
-    if (userRole === 'admin') {
-      router.replace('/admin');
-    } else if (userRole === 'teacher') {
-      router.replace('/teacher/dashboard');
-    } else if (userRole === 'student') {
-      router.replace('/student/dashboard');
-    } else {
-      router.replace('/subjects');
-    }
+    // Refresh để Server Component lấy session mới
     router.refresh();
   }
 
   async function sendPasswordLink() {
-    const normalizedEmail = email.trim();
+    const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail) {
-      setErrorMessage('Nhập email trước khi yêu cầu link đặt mật khẩu.');
+      setErrorMessage('Nhập email để nhận link đặt lại mật khẩu.');
       return;
     }
 
@@ -130,11 +104,11 @@ export function LoginForm() {
 
     if (error) {
       if (error.status === 429 || error.message.toLowerCase().includes('rate limit')) {
-        setErrorMessage('Supabase đang giới hạn số email gửi đi. Hãy dùng link đã nhận trong hộp thư hoặc chờ trước khi yêu cầu link mới.');
+        setErrorMessage('Hệ thống đang giới hạn số email gửi đi. Hãy dùng link đã nhận trong hộp thư hoặc chờ ít phút.');
       } else if (error.message.toLowerCase().includes('redirect')) {
-        setErrorMessage('URL callback chưa được cho phép. Thêm http://localhost:3000/auth/callback vào Supabase Auth URL Configuration.');
+        setErrorMessage('URL callback chưa được cấu hình cho phép.');
       } else {
-        setErrorMessage(`Supabase không gửi được link: ${error.message}`);
+        setErrorMessage(`Không gửi được link: ${error.message}`);
       }
     } else {
       setNoticeMessage('Nếu email thuộc tài khoản hợp lệ, link đặt lại mật khẩu sẽ được gửi tới hộp thư của bạn.');
@@ -143,9 +117,9 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-4.5">
       <div>
-        <label htmlFor="email" className="mb-2 block text-sm font-medium text-[#34473d]">
+        <label htmlFor="email" className="mb-2 block text-sm font-medium text-foreground">
           Email
         </label>
         <input
@@ -155,12 +129,12 @@ export function LoginForm() {
           required
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          className="w-full rounded-md border border-[#cbd7ce] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#648675] focus:ring-2 focus:ring-[#648675]/15"
-          placeholder="ten@truong.edu.vn"
+          className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm text-foreground outline-none transition focus:border-[#154C99] focus:ring-2 focus:ring-[#154C99]/15 dark:focus:border-[#3B82F6] dark:focus:ring-[#3B82F6]/20 placeholder:text-muted-foreground"
+          placeholder="ten@lhu.edu.vn"
         />
       </div>
       <div>
-        <label htmlFor="password" className="mb-2 block text-sm font-medium text-[#34473d]">
+        <label htmlFor="password" className="mb-2 block text-sm font-medium text-foreground">
           Mật khẩu
         </label>
         <input
@@ -170,18 +144,18 @@ export function LoginForm() {
           required
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          className="w-full rounded-md border border-[#cbd7ce] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#648675] focus:ring-2 focus:ring-[#648675]/15"
+          className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm text-foreground outline-none transition focus:border-[#154C99] focus:ring-2 focus:ring-[#154C99]/15 dark:focus:border-[#3B82F6] dark:focus:ring-[#3B82F6]/20 placeholder:text-muted-foreground"
           placeholder="Nhập mật khẩu"
         />
       </div>
 
       {errorMessage && (
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 dark:border-red-900/60 dark:bg-red-950/40 px-3.5 py-2.5 text-sm text-red-800 dark:text-red-300">
           {errorMessage}
         </p>
       )}
       {noticeMessage && (
-        <p role="status" className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+        <p role="status" className="rounded-xl border border-blue-200 bg-blue-50 dark:border-blue-900/60 dark:bg-blue-950/40 px-3.5 py-2.5 text-sm text-blue-900 dark:text-blue-300">
           {noticeMessage}
         </p>
       )}
@@ -189,7 +163,7 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-md bg-[#285845] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1f4837] disabled:cursor-wait disabled:opacity-60"
+        className="w-full rounded-xl bg-[#154C99] hover:bg-[#0A275C] dark:bg-[#2563EB] dark:hover:bg-[#1D4ED8] px-4 py-3 text-sm font-semibold text-white shadow-xs transition hover:shadow-md disabled:cursor-wait disabled:opacity-60 cursor-pointer"
       >
         {pending ? 'Đang xác thực...' : 'Đăng nhập'}
       </button>
@@ -197,9 +171,9 @@ export function LoginForm() {
         type="button"
         onClick={sendPasswordLink}
         disabled={pending}
-        className="w-full rounded-md border border-[#cbd7ce] px-4 py-2.5 text-sm font-medium text-[#355347] transition hover:bg-[#edf3ed] disabled:cursor-wait disabled:opacity-60"
+        className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-muted disabled:cursor-wait disabled:opacity-60 cursor-pointer"
       >
-        Gửi link đặt mật khẩu
+        Gửi link đặt lại mật khẩu
       </button>
     </form>
   );

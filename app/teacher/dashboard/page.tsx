@@ -1,3 +1,5 @@
+import { ThemeToggle } from '@/components/theme-toggle';
+import { BrandLogo } from '@/components/ui/brand-logo';
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { getCurrentProfile } from '@/lib/auth-cache';
@@ -64,7 +66,7 @@ const SubmissionChart = dynamic(
 function getExamStatus(status: TeacherExam['status']) {
   switch (status) {
     case 'published':
-      return { label: 'Đã phát hành', className: 'border-emerald-200 bg-emerald-50 text-emerald-800' };
+      return { label: 'Đã phát hành', className: 'border-primary/20 bg-primary/10 text-primary' };
     case 'closed':
       return { label: 'Đã đóng', className: 'border-slate-200 bg-slate-100 text-slate-700' };
     case 'archived':
@@ -629,13 +631,10 @@ export default async function TeacherDashboardPage() {
 
       <div className="min-w-0">
         {/* ── Topbar (Static Shell 0ms) ── */}
-        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
+        <header className="sticky top-0 z-20 border-b border-border bg-card/90 dark:bg-[#0B1628]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
-            <div className="flex items-center gap-2 lg:hidden">
-              <span className="grid size-9 place-items-center rounded-lg bg-[#17372e] text-[#c9ed99]">
-                <GraduationCap aria-hidden="true" className="size-5" />
-              </span>
-              <span className="text-sm font-bold text-slate-900">Mầm Học</span>
+            <div className="lg:hidden">
+              <BrandLogo size="sm" />
             </div>
 
             <p className="hidden text-xs font-medium capitalize text-slate-500 sm:block">
@@ -675,14 +674,15 @@ export default async function TeacherDashboardPage() {
 
             <div className="ml-auto flex items-center gap-3">
               <NotificationBell userId={user.id} />
+              <ThemeToggle />
               <Badge
                 variant="outline"
-                className="hidden gap-1.5 border-emerald-200 bg-emerald-50 text-emerald-800 sm:inline-flex"
+                className="hidden gap-1.5 border-primary/20 bg-primary/10 text-primary sm:inline-flex"
               >
                 <CheckCircle2 data-icon="inline-start" /> Giảng viên
               </Badge>
               <span
-                className="grid size-9 place-items-center rounded-full bg-[#f0a879] text-xs font-bold text-[#4b2a1b]"
+                className="grid size-9 place-items-center rounded-full bg-primary/15 text-xs font-bold text-primary ring-1 ring-primary/30"
                 aria-label={`Tài khoản ${fullName}`}
               >
                 {initials || 'GV'}

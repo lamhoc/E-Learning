@@ -197,7 +197,7 @@ export function AIGeneratorModal({
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-border/80 bg-muted/30 px-6 py-4">
           <div className="flex items-center gap-3">
-            <span className="grid size-10 place-items-center rounded-xl bg-gradient-to-br from-[#17372e] to-[#2d6856] text-[#c9ed99] shadow-xs">
+            <span className="grid size-10 place-items-center rounded-xl bg-gradient-to-br from-[#0A275C] to-[#154C99] text-[#FACC15] shadow-xs">
               <Sparkles className="size-5" />
             </span>
             <div>
@@ -319,7 +319,7 @@ export function AIGeneratorModal({
                         onClick={() => setCount(num)}
                         className={`flex-1 rounded-md border py-2 text-xs font-semibold transition ${
                           count === num
-                            ? 'border-[#17372e] bg-[#17372e] text-white shadow-xs'
+                            ? 'border-primary bg-primary text-white shadow-xs'
                             : 'border-input bg-background text-foreground hover:bg-muted'
                         }`}
                       >
@@ -372,16 +372,16 @@ export function AIGeneratorModal({
                 <Button
                   type="submit"
                   disabled={isGenerating || !topic.trim()}
-                  className="h-11 w-full gap-2 bg-[#17372e] text-white hover:bg-[#20493e] shadow-sm"
+                  className="h-11 w-full gap-2 bg-primary text-white hover:bg-primary/90 shadow-sm"
                 >
                   {isGenerating ? (
                     <>
-                      <LoaderCircle className="size-4 animate-spin text-[#c9ed99]" />
+                      <LoaderCircle className="size-4 animate-spin text-[#FACC15]" />
                       <span>Đang tạo {count} câu hỏi...</span>
                     </>
                   ) : (
                     <>
-                      <Sparkles className="size-4 text-[#c9ed99]" />
+                      <Sparkles className="size-4 text-[#FACC15]" />
                       <span>Bắt đầu sinh {count} câu hỏi với AI</span>
                     </>
                   )}
@@ -641,7 +641,7 @@ export function AIGeneratorModal({
                                 type="button"
                                 size="sm"
                                 onClick={handleSaveEdit}
-                                className="h-8 gap-1.5 bg-[#17372e] text-white hover:bg-[#20493e]"
+                                className="h-8 gap-1.5 bg-primary text-white hover:bg-primary/90"
                               >
                                 <Check className="size-3.5" /> Lưu thay đổi
                               </Button>
@@ -754,12 +754,12 @@ export function AIGeneratorModal({
                   type="button"
                   onClick={handleSaveApproved}
                   disabled={isSaving || selectedIds.size === 0}
-                  className="gap-2 bg-[#17372e] text-white hover:bg-[#20493e]"
+                  className="gap-2 bg-primary text-white hover:bg-primary/90"
                 >
                   {isSaving ? (
-                    <LoaderCircle className="size-4 animate-spin text-[#c9ed99]" />
+                    <LoaderCircle className="size-4 animate-spin text-[#FACC15]" />
                   ) : (
-                    <CheckCircle2 className="size-4 text-[#c9ed99]" />
+                    <CheckCircle2 className="size-4 text-[#FACC15]" />
                   )}
                   {isSaving
                     ? 'Đang lưu vào ngân hàng...'

@@ -1,8 +1,8 @@
 
 # Kế hoạch triển khai E-Learning ("Mầm Học")
 
-> **Trạng thái:** Đã hoàn thành Phase 26 - Cấu trúc lại luồng điều hướng Sinh viên thành các Route độc lập (`/student/classes`, `/student/materials`, `/student/assignments`, `/student/exams`), cập nhật StudentSidebar với `usePathname` và tách rời khỏi cơ chế hash link. Sẵn sàng triển khai Nhiệm vụ 2 (Diễn đàn Q&A lớp học).
-> **Cập nhật:** 2026-10-25
+> **Trạng thái:** Đang thực hiện Phase 28 - Đồng bộ nhận diện thương hiệu Đại học Lạc Hồng (LHU Royal Blue & Accent Gold) & Chế độ Sáng/Tối (Light/Dark Mode) toàn diện.
+> **Cập nhật:** 2026-11-03
 
 ## Trạng thái đã hoàn thành & Lịch sử Commit (`main`)
 
@@ -178,3 +178,12 @@
   - **Mục tiêu 4 (Granular Suspense Streaming)**: Tách nhỏ boundary cho Teacher & Student Dashboard và Question Bank để render static shell ngay lập tức (0ms) và stream nội dung động.
   - **Mục tiêu 5 (Server-side Caching)**: Tích hợp `unstable_cache` với cache tag trong `lib/data-cache.ts` cho các bảng ít biến động (subjects, classes).
   - **Mục tiêu 6 (Database Index & RLS Optimization)**: Viết migration file `supabase/migrations/20261102_performance_indexes.sql` đánh index cho tất cả các FK và cột filter/sort phổ biến.
+
+---
+
+- [ ] **Phase 28: Đồng bộ nhận diện thương hiệu Đại học Lạc Hồng (LHU) & Chế độ Sáng/Tối (Light/Dark Mode)**
+  - **Mục tiêu 1 (Brand Logo LHU góc trái)**: Tạo component `components/ui/brand-logo.tsx` hiển thị logo Đại học Lạc Hồng (Powered by ASU) từ `public/logo-lhu.png` bọc trong khung bo góc sắc nét có độ tương phản cao trên nền tối, áp dụng cho tất cả các trang (Landing, Login, Register, Admin, Teacher, Student, AI Tutor, Exam Room).
+  - **Mục tiêu 2 (Bảng màu chuẩn LHU Theme)**: Cập nhật `app/globals.css` và toàn bộ component từ tông xanh lá cũ (`#17372e`) sang màu chủ đạo Royal Blue (`#154C99`), Deep Navy (`#0A275C`), Accent Gold Vàng chim Lạc (`#FACC15` / `#EAB308`), và phụ ASU Maroon (`#8C1D40`).
+  - **Mục tiêu 3 (Hệ thống ThemeProvider & ThemeToggle)**: Cấu hình `next-themes` với Semantic CSS Variables cho cả Light Mode (`#F4F7FB`, card `#FFFFFF`) và Dark Mode (`#09111E`, card `#111C2D`, sidebar `#0B1628`). Tạo `<ThemeToggle />` đặt cạnh chuông thông báo trên tất cả Topbars và Headers.
+  - **Mục tiêu 4 (Đồng bộ Dark Mode không mất chữ)**: Rà soát và bổ sung dark styles cho tất cả các thẻ Card, Table, Input, Textarea, Modal/Drawer và công thức Toán KaTeX để tự động đổi màu sắc nét ở cả hai chế độ.
+  - **Tiêu chí nghiệm thu**: `cmd /c npx tsc --noEmit` đạt 0 lỗi, `cmd /c npm run build` thành công 100%, commit cục bộ an toàn.

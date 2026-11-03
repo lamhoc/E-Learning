@@ -1,19 +1,23 @@
 import Link from 'next/link';
-import { GraduationCap } from 'lucide-react';
+import { BrandLogo } from '@/components/ui/brand-logo';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { RegistrationForm } from '../registration-form';
 
 export default function StudentRegistrationPage() {
   return (
-    <main className="min-h-screen bg-[#f3f6f3] px-4 py-12 text-foreground sm:py-16">
+    <main className="min-h-screen bg-background px-4 py-10 text-foreground sm:py-14 transition-colors">
       <div className="mx-auto max-w-md">
-        <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-[#315b48] hover:text-primary">
-          <GraduationCap aria-hidden="true" className="size-5" /> Mầm Học
-        </Link>
-        <section className="mt-5 rounded-xl border border-border bg-card p-6 shadow-sm sm:p-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#648174]">Tài khoản người học</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight">Đăng ký sinh viên</h1>
+        <div className="flex items-center justify-between mb-4">
+          <BrandLogo href="/" size="sm" />
+          <ThemeToggle />
+        </div>
+        <section className="rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8">
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 dark:bg-primary/20 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
+            Tài khoản người học LHU
+          </div>
+          <h1 className="mt-3 text-2xl font-bold tracking-tight text-foreground">Đăng ký sinh viên</h1>
           <p className="mb-6 mt-2 text-sm leading-6 text-muted-foreground">
-            Tạo tài khoản bằng email của bạn. Sau đăng ký, hãy đăng nhập để vào không gian học tập.
+            Tạo tài khoản bằng email sinh viên LHU của bạn. Sau đăng ký, hãy đăng nhập để vào không gian học tập.
           </p>
           <RegistrationForm role="student" />
         </section>

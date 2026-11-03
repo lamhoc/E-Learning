@@ -43,12 +43,12 @@ export function StartExamButton({
         size="lg"
         onClick={handleStart}
         disabled={isLoading}
-        className="w-full gap-2 bg-[#17372e] py-6 text-base font-bold text-white shadow-md hover:bg-[#20493e] sm:w-auto sm:px-8"
+        className="w-full gap-2 bg-primary py-6 text-base font-bold text-white shadow-md hover:bg-primary/90 sm:w-auto sm:px-8"
       >
         {isLoading ? (
-          <LoaderCircle className="size-5 animate-spin text-[#c9ed99]" />
+          <LoaderCircle className="size-5 animate-spin text-[#FACC15]" />
         ) : (
-          <Play className="size-5 fill-current text-[#c9ed99]" />
+          <Play className="size-5 fill-current text-[#FACC15]" />
         )}
         <span>
           {isLoading ? 'Đang chuẩn bị đề thi...' : attemptNo ? `Bắt đầu lượt thi #${attemptNo}` : label}

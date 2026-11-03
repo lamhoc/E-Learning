@@ -80,7 +80,7 @@ export function StudentAssignments({ assignments }: StudentAssignmentsProps) {
             onClick={() => setFilter('all')}
             className={
               filter === 'all'
-                ? 'bg-[#17372e] hover:bg-[#122c25] text-white text-xs h-8'
+                ? 'bg-primary hover:bg-primary/90 text-white text-xs h-8'
                 : 'text-slate-600 hover:text-slate-900 text-xs h-8'
             }
           >
@@ -92,7 +92,7 @@ export function StudentAssignments({ assignments }: StudentAssignmentsProps) {
             onClick={() => setFilter('pending')}
             className={
               filter === 'pending'
-                ? 'bg-[#17372e] hover:bg-[#122c25] text-white text-xs h-8'
+                ? 'bg-primary hover:bg-primary/90 text-white text-xs h-8'
                 : 'text-slate-600 hover:text-slate-900 text-xs h-8'
             }
           >
@@ -104,7 +104,7 @@ export function StudentAssignments({ assignments }: StudentAssignmentsProps) {
             onClick={() => setFilter('submitted')}
             className={
               filter === 'submitted'
-                ? 'bg-[#17372e] hover:bg-[#122c25] text-white text-xs h-8'
+                ? 'bg-primary hover:bg-primary/90 text-white text-xs h-8'
                 : 'text-slate-600 hover:text-slate-900 text-xs h-8'
             }
           >
@@ -116,7 +116,7 @@ export function StudentAssignments({ assignments }: StudentAssignmentsProps) {
             onClick={() => setFilter('graded')}
             className={
               filter === 'graded'
-                ? 'bg-[#17372e] hover:bg-[#122c25] text-white text-xs h-8'
+                ? 'bg-primary hover:bg-primary/90 text-white text-xs h-8'
                 : 'text-slate-600 hover:text-slate-900 text-xs h-8'
             }
           >
@@ -370,9 +370,9 @@ function StudentSubmissionForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-4 rounded-xl border border-emerald-200/80 bg-emerald-50/30 space-y-3">
+    <form onSubmit={handleSubmit} className="p-4 rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-bold text-[#17372e] flex items-center gap-1.5">
+        <p className="text-xs font-bold text-primary flex items-center gap-1.5">
           <Upload className="size-4 text-emerald-700" />
           <span>{assignment.submission ? 'Nộp lại bài tập' : 'Khu vực nộp bài tập'}</span>
         </p>
@@ -461,7 +461,7 @@ function StudentSubmissionForm({
           type="submit"
           size="sm"
           disabled={isPending || !selectedFile}
-          className="bg-[#17372e] hover:bg-[#122c25] text-white text-xs gap-1.5 shadow-2xs"
+          className="bg-primary hover:bg-primary/90 text-white text-xs gap-1.5 shadow-2xs"
         >
           {isPending ? (
             <>

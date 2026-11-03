@@ -74,7 +74,7 @@ export function GradeSubmissionDialog({
           className={
             isGraded
               ? 'border-slate-300 hover:bg-slate-50 text-slate-700 text-xs'
-              : 'bg-[#17372e] hover:bg-[#122c25] text-white text-xs'
+              : 'bg-primary hover:bg-primary/90 text-white text-xs'
           }
         >
           {isGraded ? 'Sửa điểm' : 'Chấm bài'}
@@ -172,7 +172,7 @@ export function GradeSubmissionDialog({
               type="submit"
               size="sm"
               disabled={isPending}
-              className="bg-[#17372e] hover:bg-[#122c25] text-white"
+              className="bg-primary hover:bg-primary/90 text-white"
             >
               {isPending ? (
                 <>

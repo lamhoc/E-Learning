@@ -49,7 +49,7 @@ export function ExamPreviewModal({
         {/* Header Actions (ẩn khi print) */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/80 bg-muted/40 px-5 py-3.5 print:hidden">
           <div className="flex items-center gap-2.5">
-            <span className="grid size-9 place-items-center rounded-lg bg-[#17372e] text-[#c9ed99]">
+            <span className="grid size-9 place-items-center rounded-lg bg-primary text-[#FACC15]">
               <FileText className="size-4" />
             </span>
             <div>
@@ -86,7 +86,7 @@ export function ExamPreviewModal({
               variant="outline"
               size="sm"
               onClick={handlePrint}
-              className="h-8 gap-1.5 text-xs text-[#17372e] hover:bg-[#eef6f1]"
+              className="h-8 gap-1.5 text-xs text-primary hover:bg-primary/10"
             >
               <Printer className="size-3.5" /> In đề thi
             </Button>

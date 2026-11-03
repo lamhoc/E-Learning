@@ -272,12 +272,12 @@ export function ExamCreateForm({
             type="button"
             disabled={isSubmitting}
             onClick={() => handleSubmit(true)}
-            className="h-10 gap-1.5 bg-[#17372e] text-xs font-bold text-white hover:bg-[#20493e] shadow-xs"
+            className="h-10 gap-1.5 bg-primary text-xs font-bold text-white hover:bg-primary/90 shadow-xs"
           >
             {isSubmitting ? (
-              <LoaderCircle className="size-4 animate-spin text-[#c9ed99]" />
+              <LoaderCircle className="size-4 animate-spin text-[#FACC15]" />
             ) : (
-              <Send className="size-4 text-[#c9ed99]" />
+              <Send className="size-4 text-[#FACC15]" />
             )}
             <span>Xuất bản ngay</span>
           </Button>
@@ -446,7 +446,7 @@ export function ExamCreateForm({
                         onClick={() => setDurationMinutes(m)}
                         className={`rounded px-1.5 py-0.5 text-[10px] font-semibold border ${
                           durationMinutes === m
-                            ? 'bg-[#17372e] text-white border-[#17372e]'
+                            ? 'bg-primary text-white border-primary'
                             : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
                         }`}
                       >
@@ -520,7 +520,7 @@ export function ExamCreateForm({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-[#17372e] text-white">
+                  <Badge className="bg-primary text-white">
                     Đã chọn: {selectedQuestions.length} câu
                   </Badge>
                   <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-800 font-bold">
@@ -654,7 +654,7 @@ export function ExamCreateForm({
                       variant="outline"
                       size="sm"
                       onClick={handleDistributeTenPoints}
-                      className="h-7 text-[11px] gap-1 text-[#17372e] border-emerald-200 bg-emerald-50 hover:bg-emerald-100"
+                      className="h-7 text-[11px] gap-1 text-primary border-primary/20 bg-primary/5 hover:bg-primary/10"
                       title="Tự động chia đều 10 điểm cho toàn bộ số câu hỏi đã chọn"
                     >
                       <Sparkles className="size-3 text-[#246348]" />
@@ -680,7 +680,7 @@ export function ExamCreateForm({
                           className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-2xs"
                         >
                           <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                            <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[#17372e] text-[11px] font-bold text-white">
+                            <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-[11px] font-bold text-white">
                               #{idx + 1}
                             </span>
 

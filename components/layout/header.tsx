@@ -2,8 +2,9 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { GraduationCap, Sparkles } from 'lucide-react';
 import { NotificationBell } from './notification-bell';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { BrandLogo } from '@/components/ui/brand-logo';
 import type { NotificationItem } from '@/hooks/use-realtime-notifications';
 
 export interface HeaderProps {
@@ -50,26 +51,23 @@ export function Header({
   };
 
   return (
-    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
+    <header className="sticky top-0 z-20 border-b border-border bg-card/95 px-5 py-3 backdrop-blur dark:bg-[#111C2D]/95 sm:px-8 lg:px-10 transition-colors duration-200">
       <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
         {/* Left: Mobile Brand / Page Title */}
         <div className="flex items-center gap-3">
           {showBrandOnMobile && (
-            <Link href="/" className="flex items-center gap-2 lg:hidden">
-              <span className="grid size-9 place-items-center rounded-lg bg-[#17372e] text-[#c9ed99]">
-                <GraduationCap aria-hidden="true" className="size-5" />
-              </span>
-              <span className="text-sm font-bold text-slate-900">Mầm Học</span>
-            </Link>
+            <div className="lg:hidden">
+              <BrandLogo href="/" size="sm" variant="framed" />
+            </div>
           )}
 
           {title && (
-            <h1 className="text-sm font-bold text-slate-900 sm:text-base hidden sm:block">
+            <h1 className="text-sm font-bold text-foreground sm:text-base hidden sm:block">
               {title}
             </h1>
           )}
 
-          <p className="hidden text-xs font-medium capitalize text-slate-400 md:block">
+          <p className="hidden text-xs font-medium capitalize text-muted-foreground md:block">
             {today}
           </p>
         </div>
@@ -77,8 +75,11 @@ export function Header({
         {/* Center: Extra Navigation or Children */}
         {children && <div className="flex items-center gap-2">{children}</div>}
 
-        {/* Right: Actions, Realtime Notification Bell & User Profile */}
+        {/* Right: Actions, Realtime Notification Bell, ThemeToggle & User Profile */}
         <div className="ml-auto flex items-center gap-3">
+          {/* Nút chuyển đổi Sáng / Tối */}
+          <ThemeToggle />
+
           {/* Realtime Notification Bell */}
           <NotificationBell
             userId={userId}
@@ -86,19 +87,19 @@ export function Header({
           />
 
           {/* User Profile Avatar */}
-          <div className="flex items-center gap-2.5 pl-1 border-l border-slate-200">
+          <div className="flex items-center gap-2.5 pl-1 border-l border-border">
             <span
-              className="grid size-9 place-items-center rounded-full bg-[#f0a879] text-xs font-bold text-[#4b2a1b] shadow-2xs"
+              className="grid size-9 place-items-center rounded-full bg-[#FACC15] text-xs font-bold text-[#0A275C] shadow-2xs"
               aria-label={`Tài khoản ${userName}`}
               title={`${userName} (${getRoleBadgeLabel()})`}
             >
               {initials || 'ND'}
             </span>
             <div className="hidden text-left xl:block">
-              <span className="block truncate text-xs font-bold text-slate-800 max-w-[140px]">
+              <span className="block truncate text-xs font-bold text-foreground max-w-[140px]">
                 {userName}
               </span>
-              <span className="block text-[10px] text-slate-400">
+              <span className="block text-[10px] text-muted-foreground">
                 {getRoleBadgeLabel()}
               </span>
             </div>
@@ -108,4 +109,3 @@ export function Header({
     </header>
   );
 }
-

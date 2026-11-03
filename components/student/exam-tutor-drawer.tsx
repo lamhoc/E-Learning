@@ -205,11 +205,11 @@ export function ExamTutorDrawer({
             role="dialog"
             aria-modal="true"
             aria-label={`Gia sư AI cho ${examTitle}`}
-            className="relative flex h-full w-full max-w-xl flex-col border-l border-slate-200 bg-white shadow-2xl"
+            className="relative flex h-full w-full max-w-xl flex-col border-l border-border bg-card dark:bg-[#09111E] shadow-2xl"
           >
-            <header className="flex items-start justify-between gap-4 border-b border-slate-200 bg-[#17372e] px-5 py-4 text-white">
+            <header className="flex items-start justify-between gap-4 border-b border-border bg-[#0A275C] px-5 py-4 text-white">
               <div className="flex gap-3">
-                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#c9ed99] text-[#17372e]">
+                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#FACC15] text-[#0A275C]">
                   <MessageCircleQuestion aria-hidden="true" className="size-5" />
                 </span>
                 <div className="min-w-0">
@@ -260,12 +260,12 @@ export function ExamTutorDrawer({
                     <div
                       className={`max-w-[90%] rounded-2xl px-4 py-3 text-sm leading-6 ${
                         message.sender === 'student'
-                          ? 'rounded-br-md bg-[#17372e] text-white'
-                          : 'rounded-bl-md border border-slate-200 bg-white text-slate-800 shadow-xs'
+                          ? 'rounded-br-md bg-primary text-white'
+                          : 'rounded-bl-md border border-border bg-card text-card-foreground shadow-xs'
                       }`}
                     >
                       {message.sender === 'assistant' && (
-                        <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-800">
+                        <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-primary">
                           <Sparkles aria-hidden="true" className="size-3" />
                           Gia sư AI
                         </p>
@@ -314,13 +314,13 @@ export function ExamTutorDrawer({
                   rows={2}
                   disabled={!conversationId || isLoadingHistory || isSending}
                   placeholder="Bạn chưa hiểu câu nào? Hãy hỏi gia sư..."
-                  className="max-h-36 min-h-12 flex-1 resize-y bg-transparent px-2 py-1.5 text-sm leading-6 text-slate-900 outline-none placeholder:text-slate-400 disabled:opacity-60"
+                  className="max-h-36 min-h-12 flex-1 resize-y bg-transparent px-2 py-1.5 text-sm leading-6 text-foreground outline-none placeholder:text-muted-foreground disabled:opacity-60"
                 />
                 <button
                   type="submit"
                   disabled={!draft.trim() || !conversationId || isLoadingHistory || isSending}
                   aria-label="Gửi câu hỏi"
-                  className="grid size-10 shrink-0 place-items-center rounded-lg bg-[#17372e] text-white transition hover:bg-[#20493e] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                  className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
                 >
                   {isSending ? (
                     <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />

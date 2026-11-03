@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { GraduationCap, ShieldCheck } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { BrandLogo } from '@/components/ui/brand-logo';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { createClient } from '@/lib/supabase/server';
 import { signOut } from '@/app/subjects/actions';
 import { ClaimInvitationForm } from './claim-form';
@@ -35,21 +37,22 @@ export default async function ClaimTeacherInvitationPage({ searchParams }: Claim
   const emailMatches = Boolean(accountEmail && expectedEmail && accountEmail === expectedEmail);
 
   return (
-    <main className="grid min-h-screen place-items-center bg-[#f3f6f3] px-4 py-12 text-foreground">
-      <Card className="w-full max-w-md">
+    <main className="grid min-h-screen place-items-center bg-background px-4 py-12 text-foreground transition-colors">
+      <Card className="w-full max-w-md shadow-md border-border bg-card">
         <CardContent className="p-6 sm:p-8">
-          <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-[#315b48] hover:text-primary">
-            <GraduationCap aria-hidden="true" className="size-5" /> Mầm Học
-          </Link>
-          <div className="mt-8 grid size-11 place-items-center rounded-xl bg-[#e5f0e8] text-[#35674f]">
-            <ShieldCheck aria-hidden="true" className="size-5" />
+          <div className="flex items-center justify-between">
+            <BrandLogo href="/" size="sm" />
+            <ThemeToggle />
           </div>
-          <h1 className="mt-4 text-xl font-semibold">Xác nhận lời mời giảng viên</h1>
+          <div className="mt-6 grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary">
+            <ShieldCheck aria-hidden="true" className="size-6" />
+          </div>
+          <h1 className="mt-4 text-xl font-bold tracking-tight text-foreground">Xác nhận lời mời giảng viên</h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Đang đăng nhập bằng <span className="font-medium text-foreground">{user.email}</span>. Mã mời chỉ dùng được cho email được admin chỉ định.
+            Đang đăng nhập bằng <span className="font-semibold text-foreground">{user.email}</span>. Mã mời chỉ dùng được cho email được admin chỉ định.
           </p>
           {!emailMatches && (
-            <p role="alert" className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm leading-5 text-amber-900">
+            <p role="alert" className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-sm leading-5 text-amber-600 dark:text-amber-400">
               Email đăng nhập không khớp email nhận lời mời. Hãy đăng xuất và đăng nhập bằng đúng tài khoản.
             </p>
           )}

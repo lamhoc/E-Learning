@@ -1,3 +1,5 @@
+import { ThemeToggle } from '@/components/theme-toggle';
+import { BrandLogo } from '@/components/ui/brand-logo';
 import { Suspense } from 'react';
 import { GraduationCap, LibraryBig } from 'lucide-react';
 import { getTeacherQuestionsData } from '@/lib/question-bank';
@@ -79,13 +81,10 @@ export default async function TeacherQuestionsPage({ searchParams }: QuestionsPa
       <TeacherSidebar activeRoute="questions" teacherName={fullName || 'Giảng viên'} />
 
       <div className="min-w-0">
-        <header className="sticky top-0 z-20 border-b border-[#e2e8e2] bg-[#f8faf8]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
+        <header className="sticky top-0 z-20 border-b border-border bg-card/90 dark:bg-[#0B1628]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
-            <div className="flex items-center gap-2 lg:hidden">
-              <span className="grid size-9 place-items-center rounded-lg bg-[#17372e] text-[#c9ed99]">
-                <GraduationCap aria-hidden="true" className="size-5" />
-              </span>
-              <span className="text-sm font-semibold">Mầm Học</span>
+            <div className="lg:hidden">
+              <BrandLogo size="sm" />
             </div>
             <p className="hidden text-xs font-medium capitalize text-muted-foreground sm:block">
               {today}

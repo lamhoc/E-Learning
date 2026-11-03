@@ -1,5 +1,8 @@
 'use client';
 
+import { ThemeToggle } from '@/components/theme-toggle';
+import { BrandLogo } from '@/components/ui/brand-logo';
+
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
@@ -115,15 +118,12 @@ export default function TeacherAiTutorPage() {
       {/* 2. Vùng nội dung bên phải Flexbox tràn 100% viewport */}
       <div className="flex h-screen flex-col overflow-hidden min-w-0">
         {/* Topbar đồng bộ hệ thống Giảng viên */}
-        <header className="sticky top-0 z-20 border-b border-[#e2e8e2] bg-[#f8faf8]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10 shrink-0">
+        <header className="sticky top-0 z-20 border-b border-border bg-card/90 dark:bg-[#0B1628]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10 shrink-0">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 lg:hidden">
-                <span className="grid size-9 place-items-center rounded-lg bg-[#17372e] text-[#c9ed99]">
-                  <GraduationCap aria-hidden="true" className="size-5" />
-                </span>
-                <span className="text-sm font-semibold">Mầm Học</span>
-              </div>
+              <div className="lg:hidden">
+              <BrandLogo size="sm" />
+            </div>
               <Link
                 href="/teacher/dashboard"
                 className={buttonVariants({ variant: 'ghost', size: 'sm', className: 'gap-1.5' })}
@@ -155,6 +155,7 @@ export default function TeacherAiTutorPage() {
                 <span>Đoạn chat mới</span>
               </button>
               <NotificationBell />
+              <ThemeToggle />
             </div>
           </div>
         </header>

@@ -181,7 +181,7 @@ export function StudentTableClient({
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <GraduationCap className="size-5 text-[#17372e]" />
+                <GraduationCap className="size-5 text-primary" />
                 Danh sách Tài khoản Sinh viên
               </CardTitle>
               <CardDescription className="mt-0.5 text-xs">
@@ -283,7 +283,7 @@ export function StudentTableClient({
                         {/* Cột 1: Tên & Mã SV */}
                         <TableCell className="pl-5">
                           <div className="flex items-center gap-2.5">
-                            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[#17372e]/10 text-[#17372e] font-bold text-xs uppercase">
+                            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary/10 text-primary font-bold text-xs uppercase">
                               {student.fullName.charAt(0) || 'S'}
                             </span>
                             <div>

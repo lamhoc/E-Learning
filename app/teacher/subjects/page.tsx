@@ -1,3 +1,5 @@
+import { ThemeToggle } from '@/components/theme-toggle';
+import { BrandLogo } from '@/components/ui/brand-logo';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import {
@@ -39,15 +41,12 @@ export default async function TeacherSubjectsPage() {
 
       <div className="min-w-0">
         {/* Sticky Topbar đồng bộ khu vực Giảng viên */}
-        <header className="sticky top-0 z-20 border-b border-[#e2e8e2] bg-[#f8faf8]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
+        <header className="sticky top-0 z-20 border-b border-border bg-card/90 dark:bg-[#0B1628]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 lg:hidden">
-                <span className="grid size-9 place-items-center rounded-lg bg-[#17372e] text-[#c9ed99]">
-                  <GraduationCap aria-hidden="true" className="size-5" />
-                </span>
-                <span className="text-sm font-semibold">Mầm Học</span>
-              </div>
+              <div className="lg:hidden">
+              <BrandLogo size="sm" />
+            </div>
               <Link
                 href="/teacher/dashboard"
                 className={buttonVariants({ variant: 'ghost', size: 'sm', className: 'gap-1.5' })}
@@ -63,7 +62,8 @@ export default async function TeacherSubjectsPage() {
 
             <div className="ml-auto flex items-center gap-3">
               <NotificationBell userId={data.teacherId} />
-              <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-800 text-xs">
+              <ThemeToggle />
+              <Badge variant="outline" className="border-primary/20 bg-primary/10 text-primary text-xs">
                 {data.totalAssignedSubjects} môn phụ trách
               </Badge>
             </div>

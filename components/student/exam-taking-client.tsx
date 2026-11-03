@@ -1,5 +1,8 @@
 'use client';
 
+import { BrandLogo } from '@/components/ui/brand-logo';
+import { ThemeToggle } from '@/components/theme-toggle';
+
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -223,22 +226,25 @@ export function ExamTakingClient({
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
+    <div className="min-h-screen bg-background text-foreground transition-colors">
       {/* Top Fixed Exam Banner / Timer Header */}
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-3 shadow-xs backdrop-blur-md sm:px-8">
+      <header className="sticky top-0 z-30 border-b border-border bg-card/95 px-4 py-3 shadow-xs backdrop-blur-md sm:px-8">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-800 font-semibold">
+          <div className="min-w-0 flex items-center gap-3">
+            <BrandLogo size="sm" className="hidden sm:inline-flex shrink-0" />
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+              <Badge variant="outline" className="border-primary/20 bg-primary/10 text-primary font-semibold">
                 Lượt #{activeAttempt.attempt_no}
               </Badge>
-              <h1 className="truncate text-sm font-bold text-slate-900 sm:text-base">
+              <h1 className="truncate text-sm font-bold text-foreground sm:text-base">
                 {exam.title}
               </h1>
             </div>
-            <p className="hidden text-xs text-slate-500 sm:block">
+            <p className="hidden text-xs text-muted-foreground sm:block">
               {exam.subject?.name} · Thí sinh: <strong>{studentName}</strong>
             </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
@@ -292,11 +298,12 @@ export function ExamTakingClient({
             <Button
               onClick={() => setIsSubmitModalOpen(true)}
               disabled={isSubmitting}
-              className="gap-1.5 bg-emerald-700 text-white hover:bg-emerald-800 shadow-xs"
+              className="gap-1.5 bg-primary text-white hover:bg-primary/90 shadow-xs"
             >
               <Send className="size-4" />
               <span>Nộp bài</span>
             </Button>
+            <ThemeToggle />
           </div>
         </div>
       </header>

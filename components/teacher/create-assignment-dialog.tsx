@@ -104,7 +104,7 @@ export function CreateAssignmentDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-[#17372e] hover:bg-[#122c25] text-white gap-2 font-medium shadow-xs">
+        <Button className="bg-primary hover:bg-primary/90 text-white gap-2 font-medium shadow-xs">
           <Plus className="size-4" />
           <span>Giao bài tập mới</span>
         </Button>
@@ -271,7 +271,7 @@ export function CreateAssignmentDialog({
             <Button
               type="submit"
               disabled={isPending}
-              className="bg-[#17372e] hover:bg-[#122c25] text-white"
+              className="bg-primary hover:bg-primary/90 text-white"
             >
               {isPending ? (
                 <>

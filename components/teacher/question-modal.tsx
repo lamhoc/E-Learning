@@ -278,7 +278,7 @@ export function QuestionModal({
             <Button
               type="submit"
               disabled={pending}
-              className="gap-2 bg-[#17372e] text-white hover:bg-[#20493e]"
+              className="gap-2 bg-primary text-white hover:bg-primary/90"
             >
               {pending ? (
                 <LoaderCircle className="size-4 animate-spin" />

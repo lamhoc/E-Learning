@@ -1,5 +1,7 @@
 import Link from 'next/link';
-import { GraduationCap, ShieldCheck } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
+import { BrandLogo } from '@/components/ui/brand-logo';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { RegistrationForm } from '../registration-form';
 
 type TeacherRegistrationPageProps = {
@@ -12,17 +14,20 @@ export default async function TeacherRegistrationPage({ searchParams }: TeacherR
   const invitationEmail = params.email?.trim().toLowerCase() ?? '';
 
   return (
-    <main className="min-h-screen bg-[#f3f6f3] px-4 py-12 text-foreground sm:py-16">
+    <main className="min-h-screen bg-background px-4 py-10 text-foreground sm:py-14 transition-colors">
       <div className="mx-auto max-w-md">
-        <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-[#315b48] hover:text-primary">
-          <GraduationCap aria-hidden="true" className="size-5" /> Mầm Học
-        </Link>
-        <section className="mt-5 rounded-xl border border-border bg-card p-6 shadow-sm sm:p-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#648174]">Không gian giảng dạy</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight">Đăng ký giảng viên</h1>
-          <div className="mb-6 mt-3 flex gap-2 rounded-lg border border-[#dce7dc] bg-[#f3f8f3] p-3 text-sm leading-5 text-[#385c49]">
-            <ShieldCheck aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-            <p>
+        <div className="flex items-center justify-between mb-4">
+          <BrandLogo href="/" size="sm" />
+          <ThemeToggle />
+        </div>
+        <section className="rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8">
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 dark:bg-primary/20 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
+            Cổng Giảng dạy LHU
+          </div>
+          <h1 className="mt-3 text-2xl font-bold tracking-tight text-foreground">Đăng ký giảng viên</h1>
+          <div className="mb-6 mt-3 flex gap-2 rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-3.5 text-sm leading-5 text-foreground/90">
+            <ShieldCheck aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" />
+            <p className="text-xs text-muted-foreground leading-relaxed">
               {invitationToken
                 ? 'Mã mời được ràng buộc với email và chỉ sử dụng một lần. Hệ thống xác minh ở cơ sở dữ liệu khi tạo tài khoản.'
                 : 'Không có mã mời? Bạn vẫn có thể gửi yêu cầu; tài khoản sẽ ở quyền sinh viên đến khi admin phê duyệt.'}

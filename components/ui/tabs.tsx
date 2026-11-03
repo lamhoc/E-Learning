@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Tabs as TabsPrimitive } from "@base-ui/react/tabs";
-import { cn } from "cn";
+import { cn } from "@/lib/utils";
 
 function Tabs({
   className,
@@ -25,7 +25,7 @@ function TabsList({
     <TabsPrimitive.List
       data-slot="tabs-list"
       className={cn(
-        "inline-flex h-10 items-center justify-start rounded-xl bg-slate-200/70 p-1 text-slate-600 gap-1",
+        "inline-flex h-10 items-center justify-start rounded-xl bg-muted/80 p-1 text-muted-foreground gap-1 border border-border/50",
         className
       )}
       {...props}
@@ -41,7 +41,7 @@ function TabsTrigger({
     <TabsPrimitive.Tab
       data-slot="tabs-trigger"
       className={cn(
-        "inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3.5 py-1.5 text-sm font-medium transition-all outline-none select-none disabled:pointer-events-none disabled:opacity-50 text-slate-600 hover:text-slate-900 data-[selected]:bg-white data-[selected]:text-[#17372e] data-[selected]:font-semibold data-[selected]:shadow-xs focus-visible:ring-2 focus-visible:ring-emerald-600",
+        "inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3.5 py-1.5 text-sm font-medium transition-all outline-none select-none disabled:pointer-events-none disabled:opacity-50 text-muted-foreground hover:text-foreground data-[selected]:bg-card data-[selected]:text-primary dark:data-[selected]:text-white data-[selected]:font-semibold data-[selected]:shadow-xs focus-visible:ring-2 focus-visible:ring-primary",
         className
       )}
       {...props}

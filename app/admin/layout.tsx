@@ -6,13 +6,13 @@ import {
   GraduationCap,
   LayoutDashboard,
   LogOut,
-  ShieldCheck,
   Users,
 } from 'lucide-react';
 import { getCurrentUserWithRole } from '@/lib/auth-cache';
 import { signOut } from '@/app/subjects/actions';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { BrandLogo } from '@/components/ui/brand-logo';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const { user, role } = await getCurrentUserWithRole();
@@ -31,65 +31,62 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   }
 
   return (
-    <div className="min-h-screen bg-[#f3f6f3] text-foreground flex flex-col">
-      <header className="sticky top-0 z-40 border-b border-[#dfe7e0] bg-white/95 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3.5 sm:px-8">
-          {/* Logo & Brand Admin Link */}
-          <Link prefetch={true} href="/admin" className="flex items-center gap-3 transition hover:opacity-90">
-            <span className="grid size-10 place-items-center rounded-xl bg-[#17372e] text-[#c9ed99] shadow-xs">
-              <ShieldCheck aria-hidden="true" className="size-5" />
-            </span>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-[0.14em] text-[#648174]">
-                  Quản trị Hệ thống
-                </span>
-                <Badge className="border-emerald-200 bg-emerald-50 text-emerald-800 text-[10px] px-1.5 py-0 font-semibold">
-                  Admin
-                </Badge>
-              </div>
-              <h1 className="text-base font-bold text-slate-900 leading-tight">
-                Mầm Học Khảo Thí
-              </h1>
-            </div>
-          </Link>
+    <div className="min-h-screen bg-background text-foreground flex flex-col transition-colors duration-200">
+      <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-md dark:bg-[#111C2D]/95">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3 sm:px-8">
+          {/* Logo LHU & Brand Admin Link */}
+          <BrandLogo
+            href="/admin"
+            size="md"
+            variant="plain"
+            badgeText="Admin"
+            subtitle="Quản trị Hệ thống LHU"
+          />
 
           {/* Admin Navigation Hub */}
           <nav className="flex items-center gap-1.5 sm:gap-2">
             <Link
+              prefetch={true}
               href="/admin"
               className={buttonVariants({ variant: 'ghost', size: 'sm' })}
             >
-              <LayoutDashboard className="size-4 text-[#17372e]" />
+              <LayoutDashboard className="size-4 text-[#154C99] dark:text-[#3B82F6]" />
               <span className="hidden sm:inline">Tổng quan</span>
             </Link>
             <Link
+              prefetch={true}
               href="/admin/teacher-access"
               className={buttonVariants({ variant: 'ghost', size: 'sm' })}
             >
-              <GraduationCap className="size-4 text-emerald-800" />
+              <GraduationCap className="size-4 text-[#154C99] dark:text-[#3B82F6]" />
               <span className="hidden md:inline">Giảng viên & Phân môn</span>
             </Link>
             <Link
+              prefetch={true}
               href="/admin/student-management"
               className={buttonVariants({ variant: 'ghost', size: 'sm' })}
             >
-              <Users className="size-4 text-blue-700" />
+              <Users className="size-4 text-[#154C99] dark:text-[#3B82F6]" />
               <span className="hidden md:inline">Tài khoản Sinh viên</span>
             </Link>
             <Link
+              prefetch={true}
               href="/teacher/subjects"
               className={buttonVariants({ variant: 'ghost', size: 'sm' })}
             >
-              <BookOpen className="size-4 text-slate-600" />
+              <BookOpen className="size-4 text-muted-foreground" />
               <span className="hidden lg:inline">Môn học</span>
             </Link>
+
+            {/* Nút chuyển đổi Sáng / Tối */}
+            <ThemeToggle />
+
             <form action={signOut}>
               <Button
                 type="submit"
                 variant="outline"
                 size="sm"
-                className="gap-1.5 text-slate-600 hover:text-red-700 hover:border-red-200"
+                className="gap-1.5 text-muted-foreground hover:text-red-700 hover:border-red-200 dark:hover:text-red-400 dark:hover:border-red-900"
               >
                 <LogOut className="size-3.5" />
                 <span className="hidden sm:inline">Đăng xuất</span>

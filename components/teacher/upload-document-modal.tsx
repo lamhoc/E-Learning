@@ -265,7 +265,7 @@ export function UploadDocumentModal({
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-border/80 bg-muted/30 px-6 py-4">
           <div className="flex items-center gap-3">
-            <span className="grid size-10 place-items-center rounded-xl bg-gradient-to-br from-[#17372e] to-[#2d6856] text-[#c9ed99] shadow-xs">
+            <span className="grid size-10 place-items-center rounded-xl bg-gradient-to-br from-[#0A275C] to-[#154C99] text-[#FACC15] shadow-xs">
               <FileUp className="size-5" />
             </span>
             <div>
@@ -455,7 +455,7 @@ export function UploadDocumentModal({
                 <Button
                   type="submit"
                   disabled={isUploading || !selectedFile}
-                  className="gap-2 bg-[#17372e] text-white hover:bg-[#20493e]"
+                  className="gap-2 bg-primary text-white hover:bg-primary/90"
                 >
                   {isUploading ? (
                     <>
@@ -639,7 +639,7 @@ export function UploadDocumentModal({
                                     }
                                     className={`size-7 rounded-md text-xs font-bold transition ${
                                       editForm.correct_option === key
-                                        ? 'bg-[#17372e] text-white'
+                                        ? 'bg-primary text-white'
                                         : 'border border-input bg-background hover:bg-muted'
                                     }`}
                                   >
@@ -754,7 +754,7 @@ export function UploadDocumentModal({
                     type="button"
                     onClick={handleSaveAll}
                     disabled={isSaving || selectedIds.size === 0}
-                    className="gap-2 bg-[#17372e] text-white hover:bg-[#20493e]"
+                    className="gap-2 bg-primary text-white hover:bg-primary/90"
                   >
                     {isSaving ? (
                       <>
