@@ -1,7 +1,7 @@
 
 # Kế hoạch triển khai E-Learning ("Mầm Học")
 
-> **Trạng thái:** Đang thực hiện Phase 28 - Đồng bộ nhận diện thương hiệu Đại học Lạc Hồng (LHU Royal Blue & Accent Gold) & Chế độ Sáng/Tối (Light/Dark Mode) toàn diện.
+> **Trạng thái:** Đã hoàn thành Phase 28 - Đồng bộ nhận diện thương hiệu Đại học Lạc Hồng (LHU) & Chế độ Sáng/Tối (Light/Dark Mode) toàn diện. Sẵn sàng cho các tính năng tiếp theo.
 > **Cập nhật:** 2026-11-03
 
 ## Trạng thái đã hoàn thành & Lịch sử Commit (`main`)
@@ -133,7 +133,7 @@
   - **Mục tiêu 3 (UI Tạo bài tập & Danh sách bài tập Lớp cho Giảng viên)**: Xây dựng components/teacher/create-assignment-dialog.tsx và trang app/teacher/classes/[classId]/assignments/page.tsx cho phép giảng viên quản lý bài tập, theo dõi số bài nộp/đã chấm, mở modal tạo mới.
   - **Mục tiêu 4 (UI Chấm bài & Tải file bài làm của Giảng viên)**: Xây dựng app/teacher/classes/[classId]/assignments/[assignmentId]/page.tsx hiển thị danh sách bài nộp, nút tải bài làm (.zip, .pdf), huy hiệu nộp muộn và form nhập điểm / phản hồi.
   - **Mục tiêu 5 (UI Nộp bài tập phía Sinh viên)**: Bổ sung khu vực/tab Bài tập về nhà phía Sinh viên (`components/student/student-assignments-view.tsx`), cho phép tải đề bài, upload file bài làm và xem điểm / nhận xét sau khi giảng viên chấm.
-  - **Tiêu chí nghiệm thu**: `cmd /c npx tsc --noEmit` đạt 0 lỗi, `cmd /c npm run build` thành công 100%, commit cục bộ an toàn.
+  - **Tiêu chí nghiệm thu**: `cmd /c npx tsc --noEmit` đạt 0 lỗi, `cmd /c npm run build` thành công 100% (30/30 routes), commit cục bộ an toàn.
 
 ---
 
@@ -181,9 +181,9 @@
 
 ---
 
-- [ ] **Phase 28: Đồng bộ nhận diện thương hiệu Đại học Lạc Hồng (LHU) & Chế độ Sáng/Tối (Light/Dark Mode)**
+- [x] **Phase 28 (Commit `d415319`)**: Đồng bộ nhận diện thương hiệu Đại học Lạc Hồng (LHU) & Chế độ Sáng/Tối (Light/Dark Mode)
   - **Mục tiêu 1 (Brand Logo LHU góc trái)**: Tạo component `components/ui/brand-logo.tsx` hiển thị logo Đại học Lạc Hồng (Powered by ASU) từ `public/logo-lhu.png` bọc trong khung bo góc sắc nét có độ tương phản cao trên nền tối, áp dụng cho tất cả các trang (Landing, Login, Register, Admin, Teacher, Student, AI Tutor, Exam Room).
   - **Mục tiêu 2 (Bảng màu chuẩn LHU Theme)**: Cập nhật `app/globals.css` và toàn bộ component từ tông xanh lá cũ (`#17372e`) sang màu chủ đạo Royal Blue (`#154C99`), Deep Navy (`#0A275C`), Accent Gold Vàng chim Lạc (`#FACC15` / `#EAB308`), và phụ ASU Maroon (`#8C1D40`).
   - **Mục tiêu 3 (Hệ thống ThemeProvider & ThemeToggle)**: Cấu hình `next-themes` với Semantic CSS Variables cho cả Light Mode (`#F4F7FB`, card `#FFFFFF`) và Dark Mode (`#09111E`, card `#111C2D`, sidebar `#0B1628`). Tạo `<ThemeToggle />` đặt cạnh chuông thông báo trên tất cả Topbars và Headers.
   - **Mục tiêu 4 (Đồng bộ Dark Mode không mất chữ)**: Rà soát và bổ sung dark styles cho tất cả các thẻ Card, Table, Input, Textarea, Modal/Drawer và công thức Toán KaTeX để tự động đổi màu sắc nét ở cả hai chế độ.
-  - **Tiêu chí nghiệm thu**: `cmd /c npx tsc --noEmit` đạt 0 lỗi, `cmd /c npm run build` thành công 100%, commit cục bộ an toàn.
+  - **Tiêu chí nghiệm thu**: `cmd /c npx tsc --noEmit` đạt 0 lỗi, `cmd /c npm run build` thành công 100% (30/30 routes), commit cục bộ an toàn.
