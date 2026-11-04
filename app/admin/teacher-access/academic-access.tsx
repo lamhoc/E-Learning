@@ -1,11 +1,7 @@
 import Link from 'next/link';
-import { BookPlus } from 'lucide-react';
 import { ClassTeacherAssigner } from './class-teacher-assigner';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -14,7 +10,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { createSubject } from './actions';
 import { TeacherSubjectManager } from './teacher-subject-manager';
 
 export type AcademicSubject = { id: string; code: string; name: string };
@@ -52,7 +47,7 @@ export function AcademicAccess({
   return (
     <section className="space-y-6" aria-labelledby="academic-access-title">
       <div>
-        <h2 id="academic-access-title" className="text-xl font-bold text-slate-900 tracking-tight">
+        <h2 id="academic-access-title" className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
           Phân công môn học & Danh mục đào tạo
         </h2>
         <p className="mt-1 text-xs text-muted-foreground">
@@ -67,122 +62,67 @@ export function AcademicAccess({
         assignments={assignments}
       />
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Card Tạo môn học mới */}
-        <Card className="border-slate-200 shadow-xs lg:col-span-1">
-          <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111C2D] pb-3.5">
-            <CardTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
-              <BookPlus aria-hidden="true" className="size-4 text-[#17372e]" />
-              Thêm môn học mới
+      {/* Card Lớp và Giảng viên phụ trách - Chiếm toàn bộ chiều rộng (w-full) */}
+      <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs w-full">
+        <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111C2D] pb-3.5">
+          <div>
+            <CardTitle className="text-base font-bold text-slate-900 dark:text-white">
+              Lớp học & Giảng viên phụ trách
             </CardTitle>
-            <CardDescription className="text-xs">
-              Mã môn là duy nhất và được viết in hoa.
+            <CardDescription className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Chỉ có thể giao lớp cho giảng viên đã được phân công cùng môn học.
             </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <form action={createSubject} className="space-y-3.5">
-              <div className="space-y-1.5">
-                <Label htmlFor="subject-code" className="text-xs font-semibold">Mã môn</Label>
-                <Input
-                  id="subject-code"
-                  name="code"
-                  required
-                  minLength={2}
-                  maxLength={24}
-                  pattern="[A-Za-z0-9_-]+"
-                  placeholder="VD: TOAN-12"
-                  className="h-9 text-xs"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="subject-name" className="text-xs font-semibold">Tên môn học</Label>
-                <Input
-                  id="subject-name"
-                  name="name"
-                  required
-                  minLength={2}
-                  maxLength={120}
-                  placeholder="VD: Giải tích nâng cao"
-                  className="h-9 text-xs"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="subject-description" className="text-xs font-semibold">Mô tả (tùy chọn)</Label>
-                <Input
-                  id="subject-description"
-                  name="description"
-                  maxLength={1000}
-                  placeholder="Mô tả tóm tắt nội dung môn"
-                  className="h-9 text-xs"
-                />
-              </div>
-              <Button type="submit" className="w-full gap-2 bg-[#17372e] hover:bg-[#20493e] text-white text-xs h-9">
-                <BookPlus aria-hidden="true" className="size-4" /> Tạo môn học
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Card Lớp và Giảng viên phụ trách */}
-        <Card className="border-slate-200 shadow-xs lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111C2D] pb-3.5">
-            <div>
-              <CardTitle className="text-base font-bold text-slate-900">
-                Lớp học & Giảng viên phụ trách
-              </CardTitle>
-              <CardDescription className="text-xs mt-0.5">
-                Chỉ có thể giao lớp cho giảng viên đã được phân công cùng môn.
-              </CardDescription>
-            </div>
-            <Badge variant="outline" className="bg-slate-50">{classes.length} lớp</Badge>
-          </CardHeader>
-          <CardContent className="p-0">
-            {classes.length === 0 ? (
-              <p className="p-8 text-center text-xs text-slate-400">
-                Chưa có lớp học nào đang hoạt động trong hệ thống.
-              </p>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table className="text-xs">
-                  <TableHeader>
-                    <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
-                      <TableHead className="pl-5 font-semibold text-slate-700">Lớp học</TableHead>
-                      <TableHead className="font-semibold text-slate-700">Môn học</TableHead>
-                      <TableHead className="pr-5 font-semibold text-slate-700">Giảng viên phụ trách</TableHead>
+          </div>
+          <Badge variant="outline" className="border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+            {classes.length} lớp học
+          </Badge>
+        </CardHeader>
+        <CardContent className="p-0">
+          {classes.length === 0 ? (
+            <p className="p-8 text-center text-xs text-slate-400 dark:text-slate-500">
+              Chưa có lớp học nào đang hoạt động trong hệ thống.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table className="text-xs">
+                <TableHeader>
+                  <TableRow className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 hover:bg-slate-50/80 dark:hover:bg-slate-800/60">
+                    <TableHead className="pl-5 font-semibold text-slate-700 dark:text-slate-300">Lớp học</TableHead>
+                    <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Môn học</TableHead>
+                    <TableHead className="pr-5 font-semibold text-slate-700 dark:text-slate-300">Giảng viên phụ trách</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {classes.map((classItem) => (
+                    <TableRow key={classItem.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                      <TableCell className="pl-5">
+                        <Link
+                          href={`/teacher/classes/${classItem.id}`}
+                          className="block font-medium text-[#154C99] dark:text-[#3B82F6] hover:underline"
+                        >
+                          {classItem.name}
+                        </Link>
+                        <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                          {classItem.classCode} · {classItem.academicYear}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-mono text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase">
+                          {classItem.subjectCode}
+                        </span>
+                        <span className="ml-1.5 font-medium text-slate-900 dark:text-slate-100">{classItem.subjectName}</span>
+                      </TableCell>
+                      <TableCell className="pr-5">
+                        <ClassTeacherAssigner classItem={classItem} />
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {classes.map((classItem) => (
-                      <TableRow key={classItem.id} className="hover:bg-slate-50/50">
-                        <TableCell className="pl-5">
-                          <Link
-                            href={`/teacher/classes/${classItem.id}`}
-                            className="block font-medium text-emerald-800 hover:underline"
-                          >
-                            {classItem.name}
-                          </Link>
-                          <span className="mt-0.5 block text-[11px] text-muted-foreground">
-                            {classItem.classCode} · {classItem.academicYear}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="font-mono text-[11px] font-bold text-slate-500 uppercase">
-                            {classItem.subjectCode}
-                          </span>
-                          <span className="ml-1.5">{classItem.subjectName}</span>
-                        </TableCell>
-                        <TableCell className="pr-5">
-                          <ClassTeacherAssigner classItem={classItem} />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </section>
   );
 }
