@@ -74,15 +74,15 @@ export function TeacherSubjectManager({
   };
 
   return (
-    <Card className="border-slate-200 shadow-xs">
+    <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs">
       <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111C2D] pb-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <CardTitle className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <GraduationCap className="size-5 text-[#17372e]" />
               Danh sách Giảng viên & Môn phụ trách
             </CardTitle>
-            <CardDescription className="mt-1 text-xs">
+            <CardDescription className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               Xem và click chọn gán hoặc hủy các môn giảng dạy cho từng giảng viên trong hệ thống.
             </CardDescription>
           </div>
@@ -93,7 +93,7 @@ export function TeacherSubjectManager({
               placeholder="Tìm theo tên giảng viên..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 h-9 text-xs bg-slate-50 border-slate-200"
+              className="pl-9 h-9 text-xs bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100"
             />
           </div>
         </div>
@@ -116,7 +116,7 @@ export function TeacherSubjectManager({
             {searchTerm ? 'Không tìm thấy giảng viên phù hợp.' : 'Chưa có giảng viên nào trong hệ thống.'}
           </div>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {filteredTeachers.map((teacher) => {
               const teacherAssignments = assignments.filter((a) => a.teacherId === teacher.id);
               const assignedSubjectIds = new Set(teacherAssignments.map((a) => a.subjectId));
@@ -126,16 +126,16 @@ export function TeacherSubjectManager({
               return (
                 <div
                   key={teacher.id}
-                  className="p-4 sm:p-5 flex flex-col gap-3.5 hover:bg-slate-50/60 transition"
+                  className="p-4 sm:p-5 flex flex-col gap-3.5 hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <div className="flex items-center gap-3">
-                      <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#17372e]/10 text-[#17372e] font-bold text-sm">
+                      <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#17372e]/10 dark:bg-emerald-950/60 text-[#17372e] dark:text-emerald-400 font-bold text-sm">
                         <User className="size-4" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-sm text-slate-900">{teacher.name}</h3>
-                        <p className="text-xs text-slate-500">
+                        <h3 className="font-semibold text-sm text-slate-900 dark:text-white">{teacher.name}</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
                           {teacherAssignments.length} môn đang phụ trách
                         </p>
                       </div>
@@ -200,7 +200,7 @@ export function TeacherSubjectManager({
                         return (
                           <span
                             key={assignment.subjectId}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200/80 bg-emerald-50/80 px-2.5 py-1 text-xs font-medium text-emerald-900 shadow-2xs"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200/80 dark:border-emerald-800/60 bg-emerald-50/80 dark:bg-emerald-950/40 px-2.5 py-1 text-xs font-medium text-emerald-900 dark:text-emerald-200 shadow-2xs"
                           >
                             <span className="font-mono text-[10px] text-emerald-700 font-bold uppercase">
                               {assignment.subjectCode}

@@ -10,12 +10,16 @@
 - [x] **Phase 32 (Commit `a720f51`)**: Bổ sung mục "Tài liệu" và "Bài tập" vào giao diện Giảng viên.
 - [x] **Phase 33 (Commit `4db02f0`)**: Hoàn thiện tính năng nút cập nhật giảng viên phụ trách lớp tại Cổng Quản trị viên.
 - [x] **Phase 34 (Commit `0b7eb11`)**: Xóa khung "Thêm môn học mới" tại trang Quản trị Giảng viên & Phân môn, căn chỉnh Layout w-full cho Card Lớp học
-  - **Mục tiêu 1 (Xóa bỏ UI thừa)**:
-    - Loại bỏ form và Card "Thêm môn học mới" khỏi `app/admin/teacher-access/academic-access.tsx` (tránh trùng lặp với trang chuyên biệt `/admin/subjects`).
-    - Dọn dẹp các import không còn sử dụng (`createSubject`, `BookPlus`, `Input`, `Label`, `Button`).
-  - **Mục tiêu 2 (Căn chỉnh Layout Grid)**:
-    - Mở rộng thẻ "Lớp học & Giảng viên phụ trách" ra toàn bộ chiều ngang (`w-full`), đồng bộ thẳng hàng với bảng danh sách giảng viên phía trên.
-    - Tối ưu hóa hiển thị bảng danh sách lớp học, căn lề và màu sắc đẹp mắt ở cả Light Mode và Dark Mode.
-  - **Mục tiêu 3 (Kiểm thử & Nghiệm thu)**:
-    - Pass 100% `npx tsc --noEmit` và `npm run build` (33/33 static & dynamic routes).
-    - Tạo Local Commit an toàn theo đúng quy chuẩn dự án.
+- [x] **Phase 35**: Sửa triệt để lỗi chữ bị mờ / tàng hình trong Chế độ Tối (Dark Mode)
+  - **Mục tiêu 1 (Cập nhật `globals.css`)**:
+    - Đổi `@custom-variant dark (&:is(.dark *));` thành `@custom-variant dark (&:where(.dark, .dark *));`.
+    - Thêm fallback CSS cho `.dark h1, .dark h2, .dark h3, .dark h4` để đảm bảo tiêu đề không bao giờ bị tối chìm.
+  - **Mục tiêu 2 (Sửa các trang cụ thể theo báo cáo)**:
+    - `/admin/teacher-access`: Tiêu đề chính, thẻ duyệt hồ sơ, thanh Tabs, badge "4 hồ sơ", tiêu đề cột bảng `thead`, tên ứng viên bảng `tbody`.
+    - `/teacher/dashboard`: Lời chào "Chào Hoc! 👋", eyebrow "Không gian giảng dạy", phụ đề, và toàn bộ 8 thẻ Thao tác nhanh (bỏ màu pastel sáng cứng, đồng bộ `bg-white dark:bg-[#111C2D] border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white`).
+    - `/teacher/grading`: Tiêu đề "Chấm bài thi tự luận ✍️", phụ đề, bảng danh sách bài nộp cần chấm.
+  - **Mục tiêu 3 (Quét rà soát toàn bộ dự án)**:
+    - Rà soát các thành phần UI khác (Table, Tabs, Badge, Quick actions) trong `app/` và `components/` để đảm bảo độ tương phản hoàn hảo trong Dark Mode.
+  - **Mục tiêu 4 (Kiểm thử & Nghiệm thu)**:
+    - Kiểm tra `npx tsc --noEmit` & `npm run build` không phát sinh lỗi.
+    - Tạo Local commit và chờ lệnh push.

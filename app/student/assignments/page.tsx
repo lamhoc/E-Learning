@@ -77,7 +77,7 @@ export default async function StudentAssignmentsPage() {
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
                 Nhiệm vụ học tập
               </p>
-              <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900 sm:text-[28px]">
+              <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-[28px]">
                 Bài tập về nhà
               </h1>
               <p className="mt-1.5 text-sm text-slate-500">

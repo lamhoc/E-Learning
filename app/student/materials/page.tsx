@@ -69,7 +69,7 @@ export default async function StudentMaterialsPage() {
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
                 Kho học liệu
               </p>
-              <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900 sm:text-[28px]">
+              <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-[28px]">
                 Tài liệu học tập theo tuần
               </h1>
               <p className="mt-1.5 text-sm text-slate-500">

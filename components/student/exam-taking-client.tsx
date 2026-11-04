@@ -445,7 +445,7 @@ export function ExamTakingClient({
           {/* Right Question Palette / Navigator (Sticky Sidebar) */}
           <aside className="space-y-4">
             <div className="sticky top-20 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] text-slate-900 dark:text-slate-100 p-5 shadow-xs">
-              <h2 className="text-sm font-bold text-slate-900">Mục lục câu hỏi</h2>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">Mục lục câu hỏi</h2>
               <p className="mt-1 text-xs text-slate-500">
                 Tiến độ: <strong className="text-slate-800">{answeredCount}</strong> / {questions.length} câu
               </p>
@@ -510,7 +510,7 @@ export function ExamTakingClient({
                 <Send className="size-5" />
               </span>
               <div>
-                <h3 className="text-base font-bold text-slate-900">Xác nhận nộp bài thi</h3>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Xác nhận nộp bài thi</h3>
                 <p className="text-xs text-slate-500">Hãy kiểm tra kỹ trước khi gửi bài</p>
               </div>
             </div>

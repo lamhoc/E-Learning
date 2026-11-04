@@ -183,17 +183,17 @@ export default async function TeacherAccessAdminPage({
       <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-[0.14em] text-[#648174]">
+            <span className="text-xs font-bold uppercase tracking-[0.14em] text-blue-700 dark:text-amber-400">
               Cổng Quản Trị Viên
             </span>
-            <Badge className="border-emerald-200 bg-emerald-50 text-emerald-800 text-[10px]">
+            <Badge className="border-emerald-200 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-[10px]">
               Admin Active
             </Badge>
           </div>
-          <h1 className="mt-1 text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+          <h1 className="mt-1 text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
             Quản trị Quyền Giáo viên & Phân môn
           </h1>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
             Duyệt hồ sơ xin cấp quyền giảng viên, tạo mã mời và phân công chuyên môn đào tạo.
           </p>
         </div>
@@ -204,12 +204,12 @@ export default async function TeacherAccessAdminPage({
             <Clock3 aria-hidden="true" className="size-3.5 text-amber-600" />
             <strong>{pendingApplications.length}</strong> đơn chờ duyệt
           </Badge>
-          <Badge variant="outline" className="gap-1.5 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 dark:text-slate-200 px-3 py-1 text-xs">
-            <GraduationCap aria-hidden="true" className="size-3.5 text-[#17372e]" />
+          <Badge variant="outline" className="gap-1.5 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 px-3 py-1 text-xs">
+            <GraduationCap aria-hidden="true" className="size-3.5 text-[#17372e] dark:text-emerald-400" />
             <strong>{academicTeachers.length}</strong> giáo viên
           </Badge>
-          <Badge variant="outline" className="gap-1.5 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 dark:text-slate-200 px-3 py-1 text-xs">
-            <BookOpen aria-hidden="true" className="size-3.5 text-blue-600" />
+          <Badge variant="outline" className="gap-1.5 bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 px-3 py-1 text-xs">
+            <BookOpen aria-hidden="true" className="size-3.5 text-blue-600 dark:text-blue-400" />
             <strong>{academicSubjects.length}</strong> môn học
           </Badge>
         </div>
@@ -271,8 +271,11 @@ export default async function TeacherAccessAdminPage({
 
       {/* SHADCN TABS INTERFACE (2 TABS) */}
       <Tabs defaultValue="applications" className="space-y-6">
-        <TabsList className="bg-slate-200/80 p-1 rounded-xl w-fit">
-          <TabsTrigger value="applications" className="gap-2 text-xs font-semibold px-4 py-2 cursor-pointer">
+        <TabsList className="bg-slate-200/80 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 p-1 rounded-xl w-fit">
+          <TabsTrigger
+            value="applications"
+            className="gap-2 text-xs font-semibold px-4 py-2 cursor-pointer text-slate-700 dark:text-slate-300 data-[state=active]:bg-white data-[state=active]:text-slate-900 dark:data-[state=active]:bg-blue-600 dark:data-[state=active]:text-white"
+          >
             <Users className="size-3.5" />
             Duyệt hồ sơ
             {pendingApplications.length > 0 && (
@@ -281,10 +284,13 @@ export default async function TeacherAccessAdminPage({
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="subjects" className="gap-2 text-xs font-semibold px-4 py-2 cursor-pointer">
+          <TabsTrigger
+            value="subjects"
+            className="gap-2 text-xs font-semibold px-4 py-2 cursor-pointer text-slate-700 dark:text-slate-300 data-[state=active]:bg-white data-[state=active]:text-slate-900 dark:data-[state=active]:bg-blue-600 dark:data-[state=active]:text-white"
+          >
             <BookOpen className="size-3.5" />
             Phân công môn học
-            <span className="grid size-5 place-items-center rounded-full bg-slate-300 text-slate-800 text-[10px] font-bold">
+            <span className="grid size-5 place-items-center rounded-full bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-[10px] font-bold">
               {academicTeachers.length}
             </span>
           </TabsTrigger>
@@ -293,28 +299,28 @@ export default async function TeacherAccessAdminPage({
         {/* TAB 1: DUYỆT HỒ SƠ */}
         <TabsContent value="applications" className="space-y-6 outline-none">
           {/* Data Table: Teacher Applications */}
-          <Card className="border-slate-200 shadow-xs">
+          <Card className="border-slate-200 dark:border-slate-800 shadow-xs bg-white dark:bg-[#111C2D]">
             <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111C2D] pb-4">
               <div>
-                <CardTitle className="text-base font-bold text-slate-900">
+                <CardTitle className="text-base font-bold text-slate-900 dark:text-white">
                   Danh sách Hồ sơ xin cấp quyền Giáo viên
                 </CardTitle>
-                <CardDescription className="text-xs mt-0.5">
+                <CardDescription className="text-xs mt-0.5 text-slate-500 dark:text-slate-400">
                   Quản lý các tài khoản đã đăng ký xin quyền giáo viên hoặc đăng ký không có mã mời.
                 </CardDescription>
               </div>
-              <Badge variant="secondary" className="bg-slate-100">
+              <Badge variant="secondary" className="border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
                 {applicationRows.length} hồ sơ
               </Badge>
             </CardHeader>
             <CardContent className="p-0">
               {applicationRows.length === 0 ? (
                 <div className="flex min-h-40 flex-col items-center justify-center p-6 text-center">
-                  <span className="grid size-10 place-items-center rounded-full bg-slate-100 text-slate-400">
+                  <span className="grid size-10 place-items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400">
                     <Clock3 aria-hidden="true" className="size-5" />
                   </span>
-                  <p className="mt-3 text-sm font-semibold text-slate-800">Chưa có đơn đăng ký</p>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-3 text-sm font-semibold text-slate-800 dark:text-slate-200">Chưa có đơn đăng ký</p>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                     Khi người dùng đăng ký tài khoản giáo viên, hồ sơ sẽ hiển thị tại đây để bạn phê duyệt.
                   </p>
                 </div>
@@ -322,25 +328,25 @@ export default async function TeacherAccessAdminPage({
                 <div className="overflow-x-auto">
                   <Table className="text-xs">
                     <TableHeader>
-                      <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
-                        <TableHead className="pl-5 font-semibold text-slate-700">Ứng viên</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Ngày gửi đơn</TableHead>
-                        <TableHead className="font-semibold text-slate-700">Trạng thái</TableHead>
-                        <TableHead className="pr-5 text-right font-semibold text-slate-700">
+                      <TableRow className="bg-slate-50/80 dark:bg-slate-800/80 hover:bg-slate-50/80 dark:hover:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
+                        <TableHead className="pl-5 font-semibold text-slate-700 dark:text-slate-200">Ứng viên</TableHead>
+                        <TableHead className="font-semibold text-slate-700 dark:text-slate-200">Ngày gửi đơn</TableHead>
+                        <TableHead className="font-semibold text-slate-700 dark:text-slate-200">Trạng thái</TableHead>
+                        <TableHead className="pr-5 text-right font-semibold text-slate-700 dark:text-slate-200">
                           Hành động
                         </TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody className="divide-y divide-slate-100">
+                    <TableBody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {applicationRows.map((app) => {
                         const fullName = profileNames.get(app.user_id) || 'Chưa cập nhật tên';
                         return (
-                          <TableRow key={app.user_id} className="hover:bg-slate-50/50">
+                          <TableRow key={app.user_id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
                             <TableCell className="pl-5">
-                              <p className="font-semibold text-slate-900">{fullName}</p>
-                              <p className="text-[11px] text-slate-500 font-mono">{app.email}</p>
+                              <p className="font-semibold text-slate-900 dark:text-white">{fullName}</p>
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">{app.email}</p>
                             </TableCell>
-                            <TableCell className="whitespace-nowrap text-slate-600">
+                            <TableCell className="whitespace-nowrap text-slate-600 dark:text-slate-300">
                               {formatDate(app.requested_at)}
                             </TableCell>
                             <TableCell>
@@ -383,42 +389,42 @@ export default async function TeacherAccessAdminPage({
           <div className="grid gap-6 lg:grid-cols-2">
             <InvitationForm />
 
-            <Card className="border-slate-200 shadow-xs">
+            <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs">
               <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111C2D] pb-3.5">
                 <div>
-                  <CardTitle className="text-base font-bold text-slate-900">
+                  <CardTitle className="text-base font-bold text-slate-900 dark:text-white">
                     Mã mời gần đây
                   </CardTitle>
-                  <CardDescription className="text-xs mt-0.5">
+                  <CardDescription className="text-xs mt-0.5 text-slate-500 dark:text-slate-400">
                     Chỉ hiển thị metadata; token bí mật chỉ sinh ra một lần.
                   </CardDescription>
                 </div>
-                <Badge variant="outline" className="bg-slate-50">
+                <Badge variant="outline" className="border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
                   {invitationRows.length} mã
                 </Badge>
               </CardHeader>
               <CardContent className="p-0">
                 {invitationRows.length === 0 ? (
-                  <p className="p-6 text-center text-xs text-slate-400">Chưa tạo mã mời nào.</p>
+                  <p className="p-6 text-center text-xs text-slate-400 dark:text-slate-500">Chưa tạo mã mời nào.</p>
                 ) : (
                   <div className="overflow-x-auto max-h-72">
                     <Table className="text-xs">
                       <TableHeader>
-                        <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
-                          <TableHead className="pl-5 font-semibold text-slate-700">Email nhận</TableHead>
-                          <TableHead className="font-semibold text-slate-700">Ngày tạo</TableHead>
-                          <TableHead className="pr-5 text-right font-semibold text-slate-700">
+                        <TableRow className="bg-slate-50/80 dark:bg-slate-800/80 hover:bg-slate-50/80 dark:hover:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
+                          <TableHead className="pl-5 font-semibold text-slate-700 dark:text-slate-200">Email nhận</TableHead>
+                          <TableHead className="font-semibold text-slate-700 dark:text-slate-200">Ngày tạo</TableHead>
+                          <TableHead className="pr-5 text-right font-semibold text-slate-700 dark:text-slate-200">
                             Trạng thái
                           </TableHead>
                         </TableRow>
                       </TableHeader>
-                      <TableBody>
+                      <TableBody className="divide-y divide-slate-100 dark:divide-slate-800">
                         {invitationRows.map((invitation) => (
-                          <TableRow key={invitation.id} className="hover:bg-slate-50/50">
-                            <TableCell className="pl-5 font-medium text-slate-800">
+                          <TableRow key={invitation.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+                            <TableCell className="pl-5 font-medium text-slate-800 dark:text-slate-200">
                               {invitation.email}
                             </TableCell>
-                            <TableCell className="whitespace-nowrap text-slate-500">
+                            <TableCell className="whitespace-nowrap text-slate-500 dark:text-slate-400">
                               {formatDate(invitation.created_at)}
                             </TableCell>
                             <TableCell className="pr-5 text-right">
@@ -426,8 +432,8 @@ export default async function TeacherAccessAdminPage({
                                 variant={invitation.used_at ? 'secondary' : 'default'}
                                 className={
                                   invitation.used_at
-                                    ? 'bg-slate-100 text-slate-700'
-                                    : 'bg-emerald-100 text-emerald-800'
+                                    ? 'border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                                    : 'border-emerald-200 dark:border-emerald-800 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
                                 }
                               >
                                 {invitation.used_at ? 'Đã dùng' : 'Khả dụng'}
@@ -444,9 +450,9 @@ export default async function TeacherAccessAdminPage({
           </div>
 
           {/* Security Note */}
-          <Card className="border-[#dce7dc] bg-[#edf5ee] shadow-none">
-            <CardContent className="flex items-start gap-3 p-4 text-xs leading-5 text-[#385c49]">
-              <MailPlus aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-[#17372e]" />
+          <Card className="border-[#dce7dc] dark:border-emerald-950/60 bg-[#edf5ee] dark:bg-emerald-950/20 shadow-none">
+            <CardContent className="flex items-start gap-3 p-4 text-xs leading-5 text-[#385c49] dark:text-emerald-300">
+              <MailPlus aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-[#17372e] dark:text-emerald-400" />
               <p>
                 <strong>Bảo mật:</strong> Khi bạn phê duyệt hồ sơ hoặc tạo mã mời, quyền hạn được cập nhật trực tiếp vào hệ thống Supabase Auth Service Role và đồng bộ tới bảng phân quyền.
               </p>

@@ -104,23 +104,23 @@ function MetricCard({
   tone: 'green' | 'orange' | 'blue' | 'yellow';
 }) {
   const toneClasses = {
-    green: 'bg-emerald-50 text-emerald-700',
-    orange: 'bg-orange-50 text-orange-700',
-    blue: 'bg-sky-50 text-sky-700',
-    yellow: 'bg-amber-50 text-amber-700',
+    green: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300',
+    orange: 'bg-orange-50 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300',
+    blue: 'bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300',
+    yellow: 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300',
   };
   const valueTone = {
-    green: 'text-emerald-700',
-    orange: 'text-orange-700',
-    blue: 'text-sky-700',
-    yellow: 'text-amber-700',
+    green: 'text-emerald-700 dark:text-emerald-400',
+    orange: 'text-orange-700 dark:text-orange-400',
+    blue: 'text-sky-700 dark:text-sky-400',
+    yellow: 'text-amber-700 dark:text-amber-400',
   };
 
   return (
-    <Card className="group h-full border-slate-200 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+    <Card className="group h-full border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
       <CardContent className="flex h-full flex-col justify-between p-5">
         <div className="flex items-start justify-between gap-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 line-clamp-1">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 line-clamp-1">
             {label}
           </p>
           <span
@@ -133,7 +133,7 @@ function MetricCard({
           <p className={`text-3xl font-bold tabular-nums tracking-tight ${valueTone[tone]}`}>
             {value}
           </p>
-          <p className="mt-1 text-xs leading-4 text-slate-400 line-clamp-2 min-h-[32px] flex items-center">
+          <p className="mt-1 text-xs leading-4 text-slate-400 dark:text-slate-500 line-clamp-2 min-h-[32px] flex items-center">
             {detail}
           </p>
         </div>
@@ -168,7 +168,7 @@ const QUICK_ACTIONS = [
     label: 'Chấm bài thi',
     desc: 'Chấm tự luận',
     href: '/teacher/grading',
-    color: 'bg-amber-50 text-amber-800 hover:bg-amber-100 border-amber-200',
+    color: 'bg-white dark:bg-[#111C2D] hover:bg-slate-50 dark:hover:bg-[#16243A] border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white',
     iconBg: 'bg-amber-600 text-white',
   },
   {
@@ -176,7 +176,7 @@ const QUICK_ACTIONS = [
     label: 'Sinh câu hỏi AI',
     desc: 'Dùng Groq AI',
     href: '/teacher/questions',
-    color: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-100',
+    color: 'bg-white dark:bg-[#111C2D] hover:bg-slate-50 dark:hover:bg-[#16243A] border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white',
     iconBg: 'bg-emerald-600 text-white',
   },
   {
@@ -184,7 +184,7 @@ const QUICK_ACTIONS = [
     label: 'Tài liệu giảng dạy',
     desc: 'Slide / PDF / Video',
     href: '/teacher/materials',
-    color: 'bg-teal-50 text-teal-700 hover:bg-teal-100 border-teal-100',
+    color: 'bg-white dark:bg-[#111C2D] hover:bg-slate-50 dark:hover:bg-[#16243A] border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white',
     iconBg: 'bg-teal-600 text-white',
   },
   {
@@ -192,7 +192,7 @@ const QUICK_ACTIONS = [
     label: 'Bài tập về nhà',
     desc: 'Giao & chấm bài',
     href: '/teacher/assignments',
-    color: 'bg-blue-50 text-[#154C99] hover:bg-blue-100 border-blue-100',
+    color: 'bg-white dark:bg-[#111C2D] hover:bg-slate-50 dark:hover:bg-[#16243A] border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white',
     iconBg: 'bg-[#154C99] text-white',
   },
   {
@@ -200,7 +200,7 @@ const QUICK_ACTIONS = [
     label: 'Tạo lớp học',
     desc: 'Lớp học mới',
     href: '#create-class',
-    color: 'bg-sky-50 text-sky-700 hover:bg-sky-100 border-sky-100',
+    color: 'bg-white dark:bg-[#111C2D] hover:bg-slate-50 dark:hover:bg-[#16243A] border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white',
     iconBg: 'bg-sky-600 text-white',
   },
   {
@@ -208,7 +208,7 @@ const QUICK_ACTIONS = [
     label: 'Ngân hàng câu hỏi',
     desc: 'Xem & quản lý',
     href: '/teacher/questions',
-    color: 'bg-violet-50 text-violet-700 hover:bg-violet-100 border-violet-100',
+    color: 'bg-white dark:bg-[#111C2D] hover:bg-slate-50 dark:hover:bg-[#16243A] border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white',
     iconBg: 'bg-violet-600 text-white',
   },
   {
@@ -216,7 +216,7 @@ const QUICK_ACTIONS = [
     label: 'Gia sư AI',
     desc: 'Hỏi bất cứ điều gì',
     href: '/teacher/ai-tutor',
-    color: 'bg-orange-50 text-orange-700 hover:bg-orange-100 border-orange-100',
+    color: 'bg-white dark:bg-[#111C2D] hover:bg-slate-50 dark:hover:bg-[#16243A] border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white',
     iconBg: 'bg-orange-500 text-white',
   },
   {
@@ -224,7 +224,7 @@ const QUICK_ACTIONS = [
     label: 'Tạo đề thi',
     desc: 'Từ ngân hàng câu hỏi',
     href: '/teacher/exams/create',
-    color: 'bg-rose-50 text-rose-700 hover:bg-rose-100 border-rose-100',
+    color: 'bg-white dark:bg-[#111C2D] hover:bg-slate-50 dark:hover:bg-[#16243A] border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white',
     iconBg: 'bg-rose-600 text-white',
   },
 ];
@@ -323,17 +323,17 @@ async function TeacherDashboardDataContent() {
 
       {/* ── Pending Essay Grading Queue on Dashboard (nếu có bài chờ chấm) ── */}
       {data.pendingAttempts && data.pendingAttempts.length > 0 && (
-        <Card id="grading" className="scroll-mt-20 overflow-hidden rounded-2xl border-amber-200 bg-amber-50/20 shadow-sm">
-          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 border-b border-amber-100 bg-white/90 px-6 py-4">
+        <Card id="grading" className="scroll-mt-20 overflow-hidden rounded-2xl border-amber-200 dark:border-amber-900/60 bg-amber-50/20 dark:bg-amber-950/20 shadow-sm">
+          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 border-b border-amber-100 dark:border-amber-900/60 bg-white/90 dark:bg-[#111C2D] px-6 py-4">
             <div className="flex items-center gap-3">
               <span className="grid size-10 place-items-center rounded-xl bg-amber-500 text-white shadow-xs">
                 <PenTool className="size-5" />
               </span>
               <div>
-                <CardTitle className="text-base font-semibold text-slate-900">
+                <CardTitle className="text-base font-semibold text-slate-900 dark:text-white">
                   Bài thi chờ chấm tự luận ({data.pendingGradingCount})
                 </CardTitle>
-                <CardDescription className="text-xs text-slate-500">
+                <CardDescription className="text-xs text-slate-500 dark:text-slate-400">
                   Các bài thi sinh viên đã nộp cần giáo viên chấm điểm tự luận và nhận xét.
                 </CardDescription>
               </div>
@@ -353,7 +353,7 @@ async function TeacherDashboardDataContent() {
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader className="bg-slate-50/70">
+                <TableHeader className="bg-slate-50/70 dark:bg-slate-800/80">
                   <TableRow>
                     <TableHead className="pl-6">Thí sinh</TableHead>
                     <TableHead>Đề thi & Môn học</TableHead>
@@ -363,9 +363,9 @@ async function TeacherDashboardDataContent() {
                 </TableHeader>
                 <TableBody>
                   {data.pendingAttempts.map((attempt) => (
-                    <TableRow key={attempt.id} className="hover:bg-amber-50/30 transition">
+                    <TableRow key={attempt.id} className="hover:bg-amber-50/30 dark:hover:bg-slate-800/50 transition">
                       <TableCell className="pl-6">
-                        <p className="font-semibold text-slate-900">{attempt.studentName}</p>
+                        <p className="font-semibold text-slate-900 dark:text-white">{attempt.studentName}</p>
                         {attempt.studentCode ? (
                           <p className="font-mono text-xs text-slate-500">MSSV: {attempt.studentCode}</p>
                         ) : (
@@ -373,7 +373,7 @@ async function TeacherDashboardDataContent() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <p className="font-medium text-slate-800">{attempt.examTitle}</p>
+                        <p className="font-medium text-slate-800 dark:text-slate-200">{attempt.examTitle}</p>
                         <p className="text-xs text-slate-400">{attempt.subjectName} · Lần {attempt.attemptNo}</p>
                       </TableCell>
                       <TableCell className="text-xs text-slate-500">
@@ -551,7 +551,7 @@ async function TeacherDashboardDataContent() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-slate-50 hover:bg-slate-50">
+                  <TableRow className="bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800">
                     <TableHead className="min-w-[220px] pl-5">Tên đề</TableHead>
                     <TableHead>Môn học</TableHead>
                     <TableHead className="text-center">Câu hỏi</TableHead>
@@ -565,11 +565,11 @@ async function TeacherDashboardDataContent() {
                   {data.exams.map((exam) => {
                     const status = getExamStatus(exam.status);
                     return (
-                      <TableRow key={exam.id} className="transition-colors hover:bg-slate-50/70">
+                      <TableRow key={exam.id} className="transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
                         <TableCell className="max-w-[300px] pl-5">
                           <Link
                             href={`/teacher/exams/${exam.id}`}
-                            className="block truncate font-semibold text-slate-900 hover:text-emerald-800 hover:underline"
+                            className="block truncate font-semibold text-slate-900 dark:text-white hover:text-emerald-800 dark:hover:text-emerald-400 hover:underline"
                           >
                             {exam.title}
                           </Link>
@@ -577,7 +577,7 @@ async function TeacherDashboardDataContent() {
                             {exam.duration_minutes} phút
                           </span>
                         </TableCell>
-                        <TableCell className="text-slate-500">
+                        <TableCell className="text-slate-600 dark:text-slate-300">
                           {getSubjectName(exam.subject) ?? '—'}
                         </TableCell>
                         <TableCell className="text-center tabular-nums">
@@ -705,13 +705,13 @@ export default async function TeacherDashboardPage() {
           {/* ── Greeting (Static Shell 0ms) ── */}
           <section className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-blue-700 dark:text-amber-400">
                 Không gian giảng dạy
               </p>
-              <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900 sm:text-[28px]">
+              <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-[28px]">
                 Chào {shortName}! 👋
               </h1>
-              <p className="mt-1.5 text-sm text-slate-500">
+              <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-300">
                 Theo dõi lớp học, đề thi và hoạt động chấm bài tự luận tại một nơi.
               </p>
             </div>
@@ -762,8 +762,8 @@ export default async function TeacherDashboardPage() {
                       <Icon className="size-4" />
                     </span>
                     <span>
-                      <span className="block text-xs font-semibold">{action.label}</span>
-                      <span className="mt-0.5 block text-[10px] opacity-70">{action.desc}</span>
+                      <span className="block text-xs font-semibold text-slate-900 dark:text-white">{action.label}</span>
+                      <span className="mt-0.5 block text-[10px] text-slate-500 dark:text-slate-400">{action.desc}</span>
                     </span>
                   </Link>
                 );

@@ -41,7 +41,7 @@ function ClassCard({ classItem }: { classItem: StudentClass }) {
         </Badge>
       </CardHeader>
       <CardContent>
-        <h3 className="text-base font-bold text-slate-900 line-clamp-1">{classItem.name}</h3>
+        <h3 className="text-base font-bold text-slate-900 dark:text-white line-clamp-1">{classItem.name}</h3>
         <p className="mt-1 text-sm text-slate-500 font-medium">
           {getRelatedName(classItem.subject) || 'Môn học đại cương'}
         </p>
@@ -119,7 +119,7 @@ export default async function StudentClassesPage() {
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
                 Không gian học tập
               </p>
-              <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900 sm:text-[28px]">
+              <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-[28px]">
                 Lớp học của tôi
               </h1>
               <p className="mt-1.5 text-sm text-slate-500">

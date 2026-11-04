@@ -109,7 +109,7 @@ function ExamCard({ exam }: { exam: StudentExam }) {
         )}
       </CardHeader>
       <CardContent>
-        <h3 className="text-base font-bold text-slate-900 line-clamp-1">{exam.title}</h3>
+        <h3 className="text-base font-bold text-slate-900 dark:text-white line-clamp-1">{exam.title}</h3>
         <p className="mt-1 text-sm text-slate-500 font-medium">
           {getRelatedName(exam.subject) || 'Môn học'}
         </p>

@@ -3,7 +3,7 @@
 @import "shadcn/tailwind.css";
 @import "katex/dist/katex.min.css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
   --color-background: var(--background);
@@ -141,5 +141,11 @@
   }
   button:not(:disabled), [role="button"]:not(:disabled) {
     cursor: pointer;
+  }
+  .dark h1,
+  .dark h2,
+  .dark h3,
+  .dark h4 {
+    color: #F8FAFC;
   }
 }

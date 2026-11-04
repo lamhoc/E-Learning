@@ -88,7 +88,7 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
             )}
           </div>
 
-          <h1 className="mt-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          <h1 className="mt-3 text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-3xl">
             {exam.title}
           </h1>
 
@@ -145,7 +145,7 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-sm sm:text-base font-bold text-slate-900">
+                  <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
                     Gia sư AI Chữa đề — Lượt #{latestAttempt.attempt_no}
                   </h2>
                   <Badge className="border-violet-200 bg-violet-100 text-violet-800 text-[10px]">
@@ -172,7 +172,7 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
                 <History className="size-4 text-slate-600" />
-                <h2 className="text-base font-bold text-slate-900">Lịch sử các lần làm bài</h2>
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">Lịch sử các lần làm bài</h2>
               </div>
               <span className="text-xs text-slate-500">
                 Đã làm: <strong>{attempts.length}</strong> / {exam.max_attempts} lượt
@@ -259,7 +259,7 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
         {/* Rules & Action Container */}
         <section className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs space-y-6">
           <div className="space-y-3">
-            <h2 className="text-base font-bold text-slate-900">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
               Quy chế và lưu ý quan trọng trước khi làm bài
             </h2>
             <ul className="space-y-2 text-xs leading-relaxed text-slate-600">

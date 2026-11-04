@@ -118,7 +118,7 @@ export function ExamPreviewModal({
                 </div>
               </div>
 
-              <h1 className="mt-4 text-xl font-bold uppercase tracking-tight text-slate-900 sm:text-2xl">
+              <h1 className="mt-4 text-xl font-bold uppercase tracking-tight text-slate-900 dark:text-white sm:text-2xl">
                 ĐỀ THI MÔN: {subjectName || 'TỔNG HỢP'}
               </h1>
 

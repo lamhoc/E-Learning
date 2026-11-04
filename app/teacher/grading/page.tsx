@@ -80,13 +80,13 @@ export default async function TeacherGradingQueuePage() {
           {/* Header Title Section */}
           <section className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-blue-700 dark:text-amber-400">
                 Đánh giá & Chấm điểm
               </p>
-              <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900 sm:text-[28px]">
+              <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-[28px]">
                 Chấm bài thi tự luận ✍️
               </h1>
-              <p className="mt-1.5 text-sm text-slate-500">
+              <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-300">
                 Theo dõi các bài thi sinh viên đã nộp, chấm câu hỏi tự luận theo rubric đáp án mẫu và công bố điểm số.
               </p>
             </div>

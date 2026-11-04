@@ -141,7 +141,7 @@ export default async function ClassAssignmentsPage({ params }: ClassAssignmentsP
               <div className="mx-auto size-12 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center mb-3">
                 <FileText className="size-6" />
               </div>
-              <h3 className="text-base font-semibold text-slate-800">Chưa có bài tập nào được giao</h3>
+              <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">Chưa có bài tập nào được giao</h3>
               <p className="text-xs text-slate-500 max-w-md mx-auto mt-1 mb-5">
                 Bấm vào nút &quot;Giao bài tập mới&quot; ở trên để thiết lập hạn nộp, đính kèm đề bài và mở luồng nộp bài cho sinh viên lớp này.
               </p>
@@ -179,7 +179,7 @@ export default async function ClassAssignmentsPage({ params }: ClassAssignmentsP
                             </span>
                           </div>
 
-                          <h3 className="text-lg font-bold text-slate-900 line-clamp-1">
+                          <h3 className="text-lg font-bold text-slate-900 dark:text-white line-clamp-1">
                             {assignment.title}
                           </h3>
 

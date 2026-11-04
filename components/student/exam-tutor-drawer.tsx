@@ -244,7 +244,7 @@ export function ExamTutorDrawer({
                   <span className="mx-auto grid size-11 place-items-center rounded-full bg-violet-50 text-violet-700">
                     <Sparkles aria-hidden="true" className="size-5" />
                   </span>
-                  <h3 className="mt-3 text-sm font-semibold text-slate-900">
+                  <h3 className="mt-3 text-sm font-semibold text-slate-900 dark:text-white">
                     Cùng xem lại bài làm nhé
                   </h3>
                   <p className="mt-1 text-sm leading-6 text-slate-500">

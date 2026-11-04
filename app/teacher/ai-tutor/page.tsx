@@ -137,7 +137,7 @@ export default function TeacherAiTutorPage() {
                   <Sparkles className="size-4" />
                 </span>
                 <div>
-                  <h1 className="text-sm font-bold text-slate-900 leading-tight">Gia sư AI</h1>
+                  <h1 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">Gia sư AI</h1>
                   <p className="text-[11px] text-slate-500 leading-tight hidden sm:block">
                     Trợ lý giảng dạy & học tập 24/7
                   </p>

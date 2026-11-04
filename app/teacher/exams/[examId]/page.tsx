@@ -107,7 +107,7 @@ export default async function TeacherExamAnalyticsPage({
                   </span>
                   {getExamStatusBadge(data.exam.status)}
                 </div>
-                <h1 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+                <h1 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
                   {data.exam.title}
                 </h1>
                 <p className="mt-1 text-xs text-slate-500">

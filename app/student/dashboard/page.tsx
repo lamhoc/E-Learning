@@ -108,7 +108,7 @@ function SectionHeading({
     <div className="flex flex-wrap items-end justify-between gap-3">
       <div>
         <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">{eyebrow}</p>
-        <h2 className="mt-1 text-lg font-bold tracking-tight text-slate-900">{title}</h2>
+        <h2 className="mt-1 text-lg font-bold tracking-tight text-slate-900 dark:text-white">{title}</h2>
         <p className="mt-0.5 text-sm text-slate-500">{detail}</p>
       </div>
       {action && (
@@ -541,7 +541,7 @@ export default async function StudentDashboardPage() {
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
                 Không gian học tập
               </p>
-              <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900 sm:text-[28px]">
+              <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-[28px]">
                 Chào {shortName}! 👋
               </h1>
               <p className="mt-1.5 text-sm text-slate-500">

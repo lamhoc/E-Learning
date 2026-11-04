@@ -135,7 +135,7 @@ export function StudentAssignments({ assignments }: StudentAssignmentsProps) {
           <div className="mx-auto size-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mb-3">
             <FileCheck2 className="size-6" />
           </div>
-          <h3 className="text-sm font-semibold text-slate-800">Không có bài tập nào trong mục này</h3>
+          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Không có bài tập nào trong mục này</h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
             Tuyệt vời! Bạn không còn bài tập nào chưa nộp hoặc chưa có bài tập mới được giao.
           </p>

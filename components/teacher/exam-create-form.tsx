@@ -242,7 +242,7 @@ export function ExamCreateForm({
             <span className="grid size-8 place-items-center rounded-lg bg-[#e5f0e9] text-[#246348]">
               <FileText className="size-4" />
             </span>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-2xl">
               Tạo đề thi mới
             </h1>
           </div>
@@ -311,7 +311,7 @@ export function ExamCreateForm({
         <div className="space-y-6">
           <Card className="shadow-xs">
             <CardHeader className="pb-3 border-b border-slate-100">
-              <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <CardTitle className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <BookOpen className="size-4 text-[#246348]" />
                 1. Thông tin chung & Môn học
               </CardTitle>
@@ -418,7 +418,7 @@ export function ExamCreateForm({
           {/* Exam Timing & Limits Card */}
           <Card className="shadow-xs">
             <CardHeader className="pb-3 border-b border-slate-100">
-              <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <CardTitle className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <Clock className="size-4 text-[#246348]" />
                 2. Thời gian & Lượt thi
               </CardTitle>
@@ -514,7 +514,7 @@ export function ExamCreateForm({
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <LibraryBig className="size-4 text-[#246348]" />
-                  <CardTitle className="text-sm font-bold text-slate-900">
+                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-white">
                     3. Chọn câu hỏi từ Ngân hàng đề thi
                   </CardTitle>
                 </div>
@@ -640,7 +640,7 @@ export function ExamCreateForm({
               <div className="pt-4 border-t border-slate-100 space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
                       Danh sách câu hỏi trong đề thi ({selectedQuestions.length} câu)
                     </h3>
                     <p className="text-[11px] text-slate-400">
