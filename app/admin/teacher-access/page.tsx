@@ -271,26 +271,26 @@ export default async function TeacherAccessAdminPage({
 
       {/* SHADCN TABS INTERFACE (2 TABS) */}
       <Tabs defaultValue="applications" className="space-y-6">
-        <TabsList className="bg-slate-200/80 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 p-1 rounded-xl w-fit">
+        <TabsList className="inline-flex items-center gap-1.5 rounded-full bg-slate-200/80 dark:bg-[#111C2D] p-1.5 border border-slate-300/80 dark:border-slate-800 w-fit h-auto">
           <TabsTrigger
             value="applications"
-            className="gap-2 text-xs font-semibold px-4 py-2 cursor-pointer text-slate-700 dark:text-slate-300 data-[state=active]:bg-white data-[state=active]:text-slate-900 dark:data-[state=active]:bg-blue-600 dark:data-[state=active]:text-white"
+            className="group gap-2 text-xs font-semibold px-4 py-2 rounded-full cursor-pointer transition-all duration-200 text-slate-600 hover:text-slate-900 hover:bg-slate-300/50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/70 data-[selected]:!bg-blue-600 data-[selected]:!text-white data-[selected]:shadow-md data-[selected]:shadow-blue-600/30 data-[state=active]:!bg-blue-600 data-[state=active]:!text-white data-[state=active]:shadow-md data-[state=active]:shadow-blue-600/30 aria-selected:!bg-blue-600 aria-selected:!text-white"
           >
-            <Users className="size-3.5" />
-            Duyệt hồ sơ
+            <Users className="size-3.5 group-data-[selected]:text-white group-data-[state=active]:text-white" />
+            <span>Duyệt hồ sơ</span>
             {pendingApplications.length > 0 && (
-              <span className="grid size-5 place-items-center rounded-full bg-amber-500 text-white text-[10px] font-bold">
+              <span className="grid size-5 place-items-center rounded-full bg-amber-400 text-slate-950 text-[10px] font-bold shadow-xs">
                 {pendingApplications.length}
               </span>
             )}
           </TabsTrigger>
           <TabsTrigger
             value="subjects"
-            className="gap-2 text-xs font-semibold px-4 py-2 cursor-pointer text-slate-700 dark:text-slate-300 data-[state=active]:bg-white data-[state=active]:text-slate-900 dark:data-[state=active]:bg-blue-600 dark:data-[state=active]:text-white"
+            className="group gap-2 text-xs font-semibold px-4 py-2 rounded-full cursor-pointer transition-all duration-200 text-slate-600 hover:text-slate-900 hover:bg-slate-300/50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/70 data-[selected]:!bg-blue-600 data-[selected]:!text-white data-[selected]:shadow-md data-[selected]:shadow-blue-600/30 data-[state=active]:!bg-blue-600 data-[state=active]:!text-white data-[state=active]:shadow-md data-[state=active]:shadow-blue-600/30 aria-selected:!bg-blue-600 aria-selected:!text-white"
           >
-            <BookOpen className="size-3.5" />
-            Phân công môn học
-            <span className="grid size-5 place-items-center rounded-full bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-[10px] font-bold">
+            <BookOpen className="size-3.5 group-data-[selected]:text-white group-data-[state=active]:text-white" />
+            <span>Phân công môn học</span>
+            <span className="grid size-5 place-items-center rounded-full bg-slate-300 dark:bg-slate-700/80 text-slate-700 dark:text-slate-300 text-[10px] font-bold group-data-[selected]:bg-white group-data-[selected]:text-blue-700 group-data-[state=active]:bg-white group-data-[state=active]:text-blue-700 shadow-xs transition-colors">
               {academicTeachers.length}
             </span>
           </TabsTrigger>

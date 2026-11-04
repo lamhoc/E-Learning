@@ -11,15 +11,9 @@
 - [x] **Phase 33 (Commit `4db02f0`)**: Hoàn thiện tính năng nút cập nhật giảng viên phụ trách lớp tại Cổng Quản trị viên.
 - [x] **Phase 34 (Commit `0b7eb11`)**: Xóa khung "Thêm môn học mới" tại trang Quản trị Giảng viên & Phân môn, căn chỉnh Layout w-full cho Card Lớp học
 - [x] **Phase 35**: Sửa triệt để lỗi chữ bị mờ / tàng hình trong Chế độ Tối (Dark Mode)
-  - **Mục tiêu 1 (Cập nhật `globals.css`)**:
-    - Đổi `@custom-variant dark (&:is(.dark *));` thành `@custom-variant dark (&:where(.dark, .dark *));`.
-    - Thêm fallback CSS cho `.dark h1, .dark h2, .dark h3, .dark h4` để đảm bảo tiêu đề không bao giờ bị tối chìm.
-  - **Mục tiêu 2 (Sửa các trang cụ thể theo báo cáo)**:
-    - `/admin/teacher-access`: Tiêu đề chính, thẻ duyệt hồ sơ, thanh Tabs, badge "4 hồ sơ", tiêu đề cột bảng `thead`, tên ứng viên bảng `tbody`.
-    - `/teacher/dashboard`: Lời chào "Chào Hoc! 👋", eyebrow "Không gian giảng dạy", phụ đề, và toàn bộ 8 thẻ Thao tác nhanh (bỏ màu pastel sáng cứng, đồng bộ `bg-white dark:bg-[#111C2D] border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white`).
-    - `/teacher/grading`: Tiêu đề "Chấm bài thi tự luận ✍️", phụ đề, bảng danh sách bài nộp cần chấm.
-  - **Mục tiêu 3 (Quét rà soát toàn bộ dự án)**:
-    - Rà soát các thành phần UI khác (Table, Tabs, Badge, Quick actions) trong `app/` và `components/` để đảm bảo độ tương phản hoàn hảo trong Dark Mode.
-  - **Mục tiêu 4 (Kiểm thử & Nghiệm thu)**:
-    - Kiểm tra `npx tsc --noEmit` & `npm run build` không phát sinh lỗi.
-    - Tạo Local commit và chờ lệnh push.
+- [x] **Phase 36**: Làm nổi bật màu xanh cho Tab đang chọn ("Duyệt hồ sơ" & "Phân công môn học") tại `/admin/teacher-access`
+  - Khung bọc `TabsList` pill tròn `rounded-full bg-slate-200/80 dark:bg-[#111C2D] p-1.5 border border-slate-300/80 dark:border-slate-800`.
+  - Style active tab nổi bật `!bg-blue-600 !text-white shadow-md shadow-blue-600/30` hỗ trợ cả Base UI (`data-[selected]`) và Radix (`data-[state=active]`).
+  - Style inactive tab mượt mà `text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white`.
+  - Tương phản tối đa cho badge số lượng trong tab (active badge nổi bật, inactive badge dịu nhẹ).
+  - Kiểm thử `npx tsc --noEmit` & `npm run build` đạt 100% (33/33 routes).
