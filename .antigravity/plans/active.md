@@ -8,7 +8,7 @@
 - [x] **Phase 30 (Commit `6ac63c0`)**: Tạo trang Quản lý Môn học riêng cho Admin `/admin/subjects`, sửa điều hướng và khắc phục triệt để lỗi mã hóa ký tự tên user tiếng Việt.
 - [x] **Phase 31 (Commit `5062e16`)**: Đồng bộ triệt để màu sắc & độ tương phản trong Dark Mode.
 - [x] **Phase 32 (Commit `a720f51`)**: Bổ sung mục "Tài liệu" và "Bài tập" vào giao diện Giảng viên.
-- [x] **Phase 33 (Commit `local`)**: Hoàn thiện tính năng nút cập nhật giảng viên phụ trách lớp tại Cổng Quản trị viên
+- [x] **Phase 33 (Commit `4db02f0`)**: Hoàn thiện tính năng nút cập nhật giảng viên phụ trách lớp tại Cổng Quản trị viên
   - **Mục tiêu 1 (Server Action `updateClassTeacher`)**:
     - Định nghĩa `updateClassTeacher(classId, teacherId)` trong `app/admin/teacher-access/actions.ts`.
     - Kiểm tra bảo mật quyền admin, sử dụng `createAdminClient()`.
