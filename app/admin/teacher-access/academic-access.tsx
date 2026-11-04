@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { BookPlus, UserRoundCog } from 'lucide-react';
+import { BookPlus } from 'lucide-react';
+import { ClassTeacherAssigner } from './class-teacher-assigner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { assignClassTeacher, createSubject } from './actions';
+import { createSubject } from './actions';
 import { TeacherSubjectManager } from './teacher-subject-manager';
 
 export type AcademicSubject = { id: string; code: string; name: string };
@@ -171,36 +172,7 @@ export function AcademicAccess({
                           <span className="ml-1.5">{classItem.subjectName}</span>
                         </TableCell>
                         <TableCell className="pr-5">
-                          {classItem.eligibleTeachers.length === 0 ? (
-                            <span className="text-[11px] text-amber-700">
-                              Chưa có giảng viên được gán môn này
-                            </span>
-                          ) : (
-                            <form action={assignClassTeacher} className="flex min-w-[240px] items-center gap-1.5">
-                              <input type="hidden" name="classId" value={classItem.id} />
-                              <select
-                                name="teacherId"
-                                required
-                                defaultValue={classItem.teacherId}
-                                className="h-8 min-w-0 flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/80 px-2.5 text-xs text-slate-800 dark:text-slate-100"
-                              >
-                                {classItem.eligibleTeachers.map((teacher) => (
-                                  <option key={teacher.id} value={teacher.id}>
-                                    {teacher.name}
-                                  </option>
-                                ))}
-                              </select>
-                              <Button
-                                type="submit"
-                                variant="outline"
-                                size="sm"
-                                className="h-8 px-2.5 text-xs text-slate-700"
-                                title="Lưu phân công lớp"
-                              >
-                                <UserRoundCog className="size-3.5" />
-                              </Button>
-                            </form>
-                          )}
+                          <ClassTeacherAssigner classItem={classItem} />
                         </TableCell>
                       </TableRow>
                     ))}

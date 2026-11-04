@@ -316,41 +316,112 @@ export async function removeTeacherSubject(formData: FormData) {
   redirect('/admin/teacher-access?success=assignment-removed');
 }
 
+/**
+ * Cập nhật giảng viên phụ trách lớp học (dùng cho cả Server Action trực tiếp & Client Component)
+ */
+export async function updateClassTeacher(
+  classId: string,
+  teacherId: string
+): Promise<{ success: boolean; error?: string; message?: string }> {
+  if (!/^[0-9a-f-]{36}$/i.test(classId) || !/^[0-9a-f-]{36}$/i.test(teacherId)) {
+    return { success: false, error: 'Thông tin lớp học hoặc giảng viên không hợp lệ.' };
+  }
+
+  const { error: adminError, user } = await getAdminClient();
+  if (adminError || !user) {
+    return { success: false, error: adminError || 'Bạn không có quyền thực hiện thao tác này.' };
+  }
+
+  try {
+    const adminClient = createAdminClient();
+
+    // 1. Kiểm tra lớp học và lấy subject_id, tên lớp, tên môn học
+    const { data: classRecord, error: classError } = await adminClient
+      .from('classes')
+      .select('id, name, class_code, subject_id, teacher_id, subjects(name, code)')
+      .eq('id', classId)
+      .maybeSingle();
+
+    if (classError || !classRecord) {
+      return { success: false, error: 'Lớp học không tồn tại trong hệ thống.' };
+    }
+
+    // 2. Kiểm tra điều kiện: Giảng viên được chọn bắt buộc phải có phân công môn học của lớp
+    const { data: assignment, error: assignmentError } = await adminClient
+      .from('teacher_subject_assignments')
+      .select('teacher_id')
+      .eq('teacher_id', teacherId)
+      .eq('subject_id', classRecord.subject_id)
+      .maybeSingle();
+
+    if (assignmentError || !assignment) {
+      return {
+        success: false,
+        error: 'Giảng viên này chưa được phân công môn học tương ứng của lớp. Vui lòng gán môn trước.',
+      };
+    }
+
+    // 3. Cập nhật teacher_id của lớp học
+    const { error: updateError } = await adminClient
+      .from('classes')
+      .update({
+        teacher_id: teacherId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', classId);
+
+    if (updateError) {
+      console.error('Lỗi khi cập nhật giảng viên phụ trách lớp:', updateError);
+      return { success: false, error: 'Không thể cập nhật giảng viên phụ trách lớp trong CSDL.' };
+    }
+
+    // 4. Lấy thông tin lớp và môn để tạo thông báo
+    const rawSubject = (classRecord as any).subjects;
+    const subjectName = Array.isArray(rawSubject) ? rawSubject[0]?.name : rawSubject?.name;
+    const className = classRecord.name || classRecord.class_code;
+
+    // 5. Tạo thông báo mới trong bảng notifications gửi đến giảng viên vừa được giao lớp
+    try {
+      await adminClient.from('notifications').insert({
+        user_id: teacherId,
+        title: 'Phân công phụ trách lớp học',
+        message: `Bạn đã được phân công phụ trách lớp ${className}${subjectName ? ` (${subjectName})` : ''}.`,
+      });
+    } catch (notifErr) {
+      console.warn('Lỗi khi ghi thông báo cho giảng viên:', notifErr);
+    }
+
+    // 6. Xóa cache và revalidate các trang
+    await revalidateSubjectsCache(teacherId);
+    if (classRecord.teacher_id && classRecord.teacher_id !== teacherId) {
+      await revalidateSubjectsCache(classRecord.teacher_id);
+    }
+    revalidatePath('/admin/teacher-access');
+    revalidatePath('/teacher/dashboard');
+    revalidatePath('/teacher/subjects');
+    revalidatePath('/teacher/materials');
+    revalidatePath('/teacher/assignments');
+    revalidatePath('/subjects');
+
+    return {
+      success: true,
+      message: `Đã cập nhật giảng viên phụ trách lớp ${className} thành công!`,
+    };
+  } catch (err) {
+    console.error('Lỗi hệ thống khi cập nhật giảng viên phụ trách lớp:', err);
+    return { success: false, error: 'Đã xảy ra lỗi hệ thống khi cập nhật lớp học.' };
+  }
+}
+
 export async function assignClassTeacher(formData: FormData) {
   const classId = String(formData.get('classId') ?? '');
   const teacherId = String(formData.get('teacherId') ?? '');
-  if (!/^[0-9a-f-]{36}$/i.test(classId) || !/^[0-9a-f-]{36}$/i.test(teacherId)) {
-    redirect('/admin/teacher-access?error=class-assignment-invalid');
+
+  const result = await updateClassTeacher(classId, teacherId);
+  if (!result.success) {
+    redirect(`/admin/teacher-access?error=${encodeURIComponent(result.error || 'class-assignment-failed')}`);
   }
 
-  const { error: adminError, supabase } = await getAdminClient();
-  if (adminError || !supabase) redirect('/admin/teacher-access?error=unauthorized');
-
-  const { data: classRecord, error: classError } = await supabase
-    .from('classes')
-    .select('subject_id')
-    .eq('id', classId)
-    .maybeSingle();
-  if (classError || !classRecord) redirect('/admin/teacher-access?error=class-assignment-failed');
-
-  const { data: assignment, error: assignmentError } = await supabase
-    .from('teacher_subject_assignments')
-    .select('teacher_id')
-    .eq('teacher_id', teacherId)
-    .eq('subject_id', classRecord.subject_id)
-    .maybeSingle();
-  if (assignmentError || !assignment) redirect('/admin/teacher-access?error=class-assignment-subject');
-
-  const { error } = await supabase.from('classes').update({ teacher_id: teacherId }).eq('id', classId);
-  if (error) {
-    console.error('Could not assign class to teacher:', error.code, error.message);
-    redirect('/admin/teacher-access?error=class-assignment-failed');
-  }
-
-  revalidatePath('/admin/teacher-access');
-  revalidatePath('/teacher/dashboard');
-  revalidatePath('/teacher/subjects');
-  revalidatePath('/subjects');
   redirect('/admin/teacher-access?success=class-assigned');
 }
 

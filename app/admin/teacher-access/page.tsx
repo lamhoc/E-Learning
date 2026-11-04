@@ -139,8 +139,8 @@ export default async function TeacherAccessAdminPage({
 
   const academicClasses: AcademicClass[] = (classesResult.data ?? []).flatMap((classItem) => {
     const subject = allSubjects.find((item) => item.id === classItem.subject_id);
+    if (!subject) return [];
     const currentTeacher = academicTeachers.find((item) => item.id === classItem.teacher_id);
-    if (!subject || !currentTeacher) return [];
     const eligibleTeachers = [
       ...new Set(
         (assignmentsResult.data ?? [])
@@ -159,8 +159,8 @@ export default async function TeacherAccessAdminPage({
         academicYear: classItem.academic_year,
         subjectName: subject.name,
         subjectCode: subject.code,
-        teacherId: currentTeacher.id,
-        teacherName: currentTeacher.name,
+        teacherId: currentTeacher?.id || classItem.teacher_id || '',
+        teacherName: currentTeacher?.name || (classItem.teacher_id ? 'Giảng viên' : 'Chưa phân công'),
         eligibleTeachers,
       },
     ];
