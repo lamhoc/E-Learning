@@ -9,7 +9,7 @@
 - [x] **Phase 31 (Commit `5062e16`)**: Đồng bộ triệt để màu sắc & độ tương phản trong Dark Mode.
 - [x] **Phase 32 (Commit `a720f51`)**: Bổ sung mục "Tài liệu" và "Bài tập" vào giao diện Giảng viên.
 - [x] **Phase 33 (Commit `4db02f0`)**: Hoàn thiện tính năng nút cập nhật giảng viên phụ trách lớp tại Cổng Quản trị viên.
-- [x] **Phase 34 (Commit `local`)**: Xóa khung "Thêm môn học mới" tại trang Quản trị Giảng viên & Phân môn, căn chỉnh Layout w-full cho Card Lớp học
+- [x] **Phase 34 (Commit `0b7eb11`)**: Xóa khung "Thêm môn học mới" tại trang Quản trị Giảng viên & Phân môn, căn chỉnh Layout w-full cho Card Lớp học
   - **Mục tiêu 1 (Xóa bỏ UI thừa)**:
     - Loại bỏ form và Card "Thêm môn học mới" khỏi `app/admin/teacher-access/academic-access.tsx` (tránh trùng lặp với trang chuyên biệt `/admin/subjects`).
     - Dọn dẹp các import không còn sử dụng (`createSubject`, `BookPlus`, `Input`, `Label`, `Button`).
