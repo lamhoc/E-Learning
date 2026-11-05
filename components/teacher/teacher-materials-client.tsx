@@ -329,7 +329,7 @@ export function TeacherMaterialsClient({
             onClick={() => setSelectedWeek('all')}
             className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
               selectedWeek === 'all'
-                ? 'bg-[#154C99] text-white shadow-xs'
+                ? '!bg-blue-600 !text-white shadow-md shadow-blue-600/30'
                 : 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
             }`}
           >
@@ -342,7 +342,7 @@ export function TeacherMaterialsClient({
               onClick={() => setSelectedWeek(week)}
               className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
                 selectedWeek === week
-                  ? 'bg-[#154C99] text-white shadow-xs'
+                  ? '!bg-blue-600 !text-white shadow-md shadow-blue-600/30'
                   : 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
               }`}
             >

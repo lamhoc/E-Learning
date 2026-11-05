@@ -74,54 +74,50 @@ export function StudentAssignments({ assignments }: StudentAssignmentsProps) {
       {/* Thanh lọc trạng thái */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-[#111C2D] p-3 rounded-xl border border-slate-200 dark:border-slate-800">
         <div className="flex flex-wrap items-center gap-1.5">
-          <Button
-            size="sm"
-            variant={filter === 'all' ? 'default' : 'ghost'}
+          <button
+            type="button"
             onClick={() => setFilter('all')}
-            className={
+            className={`rounded-full px-3.5 py-1 text-xs font-semibold transition-all duration-200 ${
               filter === 'all'
-                ? 'bg-primary hover:bg-primary/90 text-white text-xs h-8'
-                : 'text-slate-600 hover:text-slate-900 text-xs h-8'
-            }
+                ? '!bg-blue-600 !text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400/40'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-800/70'
+            }`}
           >
             Tất cả ({assignments.length})
-          </Button>
-          <Button
-            size="sm"
-            variant={filter === 'pending' ? 'default' : 'ghost'}
+          </button>
+          <button
+            type="button"
             onClick={() => setFilter('pending')}
-            className={
+            className={`rounded-full px-3.5 py-1 text-xs font-semibold transition-all duration-200 ${
               filter === 'pending'
-                ? 'bg-primary hover:bg-primary/90 text-white text-xs h-8'
-                : 'text-slate-600 hover:text-slate-900 text-xs h-8'
-            }
+                ? '!bg-blue-600 !text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400/40'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-800/70'
+            }`}
           >
             Chưa nộp ({pendingCount})
-          </Button>
-          <Button
-            size="sm"
-            variant={filter === 'submitted' ? 'default' : 'ghost'}
+          </button>
+          <button
+            type="button"
             onClick={() => setFilter('submitted')}
-            className={
+            className={`rounded-full px-3.5 py-1 text-xs font-semibold transition-all duration-200 ${
               filter === 'submitted'
-                ? 'bg-primary hover:bg-primary/90 text-white text-xs h-8'
-                : 'text-slate-600 hover:text-slate-900 text-xs h-8'
-            }
+                ? '!bg-blue-600 !text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400/40'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-800/70'
+            }`}
           >
             Chờ chấm ({assignments.length - pendingCount - gradedCount})
-          </Button>
-          <Button
-            size="sm"
-            variant={filter === 'graded' ? 'default' : 'ghost'}
+          </button>
+          <button
+            type="button"
             onClick={() => setFilter('graded')}
-            className={
+            className={`rounded-full px-3.5 py-1 text-xs font-semibold transition-all duration-200 ${
               filter === 'graded'
-                ? 'bg-primary hover:bg-primary/90 text-white text-xs h-8'
-                : 'text-slate-600 hover:text-slate-900 text-xs h-8'
-            }
+                ? '!bg-blue-600 !text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400/40'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-800/70'
+            }`}
           >
             Đã có điểm ({gradedCount})
-          </Button>
+          </button>
         </div>
 
         <div className="text-xs text-slate-500 font-medium">

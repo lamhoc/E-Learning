@@ -13,22 +13,25 @@
 - [x] **Phase 35**: Sửa triệt để lỗi chữ bị mờ / tàng hình trong Chế độ Tối (Dark Mode)
 - [x] **Phase 36**: Làm nổi bật màu xanh cho Tab đang chọn ("Duyệt hồ sơ" & "Phân công môn học") tại `/admin/teacher-access`
 - [x] **Phase 37 (Commit `9c0e5fe`)**: Nâng cấp phòng thi trực tuyến (Shuffle đề deterministic, Fullscreen Lockdown, Camera Proctoring)
-- [x] **Phase 38**: Thống kê đào tạo (Learning Analytics), Phân tích chất lượng câu hỏi (Item Analysis) & Xuất bảng điểm Excel
-  - [x] **Mục tiêu 1 (Thư viện Xuất Bảng Điểm Excel/CSV `lib/excel-export.ts`)**:
-    - Xây dựng tiện ích xuất file SpreadsheetML (`.xlsx` / `.xls`) với header định dạng thương hiệu LHU, đường viền bảng, và định dạng số thập phân.
-    - Xây dựng tiện ích xuất file CSV kèm tiền tố UTF-8 BOM (`\uFEFF`) để Microsoft Excel hiển thị 100% tiếng Việt có dấu.
-    - Đảm bảo đầy đủ các cột: STT, Mã SV (MSSV), Họ và tên, Email, Lớp, Điểm Trắc nghiệm, Điểm Tự luận, Tổng điểm, Thời gian nộp bài, Số lần vi phạm quy chế, Trạng thái chấm.
-  - [x] **Mục tiêu 2 (Backend Analytics & Phân tích Câu hỏi `lib/teacher-exam-analytics.ts`)**:
-    - Truy vấn bổ sung tên Lớp sinh viên (`class_memberships`), số lần vi phạm phòng thi (`exam_proctoring_logs`), và trạng thái chấm điểm chi tiết.
-    - Tính toán các chỉ số thống kê mở rộng: Điểm trung bình (Mean), Điểm trung vị (Median), Điểm cao nhất (Max), Điểm thấp nhất (Min), Tỉ lệ Đạt (Pass Rate >= 5.0).
-    - Tính toán chỉ số Phân tích Câu hỏi (Question Item Analysis): Độ khó $P$, Độ phân biệt $D$ theo nhóm 27% điểm cao / 27% điểm thấp, gán nhãn tự động (`Câu quá dễ`, `Câu chuẩn (Phân hóa tốt)`, `Câu khó / Cần xem lại`).
-  - [x] **Mục tiêu 3 (Giao diện Thống kê Đề thi `/teacher/exams/[examId]`)**:
-    - Thêm nút Xuất Excel (`.xlsx`) & Xuất CSV (`.csv`) tại giao diện.
-    - Cải tiến biểu đồ Recharts Phổ điểm: Cột phổ điểm histogram, đường trung bình Mean, trung vị Median, hỗ trợ Dark Mode và Light Mode tự động.
-    - Bổ sung Tab / Khu vực **"Phân tích Chất lượng Đề thi (Learning Analytics)"** với Bảng phân tích từng câu hỏi trực quan.
-  - [x] **Mục tiêu 4 (Giao diện Chấm thi `/teacher/grading`)**:
-    - Bổ sung trường email, lớp, điểm TN/TL trong hàng đợi chấm thi (`lib/teacher-grading.ts`).
-    - Thêm nút **"Xuất Bảng Điểm Excel (.xlsx)"** và **"Xuất CSV"** cho giảng viên xuất kết quả chấm toàn diện.
-  - [x] **Mục tiêu 5 (Kiểm thử & Nghiệm thu)**:
-    - Chạy `npx tsc --noEmit` và `cmd /c npm run build` kiểm tra 100% không có lỗi.
-    - Tạo commit cục bộ an toàn.
+- [x] **Phase 38 (Commit `15aac82`)**: Thống kê đào tạo (Learning Analytics), Phân tích chất lượng câu hỏi (Item Analysis) & Xuất bảng điểm Excel
+- [x] **Phase 39**: Đồng bộ màu xanh Active cho Thanh Tab Trang Chấm Bài Thi & Toàn bộ Tab Lọc trên Hệ thống
+  - [x] **Mục tiêu 1 (Component Tabs Gốc `components/ui/tabs.tsx`)**:
+    - Nâng cấp `TabsTrigger` mặc định: Áp dụng style active màu xanh `data-[selected]:!bg-blue-600 data-[selected]:!text-white data-[state=active]:!bg-blue-600 data-[state=active]:!text-white data-[selected]:shadow-md data-[selected]:shadow-blue-600/30` hỗ trợ cả Base UI (`data-[selected]`) và Radix UI (`data-[state=active]`).
+  - [x] **Mục tiêu 2 (Trang Chấm Bài Thi `components/teacher/grading-queue-client.tsx`)**:
+    - Chuẩn hóa khung bọc `TabsList`: `inline-flex items-center gap-1.5 rounded-full bg-slate-200/80 dark:bg-[#111C2D] p-1.5 border border-slate-300/80 dark:border-slate-800`.
+    - Trạng thái Active: `!bg-blue-600 !text-white font-semibold shadow-md shadow-blue-600/30 ring-1 ring-blue-400/40 rounded-full px-4 py-2`.
+    - Badge đếm số lượng: Tab "Chờ chấm điểm" dùng pill nổi bật `bg-amber-400 text-slate-950 font-bold px-2 py-0.5 rounded-full text-xs`; tab "Đã chấm xong" khi active dùng `bg-white text-blue-700 font-bold px-2 py-0.5 rounded-full text-xs`.
+    - Icon bên trong tab active tự động chuyển sang `text-white`.
+  - [x] **Mục tiêu 3 (Trang Thống kê Đề thi `components/teacher/exam-analytics-client.tsx`)**:
+    - Đồng bộ thanh chuyển tab chính (Phổ điểm / Item Analysis / Bảng điểm) với style chuẩn Admin (`group`, `data-[selected]`, `aria-selected`).
+    - Nâng cấp bộ lọc loại câu hỏi (Tất cả / Trắc nghiệm / Tự luận / Cần xem lại) và bộ lọc kết quả (Tất cả / Đạt / Không đạt) sang active màu xanh dương.
+  - [x] **Mục tiêu 4 (Trang Ngân hàng Câu hỏi `components/teacher/question-manager.tsx`)**:
+    - Nâng cấp cụm lọc loại câu hỏi (`Tất cả` | `Trắc nghiệm` | `Tự luận`) sang active màu xanh dương nổi bật `!bg-blue-600 !text-white shadow-md shadow-blue-600/30 font-semibold`.
+  - [x] **Mục tiêu 5 (Các Trang Quản lý & Học tập Khác)**:
+    - Quản lý Sinh viên (`components/admin/student-table-client.tsx`): Lọc Tất cả / Hoạt động / Bị khóa.
+    - Quản lý Môn học (`app/admin/subjects/subjects-manager-client.tsx`): Lọc Tất cả / Đang mở / Lưu trữ.
+    - Bài tập Sinh viên (`components/student/student-assignments.tsx`): Lọc Tất cả / Chưa nộp / Chờ chấm / Đã có điểm.
+    - Tài liệu học tập (`components/teacher/class-material-list.tsx`, `components/student/student-class-materials.tsx`, `components/teacher/teacher-materials-client.tsx`): Lọc Lớp & Tuần học.
+  - [x] **Mục tiêu 6 (Kiểm thử & Nghiệm thu)**:
+    - Chạy `npx tsc --noEmit` & `npm run build` đảm bảo 100% không có lỗi.
+    - Tạo commit cục bộ an toàn (không push).

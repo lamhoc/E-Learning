@@ -403,14 +403,14 @@ export function SubjectsManagerClient({
           </div>
 
           {/* Status Filter Buttons */}
-          <div className="flex rounded-lg border border-border bg-muted/40 p-0.5">
+          <div className="flex rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 p-0.5">
             <button
               type="button"
               onClick={() => setStatusFilter('all')}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+              className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
                 statusFilter === 'all'
-                  ? 'bg-card text-foreground shadow-xs font-semibold dark:bg-[#111C2D]'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? '!bg-blue-600 !text-white shadow-md shadow-blue-600/30'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Tất cả ({totalSubjects})
@@ -418,10 +418,10 @@ export function SubjectsManagerClient({
             <button
               type="button"
               onClick={() => setStatusFilter('active')}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+              className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
                 statusFilter === 'active'
-                  ? 'bg-card text-foreground shadow-xs font-semibold dark:bg-[#111C2D]'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? '!bg-blue-600 !text-white shadow-md shadow-blue-600/30'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Đang mở ({activeCount})
@@ -429,10 +429,10 @@ export function SubjectsManagerClient({
             <button
               type="button"
               onClick={() => setStatusFilter('archived')}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+              className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
                 statusFilter === 'archived'
-                  ? 'bg-card text-foreground shadow-xs font-semibold dark:bg-[#111C2D]'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? '!bg-amber-600 !text-white shadow-md shadow-amber-600/30'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Lưu trữ ({archivedCount})

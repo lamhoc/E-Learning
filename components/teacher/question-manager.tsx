@@ -285,10 +285,10 @@ export function QuestionManager({
                 <button
                   type="button"
                   onClick={() => setSelectedType('all')}
-                  className={`rounded px-2.5 py-1 text-xs font-medium transition ${
+                  className={`rounded px-2.5 py-1 text-xs font-semibold transition ${
                     selectedType === 'all'
-                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-semibold'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      ? '!bg-blue-600 !text-white shadow-md shadow-blue-600/30'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   Tất cả ({totalCount})
@@ -296,10 +296,10 @@ export function QuestionManager({
                 <button
                   type="button"
                   onClick={() => setSelectedType('multiple_choice')}
-                  className={`rounded px-2.5 py-1 text-xs font-medium transition ${
+                  className={`rounded px-2.5 py-1 text-xs font-semibold transition ${
                     selectedType === 'multiple_choice'
-                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-semibold'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      ? '!bg-blue-600 !text-white shadow-md shadow-blue-600/30'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   Trắc nghiệm ({mcCount})
@@ -307,10 +307,10 @@ export function QuestionManager({
                 <button
                   type="button"
                   onClick={() => setSelectedType('essay')}
-                  className={`rounded px-2.5 py-1 text-xs font-medium transition ${
+                  className={`rounded px-2.5 py-1 text-xs font-semibold transition ${
                     selectedType === 'essay'
-                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-semibold'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      ? '!bg-blue-600 !text-white shadow-md shadow-blue-600/30'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   Tự luận ({essayCount})

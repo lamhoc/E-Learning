@@ -111,9 +111,9 @@ export function ClassMaterialList({ classId, materials }: ClassMaterialListProps
           <button
             type="button"
             onClick={() => setSelectedWeek('all')}
-            className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
+            className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
               selectedWeek === 'all'
-                ? 'bg-emerald-700 dark:bg-emerald-600 text-white'
+                ? '!bg-blue-600 !text-white shadow-md shadow-blue-600/30'
                 : 'border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
             }`}
           >
@@ -124,9 +124,9 @@ export function ClassMaterialList({ classId, materials }: ClassMaterialListProps
               key={week}
               type="button"
               onClick={() => setSelectedWeek(week)}
-              className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
                 selectedWeek === week
-                  ? 'bg-emerald-700 dark:bg-emerald-600 text-white'
+                  ? '!bg-blue-600 !text-white shadow-md shadow-blue-600/30'
                   : 'border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
               }`}
             >

@@ -236,32 +236,35 @@ export function ExamAnalyticsClient({
       {/* ── Tabs Navigation & Action Toolbar ── */}
       <Tabs defaultValue="chart" className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <TabsList className="bg-slate-200/80 dark:bg-[#111C2D] p-1.5 rounded-full border border-slate-300/80 dark:border-slate-800">
+          <TabsList className="inline-flex items-center gap-1.5 rounded-full bg-slate-200/80 dark:bg-[#111C2D] p-1.5 border border-slate-300/80 dark:border-slate-800 w-fit h-auto">
             <TabsTrigger
               value="chart"
-              className="gap-1.5 text-xs rounded-full data-[state=active]:!bg-blue-600 data-[state=active]:!text-white data-[state=active]:shadow-md data-[state=active]:shadow-blue-600/30 transition-all"
+              className="group gap-1.5 text-xs font-semibold px-4 py-2 rounded-full cursor-pointer transition-all duration-200 text-slate-600 hover:text-slate-900 hover:bg-slate-300/50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/70 data-[selected]:!bg-blue-600 data-[selected]:!text-white data-[selected]:shadow-md data-[selected]:shadow-blue-600/30 data-[state=active]:!bg-blue-600 data-[state=active]:!text-white data-[state=active]:shadow-md data-[state=active]:shadow-blue-600/30 aria-selected:!bg-blue-600 aria-selected:!text-white"
             >
-              <BarChart3 className="size-3.5" />
+              <BarChart3 className="size-3.5 group-data-[selected]:text-white group-data-[state=active]:text-white group-aria-selected:text-white" />
               <span>Phổ điểm Histogram</span>
             </TabsTrigger>
             <TabsTrigger
               value="item-analysis"
-              className="gap-1.5 text-xs rounded-full data-[state=active]:!bg-blue-600 data-[state=active]:!text-white data-[state=active]:shadow-md data-[state=active]:shadow-blue-600/30 transition-all"
+              className="group gap-1.5 text-xs font-semibold px-4 py-2 rounded-full cursor-pointer transition-all duration-200 text-slate-600 hover:text-slate-900 hover:bg-slate-300/50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/70 data-[selected]:!bg-blue-600 data-[selected]:!text-white data-[selected]:shadow-md data-[selected]:shadow-blue-600/30 data-[state=active]:!bg-blue-600 data-[state=active]:!text-white data-[state=active]:shadow-md data-[state=active]:shadow-blue-600/30 aria-selected:!bg-blue-600 aria-selected:!text-white"
             >
-              <Sparkles className="size-3.5" />
+              <Sparkles className="size-3.5 group-data-[selected]:text-white group-data-[state=active]:text-white group-aria-selected:text-white" />
               <span>Phân tích Câu hỏi (Item Analysis)</span>
               {itemAnalysis.length > 0 && (
-                <span className="ml-1 rounded-full px-1.5 py-0.2 text-[10px] font-mono bg-white/20">
+                <span className="grid size-5 place-items-center rounded-full bg-slate-300 dark:bg-slate-700/80 text-slate-700 dark:text-slate-300 text-[10px] font-bold group-data-[selected]:bg-white group-data-[selected]:text-blue-700 group-data-[state=active]:bg-white group-data-[state=active]:text-blue-700 group-aria-selected:bg-white group-aria-selected:text-blue-700 shadow-xs transition-colors">
                   {itemAnalysis.length}
                 </span>
               )}
             </TabsTrigger>
             <TabsTrigger
               value="table"
-              className="gap-1.5 text-xs rounded-full data-[state=active]:!bg-blue-600 data-[state=active]:!text-white data-[state=active]:shadow-md data-[state=active]:shadow-blue-600/30 transition-all"
+              className="group gap-1.5 text-xs font-semibold px-4 py-2 rounded-full cursor-pointer transition-all duration-200 text-slate-600 hover:text-slate-900 hover:bg-slate-300/50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/70 data-[selected]:!bg-blue-600 data-[selected]:!text-white data-[selected]:shadow-md data-[selected]:shadow-blue-600/30 data-[state=active]:!bg-blue-600 data-[state=active]:!text-white data-[state=active]:shadow-md data-[state=active]:shadow-blue-600/30 aria-selected:!bg-blue-600 aria-selected:!text-white"
             >
-              <TableIcon className="size-3.5" />
-              <span>Bảng điểm Thí sinh ({studentResults.length})</span>
+              <TableIcon className="size-3.5 group-data-[selected]:text-white group-data-[state=active]:text-white group-aria-selected:text-white" />
+              <span>Bảng điểm Thí sinh</span>
+              <span className="grid size-5 place-items-center rounded-full bg-slate-300 dark:bg-slate-700/80 text-slate-700 dark:text-slate-300 text-[10px] font-bold group-data-[selected]:bg-white group-data-[selected]:text-blue-700 group-data-[state=active]:bg-white group-data-[state=active]:text-blue-700 group-aria-selected:bg-white group-aria-selected:text-blue-700 shadow-xs transition-colors">
+                {studentResults.length}
+              </span>
             </TabsTrigger>
           </TabsList>
 
@@ -341,10 +344,10 @@ export function ExamAnalyticsClient({
                   <button
                     type="button"
                     onClick={() => setItemTypeFilter('all')}
-                    className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                    className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
                       itemTypeFilter === 'all'
-                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-semibold'
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        ? '!bg-blue-600 !text-white shadow-md shadow-blue-600/30'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     Tất cả ({itemAnalysis.length})
@@ -352,10 +355,10 @@ export function ExamAnalyticsClient({
                   <button
                     type="button"
                     onClick={() => setItemTypeFilter('multiple_choice')}
-                    className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                    className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
                       itemTypeFilter === 'multiple_choice'
-                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-semibold'
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        ? '!bg-blue-600 !text-white shadow-md shadow-blue-600/30'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     Trắc nghiệm ({exam.mcCount})
@@ -363,10 +366,10 @@ export function ExamAnalyticsClient({
                   <button
                     type="button"
                     onClick={() => setItemTypeFilter('essay')}
-                    className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                    className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
                       itemTypeFilter === 'essay'
-                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-semibold'
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        ? '!bg-blue-600 !text-white shadow-md shadow-blue-600/30'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     Tự luận ({exam.essayCount})
@@ -374,10 +377,10 @@ export function ExamAnalyticsClient({
                   <button
                     type="button"
                     onClick={() => setItemTypeFilter('review')}
-                    className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                    className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
                       itemTypeFilter === 'review'
-                        ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200 shadow-2xs font-semibold'
-                        : 'text-rose-600 dark:text-rose-400 hover:text-rose-800 dark:hover:text-white'
+                        ? '!bg-rose-600 !text-white shadow-md shadow-rose-600/30'
+                        : 'text-rose-600 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-200'
                     }`}
                   >
                     Cần xem lại
@@ -526,10 +529,10 @@ export function ExamAnalyticsClient({
                     <button
                       type="button"
                       onClick={() => setResultFilter('all')}
-                      className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                      className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
                         resultFilter === 'all'
-                          ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-semibold'
-                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                          ? '!bg-blue-600 !text-white shadow-md shadow-blue-600/30'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       Tất cả ({studentResults.length})
@@ -537,10 +540,10 @@ export function ExamAnalyticsClient({
                     <button
                       type="button"
                       onClick={() => setResultFilter('passed')}
-                      className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                      className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
                         resultFilter === 'passed'
-                          ? 'bg-white dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 shadow-2xs font-semibold'
-                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                          ? '!bg-blue-600 !text-white shadow-md shadow-blue-600/30'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       Đạt ({metrics.passedCount})
@@ -548,10 +551,10 @@ export function ExamAnalyticsClient({
                     <button
                       type="button"
                       onClick={() => setResultFilter('failed')}
-                      className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                      className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
                         resultFilter === 'failed'
-                          ? 'bg-white dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 shadow-2xs font-semibold'
-                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                          ? '!bg-rose-600 !text-white shadow-md shadow-rose-600/30'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       Không đạt ({studentResults.length - metrics.passedCount})

@@ -212,10 +212,10 @@ export function StudentTableClient({
                 <button
                   type="button"
                   onClick={() => setStatusFilter('all')}
-                  className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                  className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
                     statusFilter === 'all'
-                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-semibold'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      ? '!bg-blue-600 !text-white shadow-md shadow-blue-600/30'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   Tất cả ({totalCount})
@@ -223,10 +223,10 @@ export function StudentTableClient({
                 <button
                   type="button"
                   onClick={() => setStatusFilter('active')}
-                  className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                  className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
                     statusFilter === 'active'
-                      ? 'bg-white dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 shadow-2xs font-semibold'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      ? '!bg-blue-600 !text-white shadow-md shadow-blue-600/30'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   Hoạt động ({activeCount})
@@ -234,10 +234,10 @@ export function StudentTableClient({
                 <button
                   type="button"
                   onClick={() => setStatusFilter('blocked')}
-                  className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                  className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
                     statusFilter === 'blocked'
-                      ? 'bg-white dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 shadow-2xs font-semibold'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      ? '!bg-rose-600 !text-white shadow-md shadow-rose-600/30'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   Bị khóa ({blockedCount})
