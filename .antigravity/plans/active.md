@@ -12,20 +12,23 @@
 - [x] **Phase 34 (Commit `0b7eb11`)**: Xóa khung "Thêm môn học mới" tại trang Quản trị Giảng viên & Phân môn, căn chỉnh Layout w-full cho Card Lớp học
 - [x] **Phase 35**: Sửa triệt để lỗi chữ bị mờ / tàng hình trong Chế độ Tối (Dark Mode)
 - [x] **Phase 36**: Làm nổi bật màu xanh cho Tab đang chọn ("Duyệt hồ sơ" & "Phân công môn học") tại `/admin/teacher-access`
-- [x] **Phase 37**: Nâng cấp phòng thi trực tuyến (Shuffle đề, Fullscreen Lockdown, Camera Proctoring)
-  - [x] **Mục tiêu 1 (Deterministic Seeded Shuffle)**:
-    - Tạo `lib/exam-shuffle.ts` với PRNG xác định (Mulberry32) băm theo `attemptId` và `questionId`.
-    - Xáo trộn thứ tự câu hỏi và thứ tự phương án A-B-C-D cho từng thí sinh.
-    - Bảo toàn đáp án khi F5 reload và gửi đúng `originalKey` về Server để chấm điểm tự động chính xác 100%.
-  - [x] **Mục tiêu 2 (Fullscreen Lockdown)**:
-    - Màn hình khởi động phòng thi yêu cầu kích hoạt `document.documentElement.requestFullscreen()`.
-    - Bắt sự kiện `fullscreenchange`: ghi nhận vi phạm `fullscreen_exit`, cảnh báo modal bắt quay lại toàn màn hình.
-    - Chạm ngưỡng 3 lần vi phạm: Tự động khóa và nộp bài thi ngay lập tức.
-  - [x] **Mục tiêu 3 (Webcam AI Proctoring)**:
-    - Component `components/student/exam-webcam-proctor.tsx` hiển thị video PiP góc dưới kèm trạng thái giám sát AI.
-    - Thu nhỏ gọn tránh che đề bài; định kỳ 60s quét độ sáng canvas phát hiện camera bị che tối đen.
-    - Ghi log vi phạm `camera_blocked` vào CSDL `exam_proctoring_logs`.
-  - [x] **Mục tiêu 4 (Giảng viên đối soát & Nghiệm thu)**:
-    - Hiển thị chi tiết vi phạm (rời tab, thoát toàn màn hình, che camera) trên trang chấm thi `/teacher/grading/[attemptId]`.
-    - Thẻ thông tin an ninh phòng thi trong `components/teacher/exam-create-form.tsx`.
-    - Kiểm tra `npx tsc --noEmit` & `npm run build` đạt 100% không lỗi và tạo commit cục bộ.
+- [x] **Phase 37 (Commit `9c0e5fe`)**: Nâng cấp phòng thi trực tuyến (Shuffle đề deterministic, Fullscreen Lockdown, Camera Proctoring)
+- [x] **Phase 38**: Thống kê đào tạo (Learning Analytics), Phân tích chất lượng câu hỏi (Item Analysis) & Xuất bảng điểm Excel
+  - [x] **Mục tiêu 1 (Thư viện Xuất Bảng Điểm Excel/CSV `lib/excel-export.ts`)**:
+    - Xây dựng tiện ích xuất file SpreadsheetML (`.xlsx` / `.xls`) với header định dạng thương hiệu LHU, đường viền bảng, và định dạng số thập phân.
+    - Xây dựng tiện ích xuất file CSV kèm tiền tố UTF-8 BOM (`\uFEFF`) để Microsoft Excel hiển thị 100% tiếng Việt có dấu.
+    - Đảm bảo đầy đủ các cột: STT, Mã SV (MSSV), Họ và tên, Email, Lớp, Điểm Trắc nghiệm, Điểm Tự luận, Tổng điểm, Thời gian nộp bài, Số lần vi phạm quy chế, Trạng thái chấm.
+  - [x] **Mục tiêu 2 (Backend Analytics & Phân tích Câu hỏi `lib/teacher-exam-analytics.ts`)**:
+    - Truy vấn bổ sung tên Lớp sinh viên (`class_memberships`), số lần vi phạm phòng thi (`exam_proctoring_logs`), và trạng thái chấm điểm chi tiết.
+    - Tính toán các chỉ số thống kê mở rộng: Điểm trung bình (Mean), Điểm trung vị (Median), Điểm cao nhất (Max), Điểm thấp nhất (Min), Tỉ lệ Đạt (Pass Rate >= 5.0).
+    - Tính toán chỉ số Phân tích Câu hỏi (Question Item Analysis): Độ khó $P$, Độ phân biệt $D$ theo nhóm 27% điểm cao / 27% điểm thấp, gán nhãn tự động (`Câu quá dễ`, `Câu chuẩn (Phân hóa tốt)`, `Câu khó / Cần xem lại`).
+  - [x] **Mục tiêu 3 (Giao diện Thống kê Đề thi `/teacher/exams/[examId]`)**:
+    - Thêm nút Xuất Excel (`.xlsx`) & Xuất CSV (`.csv`) tại giao diện.
+    - Cải tiến biểu đồ Recharts Phổ điểm: Cột phổ điểm histogram, đường trung bình Mean, trung vị Median, hỗ trợ Dark Mode và Light Mode tự động.
+    - Bổ sung Tab / Khu vực **"Phân tích Chất lượng Đề thi (Learning Analytics)"** với Bảng phân tích từng câu hỏi trực quan.
+  - [x] **Mục tiêu 4 (Giao diện Chấm thi `/teacher/grading`)**:
+    - Bổ sung trường email, lớp, điểm TN/TL trong hàng đợi chấm thi (`lib/teacher-grading.ts`).
+    - Thêm nút **"Xuất Bảng Điểm Excel (.xlsx)"** và **"Xuất CSV"** cho giảng viên xuất kết quả chấm toàn diện.
+  - [x] **Mục tiêu 5 (Kiểm thử & Nghiệm thu)**:
+    - Chạy `npx tsc --noEmit` và `cmd /c npm run build` kiểm tra 100% không có lỗi.
+    - Tạo commit cục bộ an toàn.

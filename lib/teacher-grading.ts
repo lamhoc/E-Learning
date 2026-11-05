@@ -327,10 +327,14 @@ export type TeacherGradingQueueItem = {
   submittedAt: string | null;
   studentName: string;
   studentCode: string | null;
+  studentEmail: string;
+  className: string;
   examTitle: string;
   subjectName: string;
   subjectCode: string;
   essayCount: number;
+  mcScore: number | null;
+  essayScore: number | null;
   totalScore: number | null;
   releasedAt: string | null;
   tabSwitchCount: number;
@@ -443,28 +447,61 @@ export async function getTeacherGradingQueue(): Promise<TeacherGradingQueueData>
     };
   }
 
-  // 3. Lấy thông tin vi phạm tab switch proctoring nếu có
+  // 3. Lấy thông tin vi phạm tab switch proctoring, emails, lớp học và điểm tự luận
   const attemptIds = rawAttempts.map((a) => a.id);
+  const studentIds = Array.from(new Set(rawAttempts.map((a) => a.student_id)));
+
+  const [procLogsRes, authUsersRes, membershipsRes, gradesRes] = await Promise.all([
+    attemptIds.length
+      ? adminClient
+          .from('exam_proctoring_logs')
+          .select('attempt_id, switch_count')
+          .in('attempt_id', attemptIds)
+      : { data: [] },
+    adminClient.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+    studentIds.length
+      ? adminClient
+          .from('class_memberships')
+          .select('student_id, class:classes(name)')
+          .in('student_id', studentIds)
+      : { data: [] },
+    attemptIds.length
+      ? adminClient
+          .from('student_answer_grades')
+          .select('attempt_id, awarded_points')
+          .in('attempt_id', attemptIds)
+      : { data: [] },
+  ]);
+
   const proctoringMap = new Map<string, number>();
-
-  if (attemptIds.length > 0) {
-    try {
-      const { data: procLogs } = await adminClient
-        .from('exam_proctoring_logs')
-        .select('attempt_id, switch_count')
-        .in('attempt_id', attemptIds);
-
-      if (procLogs) {
-        for (const log of procLogs) {
-          const current = proctoringMap.get(log.attempt_id) || 0;
-          if (log.switch_count > current) {
-            proctoringMap.set(log.attempt_id, log.switch_count);
-          }
-        }
-      }
-    } catch {
-      // Bỏ qua nếu bảng proctoring logs chưa tồn tại
+  for (const log of procLogsRes.data ?? []) {
+    const current = proctoringMap.get(log.attempt_id) || 0;
+    const count = Number(log.switch_count || 0);
+    if (count > current) {
+      proctoringMap.set(log.attempt_id, count);
     }
+  }
+
+  const authEmailMap = new Map((authUsersRes.data?.users ?? []).map((u) => [u.id, u.email ?? '']));
+
+  const studentClassMap = new Map<string, string[]>();
+  for (const m of membershipsRes.data ?? []) {
+    const c = m.class as unknown as { name: string } | Array<{ name: string }> | null;
+    const className = Array.isArray(c) ? c[0]?.name : c?.name;
+    if (className) {
+      const list = studentClassMap.get(m.student_id) || [];
+      if (!list.includes(className)) {
+        list.push(className);
+        studentClassMap.set(m.student_id, list);
+      }
+    }
+  }
+
+  // Điểm tự luận theo attempt
+  const essayScoresMap = new Map<string, number>();
+  for (const g of gradesRes.data ?? []) {
+    const cur = essayScoresMap.get(g.attempt_id) || 0;
+    essayScoresMap.set(g.attempt_id, cur + Number(g.awarded_points || 0));
   }
 
   const pendingAttempts: TeacherGradingQueueItem[] = [];
@@ -475,19 +512,35 @@ export async function getTeacherGradingQueue(): Promise<TeacherGradingQueueData>
     const student = Array.isArray(a.student) ? a.student[0] : a.student;
     const result = Array.isArray(a.result) ? a.result[0] : a.result;
 
+    const totalScoreNum = result && result.total_score !== null ? Number(result.total_score) : null;
+    const essayScoreNum = essayScoresMap.has(a.id) ? Number(essayScoresMap.get(a.id)!.toFixed(2)) : (examInfo?.essayCount === 0 ? 0 : null);
+    let mcScoreNum: number | null = null;
+    if (totalScoreNum !== null && essayScoreNum !== null) {
+      mcScoreNum = Number(Math.max(0, totalScoreNum - essayScoreNum).toFixed(2));
+    } else if (totalScoreNum !== null && (examInfo?.essayCount ?? 0) === 0) {
+      mcScoreNum = totalScoreNum;
+    }
+
+    const classesList = studentClassMap.get(a.student_id) || [];
+    const className = classesList.length > 0 ? classesList.join(', ') : 'Chưa xếp lớp';
+
     const item: TeacherGradingQueueItem = {
       attemptId: a.id,
       examId: a.exam_id,
       attemptNo: a.attempt_no,
       status: a.status as 'pending_grading' | 'completed',
       submittedAt: a.submitted_at,
-      studentName: student?.full_name || 'Sinh viên',
+      studentName: student?.full_name ? sanitizeVietnameseText(student.full_name) : 'Sinh viên',
       studentCode: student?.student_code || null,
+      studentEmail: authEmailMap.get(a.student_id) || 'Chưa xác thực email',
+      className,
       examTitle: examInfo?.title || 'Đề thi',
       subjectName: examInfo?.subjectName || 'Môn học',
       subjectCode: examInfo?.subjectCode || '',
       essayCount: examInfo?.essayCount || 0,
-      totalScore: result ? Number(result.total_score) : null,
+      mcScore: mcScoreNum,
+      essayScore: essayScoreNum,
+      totalScore: totalScoreNum,
       releasedAt: result?.released_at || null,
       tabSwitchCount: proctoringMap.get(a.id) || 0,
     };

@@ -6,11 +6,14 @@ import {
   AlertTriangle,
   ArrowRight,
   CheckCircle2,
+  Download,
   ExternalLink,
   FileCheck,
   FileQuestion,
+  FileSpreadsheet,
   PenTool,
   Search,
+  ShieldAlert,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -25,21 +28,24 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { TeacherGradingQueueData } from '@/lib/teacher-grading';
+import {
+  exportGradeReportToCsv,
+  exportGradeReportToExcel,
+  type GradeReportRow,
+} from '@/lib/excel-export';
+import type { TeacherGradingQueueData, TeacherGradingQueueItem } from '@/lib/teacher-grading';
 
 export function GradingQueueClient({
   data,
 }: {
   data: TeacherGradingQueueData;
 }) {
-  const { pendingAttempts, completedAttempts, totalPendingCount, totalCompletedCount } = data;
+  const { pendingAttempts, completedAttempts, totalPendingCount, totalCompletedCount, teacherName } = data;
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTab, setSelectedTab] = useState<'pending' | 'completed'>('pending');
 
-  const filterItems = <T extends { studentName: string; studentCode: string | null; examTitle: string; subjectName: string }>(
-    items: T[]
-  ) => {
+  const filterItems = (items: TeacherGradingQueueItem[]) => {
     if (!searchTerm.trim()) return items;
     const q = searchTerm.toLowerCase().trim();
     return items.filter(
@@ -47,6 +53,8 @@ export function GradingQueueClient({
         item.studentName.toLowerCase().includes(q) ||
         item.examTitle.toLowerCase().includes(q) ||
         item.subjectName.toLowerCase().includes(q) ||
+        item.className.toLowerCase().includes(q) ||
+        item.studentEmail.toLowerCase().includes(q) ||
         (item.studentCode && item.studentCode.toLowerCase().includes(q))
     );
   };
@@ -67,6 +75,49 @@ export function GradingQueueClient({
     } catch {
       return isoString;
     }
+  };
+
+  // Chuẩn bị dữ liệu xuất báo cáo bảng điểm cho trang chấm thi
+  const prepareExportRows = (items: TeacherGradingQueueItem[]): GradeReportRow[] => {
+    return items.map((item, index) => ({
+      stt: index + 1,
+      studentCode: item.studentCode || '',
+      studentName: item.studentName,
+      studentEmail: item.studentEmail || '',
+      className: item.className || '—',
+      mcScore: item.mcScore !== null ? item.mcScore : '—',
+      essayScore: item.essayScore !== null ? item.essayScore : '—',
+      totalScore: item.totalScore !== null ? item.totalScore : 'Chờ chấm',
+      submittedAt: formatDate(item.submittedAt),
+      violationCount: item.tabSwitchCount || 0,
+      gradingStatus: item.status === 'completed' ? 'Đã chấm xong' : 'Chờ chấm tự luận',
+    }));
+  };
+
+  const handleExportExcel = () => {
+    // Xuất tất cả các bài thi hoặc theo tab hiện tại
+    const targetItems = selectedTab === 'pending' ? filteredPending : filteredCompleted;
+    const rows = prepareExportRows(targetItems);
+    exportGradeReportToExcel({
+      fileName: `BangDiem_ChamThi_${selectedTab === 'pending' ? 'ChoCham' : 'DaHoanTat'}`,
+      sheetTitle: selectedTab === 'pending' ? 'Chờ Chấm' : 'Đã Hoàn Tất',
+      metadata: {
+        examTitle: 'BÁO CÁO CHẤM THI TỰ LUẬN',
+        subjectName: selectedTab === 'pending' ? 'Danh sách chờ chấm điểm' : 'Danh sách đã chấm xong',
+        teacherName,
+        generatedAt: new Date().toLocaleString('vi-VN'),
+      },
+      rows,
+    });
+  };
+
+  const handleExportCsv = () => {
+    const targetItems = selectedTab === 'pending' ? filteredPending : filteredCompleted;
+    const rows = prepareExportRows(targetItems);
+    exportGradeReportToCsv({
+      fileName: `BangDiem_ChamThi_${selectedTab === 'pending' ? 'ChoCham' : 'DaHoanTat'}`,
+      rows,
+    });
   };
 
   return (
@@ -133,17 +184,17 @@ export function GradingQueueClient({
         </Card>
       </div>
 
-      {/* ── Tabs & Search Bar ── */}
+      {/* ── Tabs, Export & Search Bar ── */}
       <Tabs
         value={selectedTab}
         onValueChange={(val) => setSelectedTab(val as 'pending' | 'completed')}
         className="w-full space-y-4"
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <TabsList className="h-10 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl">
+          <TabsList className="bg-slate-200/80 dark:bg-[#111C2D] p-1.5 rounded-full border border-slate-300/80 dark:border-slate-800">
             <TabsTrigger
               value="pending"
-              className="gap-2 px-3 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-amber-900 dark:data-[state=active]:text-amber-300 data-[state=active]:shadow-xs text-xs"
+              className="gap-2 px-3 rounded-full text-xs data-[state=active]:!bg-blue-600 data-[state=active]:!text-white data-[state=active]:shadow-md data-[state=active]:shadow-blue-600/30 transition-all"
             >
               <PenTool className="size-3.5" />
               <span>Chờ chấm điểm</span>
@@ -155,22 +206,45 @@ export function GradingQueueClient({
             </TabsTrigger>
             <TabsTrigger
               value="completed"
-              className="gap-2 px-3 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-emerald-900 dark:data-[state=active]:text-emerald-300 data-[state=active]:shadow-xs text-xs"
+              className="gap-2 px-3 rounded-full text-xs data-[state=active]:!bg-blue-600 data-[state=active]:!text-white data-[state=active]:shadow-md data-[state=active]:shadow-blue-600/30 transition-all"
             >
               <CheckCircle2 className="size-3.5" />
               <span>Đã chấm xong ({totalCompletedCount})</span>
             </TabsTrigger>
           </TabsList>
 
-          <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
-            <Input
-              type="text"
-              placeholder="Tìm theo tên SV, MSSV, đề thi..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="h-9 pl-9 pr-3 text-xs bg-white dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-muted-foreground"
-            />
+          {/* Action Toolbar */}
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleExportExcel}
+              className="gap-1.5 bg-[#0D652D] hover:bg-[#0B5324] text-white font-medium text-xs shadow-xs"
+            >
+              <FileSpreadsheet className="size-4" />
+              <span>Xuất Bảng Điểm Excel (.xlsx)</span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleExportCsv}
+              className="gap-1.5 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs shadow-2xs"
+            >
+              <Download className="size-3.5" />
+              <span>Xuất CSV</span>
+            </Button>
+
+            <div className="relative min-w-48 sm:w-60">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+              <Input
+                type="text"
+                placeholder="Tìm tên, MSSV, lớp, đề..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="h-9 pl-9 pr-3 text-xs bg-white dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-muted-foreground"
+              />
+            </div>
           </div>
         </div>
 
@@ -187,7 +261,7 @@ export function GradingQueueClient({
                     Bài thi sinh viên đã nộp có phần tự luận cần giáo viên chấm điểm và nhập nhận xét.
                   </CardDescription>
                 </div>
-                <Badge variant="outline" className="border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-xs">
+                <Badge variant="outline" className="border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-xs font-semibold">
                   {filteredPending.length} bài cần xử lý
                 </Badge>
               </div>
@@ -209,15 +283,17 @@ export function GradingQueueClient({
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <Table>
+                  <Table className="text-xs">
                     <TableHeader className="bg-slate-50/80 dark:bg-slate-900/60">
                       <TableRow className="border-slate-200 dark:border-slate-800">
                         <TableHead className="w-12 pl-5 text-center text-slate-700 dark:text-slate-300">#</TableHead>
-                        <TableHead className="min-w-[180px] text-slate-700 dark:text-slate-300">Thí sinh</TableHead>
-                        <TableHead className="min-w-[200px] text-slate-700 dark:text-slate-300">Đề thi & Môn học</TableHead>
+                        <TableHead className="min-w-[180px] text-slate-700 dark:text-slate-300">Thí sinh & MSSV</TableHead>
+                        <TableHead className="text-slate-700 dark:text-slate-300">Lớp</TableHead>
+                        <TableHead className="min-w-[180px] text-slate-700 dark:text-slate-300">Đề thi & Môn học</TableHead>
+                        <TableHead className="text-center text-slate-700 dark:text-slate-300">Điểm TN</TableHead>
                         <TableHead className="text-center text-slate-700 dark:text-slate-300">Số câu TL</TableHead>
                         <TableHead className="text-slate-700 dark:text-slate-300">Thời gian nộp</TableHead>
-                        <TableHead className="text-slate-700 dark:text-slate-300">Giám sát thi</TableHead>
+                        <TableHead className="text-center text-slate-700 dark:text-slate-300">Vi phạm</TableHead>
                         <TableHead className="pr-5 text-right text-slate-700 dark:text-slate-300">Thao tác</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -234,15 +310,15 @@ export function GradingQueueClient({
                             <p className="font-semibold text-slate-900 dark:text-slate-100 leading-tight">
                               {item.studentName}
                             </p>
-                            {item.studentCode ? (
-                              <p className="mt-0.5 font-mono text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                                MSSV: {item.studentCode}
-                              </p>
-                            ) : (
-                              <p className="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500 italic">
-                                Chưa có MSSV
-                              </p>
-                            )}
+                            <div className="mt-0.5 flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                              {item.studentCode && <span>MSSV: {item.studentCode}</span>}
+                              <span>{item.studentEmail}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-[11px]">
+                              {item.className}
+                            </span>
                           </TableCell>
                           <TableCell>
                             <p className="font-medium text-slate-800 dark:text-slate-200 line-clamp-1">
@@ -251,6 +327,9 @@ export function GradingQueueClient({
                             <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                               {item.subjectName} ({item.subjectCode}) · Lần {item.attemptNo}
                             </p>
+                          </TableCell>
+                          <TableCell className="text-center font-mono font-semibold text-slate-700 dark:text-slate-300">
+                            {item.mcScore !== null ? item.mcScore.toFixed(2) : '—'}
                           </TableCell>
                           <TableCell className="text-center">
                             <span className="inline-flex items-center gap-1 rounded-md bg-amber-100/80 dark:bg-amber-950/60 px-2 py-0.5 text-xs font-semibold text-amber-900 dark:text-amber-300">
@@ -261,14 +340,14 @@ export function GradingQueueClient({
                           <TableCell className="text-xs text-slate-600 dark:text-slate-400">
                             {formatDate(item.submittedAt)}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="text-center">
                             {item.tabSwitchCount > 0 ? (
                               <Badge variant="outline" className="gap-1 border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 text-[11px]">
-                                <AlertTriangle className="size-3" />
-                                Rời tab {item.tabSwitchCount} lần
+                                <ShieldAlert className="size-3" />
+                                {item.tabSwitchCount} lần
                               </Badge>
                             ) : (
-                              <span className="text-xs text-slate-400 dark:text-slate-500">Bình thường</span>
+                              <span className="text-slate-400 dark:text-slate-500 font-mono text-[11px]">0</span>
                             )}
                           </TableCell>
                           <TableCell className="pr-5 text-right">
@@ -304,7 +383,7 @@ export function GradingQueueClient({
                     Xem lại kết quả chấm thi, điểm số và nhận xét đã lưu.
                   </CardDescription>
                 </div>
-                <Badge variant="outline" className="border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-xs">
+                <Badge variant="outline" className="border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-xs font-semibold">
                   {filteredCompleted.length} bài đã hoàn tất
                 </Badge>
               </div>
@@ -324,15 +403,18 @@ export function GradingQueueClient({
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <Table>
+                  <Table className="text-xs">
                     <TableHeader className="bg-slate-50/80 dark:bg-slate-900/60">
                       <TableRow className="border-slate-200 dark:border-slate-800">
                         <TableHead className="w-12 pl-5 text-center text-slate-700 dark:text-slate-300">#</TableHead>
-                        <TableHead className="min-w-[180px] text-slate-700 dark:text-slate-300">Thí sinh</TableHead>
-                        <TableHead className="min-w-[200px] text-slate-700 dark:text-slate-300">Đề thi</TableHead>
+                        <TableHead className="min-w-[180px] text-slate-700 dark:text-slate-300">Thí sinh & MSSV</TableHead>
+                        <TableHead className="text-slate-700 dark:text-slate-300">Lớp</TableHead>
+                        <TableHead className="min-w-[180px] text-slate-700 dark:text-slate-300">Đề thi</TableHead>
+                        <TableHead className="text-right text-slate-700 dark:text-slate-300">Điểm TN</TableHead>
+                        <TableHead className="text-right text-slate-700 dark:text-slate-300">Điểm TL</TableHead>
                         <TableHead className="text-right text-slate-700 dark:text-slate-300">Tổng điểm</TableHead>
                         <TableHead className="text-slate-700 dark:text-slate-300">Ngày công bố</TableHead>
-                        <TableHead className="text-slate-700 dark:text-slate-300">Giám sát thi</TableHead>
+                        <TableHead className="text-center text-slate-700 dark:text-slate-300">Vi phạm</TableHead>
                         <TableHead className="pr-5 text-right text-slate-700 dark:text-slate-300">Thao tác</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -349,11 +431,15 @@ export function GradingQueueClient({
                             <p className="font-semibold text-slate-900 dark:text-slate-100 leading-tight">
                               {item.studentName}
                             </p>
-                            {item.studentCode && (
-                              <p className="mt-0.5 font-mono text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                                MSSV: {item.studentCode}
-                              </p>
-                            )}
+                            <div className="mt-0.5 flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                              {item.studentCode && <span>MSSV: {item.studentCode}</span>}
+                              <span>{item.studentEmail}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-[11px]">
+                              {item.className}
+                            </span>
                           </TableCell>
                           <TableCell>
                             <p className="font-medium text-slate-800 dark:text-slate-200 line-clamp-1">
@@ -363,20 +449,26 @@ export function GradingQueueClient({
                               {item.subjectName} · Lần {item.attemptNo}
                             </p>
                           </TableCell>
+                          <TableCell className="text-right font-mono text-slate-700 dark:text-slate-300">
+                            {item.mcScore !== null ? item.mcScore.toFixed(2) : '—'}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-slate-700 dark:text-slate-300">
+                            {item.essayScore !== null ? item.essayScore.toFixed(2) : '—'}
+                          </TableCell>
                           <TableCell className="text-right font-mono font-bold text-sm text-emerald-700 dark:text-emerald-400">
                             {item.totalScore !== null ? item.totalScore.toFixed(2) : '—'}
                           </TableCell>
                           <TableCell className="text-xs text-slate-600 dark:text-slate-400">
                             {formatDate(item.releasedAt)}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="text-center">
                             {item.tabSwitchCount > 0 ? (
                               <Badge variant="outline" className="gap-1 border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 text-[11px]">
-                                <AlertTriangle className="size-3" />
-                                Rời tab {item.tabSwitchCount} lần
+                                <ShieldAlert className="size-3" />
+                                {item.tabSwitchCount} lần
                               </Badge>
                             ) : (
-                              <span className="text-xs text-slate-400 dark:text-slate-500">Bình thường</span>
+                              <span className="text-slate-400 dark:text-slate-500 font-mono text-[11px]">0</span>
                             )}
                           </TableCell>
                           <TableCell className="pr-5 text-right">
