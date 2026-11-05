@@ -505,6 +505,47 @@ export function ExamCreateForm({
               </div>
             </CardContent>
           </Card>
+
+          {/* AI Proctoring & Anti-Cheat Features Card */}
+          <Card className="shadow-xs border-blue-200/80 dark:border-blue-900/60 bg-blue-50/40 dark:bg-blue-950/20">
+            <CardHeader className="pb-3 border-b border-blue-100 dark:border-blue-900/40">
+              <CardTitle className="text-sm font-bold text-[#154C99] dark:text-[#60A5FA] flex items-center gap-2">
+                <CheckCircle2 className="size-4" />
+                3. Cơ chế Khảo thí & Giám sát AI
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-3.5 text-xs">
+              <div className="flex items-start gap-2.5">
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                <div>
+                  <strong className="text-slate-900 dark:text-white">Xáo trộn câu hỏi & đáp án (Shuffle):</strong>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Hệ thống tự động xáo trộn ngẫu nhiên thứ tự câu hỏi và 4 phương án A-B-C-D theo từng thí sinh (Deterministic Seeded Shuffle).
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                <div>
+                  <strong className="text-slate-900 dark:text-white">Khóa Toàn màn hình (Fullscreen Lockdown):</strong>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Bắt buộc thí sinh bật chế độ Toàn màn hình; tự động đình chỉ và nộp bài nếu vi phạm thoát tab/màn hình quá 3 lần.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                <div>
+                  <strong className="text-slate-900 dark:text-white">Giám sát Camera AI định kỳ:</strong>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Khung hình webcam hiển thị góc màn hình thi; quét độ sáng định kỳ 60s phát hiện camera bị che khuất và báo cáo khi chấm bài.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* RIGHT COLUMN: QUESTION SELECTION & SCORING */}

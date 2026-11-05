@@ -405,7 +405,7 @@ export async function logExamTabViolationAction(
     await adminClient.from('notifications').insert({
       user_id: user.id,
       title: 'Cảnh báo vi phạm quy chế thi',
-      message: `Thí sinh đã rời khỏi tab làm bài lần thứ ${violationCount} (Lý do: ${reason}).`,
+      message: `Thí sinh vi phạm lần thứ ${violationCount} (Lý do: ${{ tab_switch: 'Rời tab hoặc chuyển cửa sổ', fullscreen_exit: 'Thoát toàn màn hình', camera_blocked: 'Camera bị che khuất' }[reason] || reason}).`,
       data: {
         type: 'exam_proctoring_violation',
         attempt_id: attemptId,

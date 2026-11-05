@@ -342,24 +342,41 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
         </CardContent>
       </Card>
 
-      {/* Proctoring Warning Banner if Student Switched Tabs */}
+      {/* Proctoring Warning Banner if Student Switched Tabs / Fullscreen / Camera */}
       {data.proctoring?.hasViolations && (
-        <div className="flex items-start gap-3.5 rounded-2xl border border-red-200 bg-red-50/90 p-4 text-red-950 shadow-xs">
-          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-red-100 text-red-700">
+        <div className="flex items-start gap-3.5 rounded-2xl border border-red-200 dark:border-red-900 bg-red-50/90 dark:bg-red-950/40 p-4 text-red-950 dark:text-red-200 shadow-xs">
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-red-100 dark:bg-red-900/60 text-red-700 dark:text-red-300">
             <ShieldAlert className="size-5" />
           </span>
-          <div className="min-w-0 flex-1 space-y-1">
+          <div className="min-w-0 flex-1 space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
-              <h4 className="text-sm font-bold text-red-900">
-                Cảnh báo giám thị AI: Thí sinh đã rời khỏi tab bài thi {data.proctoring.tabSwitchCount} lần!
+              <h4 className="text-sm font-bold text-red-900 dark:text-red-200">
+                Cảnh báo giám thị AI: Thí sinh có {data.proctoring.tabSwitchCount} lượt vi phạm quy chế thi!
               </h4>
-              <Badge className="border-red-300 bg-red-100 text-red-800 text-[10px] font-bold">
+              <Badge className="border-red-300 dark:border-red-800 bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300 text-[10px] font-bold">
                 {data.proctoring.tabSwitchCount >= 3 ? 'Đã quá ngưỡng (Auto-submit)' : 'Cần lưu ý khi chấm'}
               </Badge>
             </div>
-            <p className="text-xs text-red-700 leading-relaxed">
-              Hệ thống ghi nhận thí sinh đã chuyển đổi tab hoặc mở ứng dụng khác {data.proctoring.tabSwitchCount} lần trong lúc làm bài. Thầy/cô vui lòng đối chiếu kỹ lời giải tự luận với đáp án mẫu để phát hiện nghi vấn gian lận hoặc sao chép.
+            <p className="text-xs text-red-700 dark:text-red-300 leading-relaxed">
+              Hệ thống giám sát phòng thi tự động ghi nhận các bất thường sau trong lúc làm bài:
             </p>
+            <div className="flex flex-wrap gap-2 pt-1 text-[11px] font-medium">
+              {Boolean(data.proctoring.breakdown?.tabSwitches) && (
+                <span className="inline-flex items-center gap-1 rounded-md bg-white dark:bg-slate-900 px-2.5 py-1 text-slate-800 dark:text-slate-200 border border-red-200 dark:border-red-800">
+                  Rời tab / chuyển cửa sổ: <strong>{data.proctoring.breakdown?.tabSwitches} lần</strong>
+                </span>
+              )}
+              {Boolean(data.proctoring.breakdown?.fullscreenExits) && (
+                <span className="inline-flex items-center gap-1 rounded-md bg-white dark:bg-slate-900 px-2.5 py-1 text-slate-800 dark:text-slate-200 border border-red-200 dark:border-red-800">
+                  Thoát Toàn màn hình: <strong>{data.proctoring.breakdown?.fullscreenExits} lần</strong>
+                </span>
+              )}
+              {Boolean(data.proctoring.breakdown?.cameraBlocked) && (
+                <span className="inline-flex items-center gap-1 rounded-md bg-white dark:bg-slate-900 px-2.5 py-1 text-slate-800 dark:text-slate-200 border border-red-200 dark:border-red-800">
+                  Camera bị che / thiếu sáng: <strong>{data.proctoring.breakdown?.cameraBlocked} lần</strong>
+                </span>
+              )}
+            </div>
           </div>
         </div>
       )}

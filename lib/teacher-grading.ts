@@ -63,6 +63,11 @@ export type TeacherGradingPageData = {
   proctoring?: {
     tabSwitchCount: number;
     hasViolations: boolean;
+    breakdown?: {
+      tabSwitches: number;
+      fullscreenExits: number;
+      cameraBlocked: number;
+    };
   };
 };
 
@@ -221,7 +226,7 @@ export async function getTeacherGradingData(attemptId: string): Promise<TeacherG
   }
 
   // 6. Proctoring logs
-  let proctoring = {
+  let proctoring: { tabSwitchCount: number; hasViolations: boolean; breakdown?: { tabSwitches: number; fullscreenExits: number; cameraBlocked: number } } = {
     tabSwitchCount: 0,
     hasViolations: false,
   };
@@ -229,17 +234,32 @@ export async function getTeacherGradingData(attemptId: string): Promise<TeacherG
   try {
     const { data: procLogs } = await adminClient
       .from('exam_proctoring_logs')
-      .select('switch_count')
+      .select('violation_type, switch_count, created_at')
       .eq('attempt_id', attemptId)
-      .order('switch_count', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .order('created_at', { ascending: false });
 
-    if (procLogs && typeof procLogs === 'object' && 'switch_count' in procLogs && procLogs.switch_count) {
-      const count = Number(procLogs.switch_count);
+    if (procLogs && procLogs.length > 0) {
+      let maxCount = 0;
+      let tabSwitches = 0;
+      let fullscreenExits = 0;
+      let cameraBlocked = 0;
+
+      procLogs.forEach((log) => {
+        const count = Number(log.switch_count || 0);
+        if (count > maxCount) maxCount = count;
+        if (log.violation_type === 'fullscreen_exit') fullscreenExits++;
+        else if (log.violation_type === 'camera_blocked') cameraBlocked++;
+        else tabSwitches++;
+      });
+
       proctoring = {
-        tabSwitchCount: count,
-        hasViolations: count > 0,
+        tabSwitchCount: Math.max(maxCount, procLogs.length),
+        hasViolations: true,
+        breakdown: {
+          tabSwitches,
+          fullscreenExits,
+          cameraBlocked,
+        },
       };
     } else {
       const { data: notifs } = await adminClient
@@ -254,6 +274,11 @@ export async function getTeacherGradingData(attemptId: string): Promise<TeacherG
         proctoring = {
           tabSwitchCount: maxCount,
           hasViolations: maxCount > 0,
+          breakdown: {
+            tabSwitches: maxCount,
+            fullscreenExits: 0,
+            cameraBlocked: 0,
+          },
         };
       }
     }

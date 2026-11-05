@@ -4,9 +4,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 export const DEFAULT_MAX_TAB_SWITCHES = 3;
 
+export type ProctorViolationReason = 'tab_switch' | 'fullscreen_exit' | 'camera_blocked';
+
 export interface UseTabSwitchDetectionOptions {
   /**
-   * Số lần chuyển tab tối đa được phép trước khi bị tự động nộp bài.
+   * Số lần vi phạm tối đa được phép trước khi bị tự động nộp bài.
    * Mặc định là 3 lần.
    */
   maxViolations?: number;
@@ -17,12 +19,12 @@ export interface UseTabSwitchDetectionOptions {
   onAutoSubmit: () => void | Promise<void>;
 
   /**
-   * Callback tùy chọn để ghi log vi phạm vào CSDL (Server Action).
+   * Callback ghi log vi phạm vào CSDL (Server Action).
    */
-  onViolation?: (violationCount: number) => void | Promise<void>;
+  onViolation?: (violationCount: number, reason: ProctorViolationReason) => void | Promise<void>;
 
   /**
-   * Trạng thái kích hoạt giám thị. Nếu false (vd: khi đã nộp bài xong hoặc đang xem kết quả), hook sẽ không đếm.
+   * Trạng thái kích hoạt giám thị. Nếu false, hook sẽ không đếm.
    */
   enabled?: boolean;
 
@@ -33,16 +35,30 @@ export interface UseTabSwitchDetectionOptions {
 
   /**
    * Khoảng thời gian chống đúp sự kiện (debounce window) tính bằng mili-giây.
-   * Ngăn chặn việc cả 'blur' và 'visibilitychange' cùng kích hoạt trong 1 lần chuyển tab.
    */
   debounceMs?: number;
+
+  /**
+   * Bật giám sát chế độ toàn màn hình (Fullscreen Lockdown).
+   */
+  enableFullscreenLockdown?: boolean;
+
+  /**
+   * Cờ đánh dấu thí sinh đã bấm vào phòng thi và kích hoạt toàn màn hình.
+   */
+  hasStartedFullscreen?: boolean;
 }
 
 export interface UseTabSwitchDetectionReturn {
   /**
-   * Số lần sinh viên đã rời khỏi tab bài thi.
+   * Tổng số lần vi phạm (rời tab + thoát toàn màn hình).
    */
   tabSwitchCount: number;
+
+  /**
+   * Lý do vi phạm gần nhất ('tab_switch' | 'fullscreen_exit' | 'camera_blocked').
+   */
+  lastViolationReason: ProctorViolationReason;
 
   /**
    * Trạng thái mở của Alert Dialog cảnh báo vi phạm.
@@ -65,18 +81,31 @@ export interface UseTabSwitchDetectionReturn {
   maxViolations: number;
 
   /**
-   * Đóng hộp thoại cảnh báo để sinh viên tiếp tục làm bài.
+   * Đóng hộp thoại cảnh báo và tiếp tục làm bài (có thể tự động gọi lại Fullscreen).
    */
   dismissWarning: () => void;
+
+  /**
+   * Yêu cầu trình duyệt bật lại chế độ toàn màn hình.
+   */
+  requestFullscreen: () => Promise<boolean>;
 
   /**
    * Reset lại số lần vi phạm nếu cần.
    */
   resetViolations: () => void;
+
+  /**
+   * Ghi nhận thủ công một vi phạm ngoài (ví dụ từ Camera Proctor).
+   */
+  triggerManualViolation: (reason: ProctorViolationReason) => void;
 }
 
 /**
- * React Hook giám sát hành vi rời khỏi tab (Tab switch / blur) của sinh viên trong phòng thi.
+ * React Hook giám sát toàn diện hành vi phòng thi trực tuyến:
+ * - Rời tab hoặc mất focus trình duyệt
+ * - Thoát khỏi chế độ toàn màn hình (Fullscreen Lockdown)
+ * - Tiếp nhận cảnh báo camera AI bị che
  */
 export function useTabSwitchDetection({
   maxViolations = DEFAULT_MAX_TAB_SWITCHES,
@@ -85,19 +114,21 @@ export function useTabSwitchDetection({
   enabled = true,
   initialCount = 0,
   debounceMs = 1500,
+  enableFullscreenLockdown = true,
+  hasStartedFullscreen = false,
 }: UseTabSwitchDetectionOptions): UseTabSwitchDetectionReturn {
   const [tabSwitchCount, setTabSwitchCount] = useState<number>(initialCount);
+  const [lastViolationReason, setLastViolationReason] = useState<ProctorViolationReason>('tab_switch');
   const [isWarningOpen, setIsWarningOpen] = useState<boolean>(false);
   const [isTerminated, setIsTerminated] = useState<boolean>(false);
 
-  // Refs để lưu trữ các giá trị mới nhất trong event listeners mà không gây re-subscribe liên tục
   const lastViolationTimeRef = useRef<number>(0);
   const isTerminatedRef = useRef<boolean>(false);
   const tabSwitchCountRef = useRef<number>(initialCount);
   const onAutoSubmitRef = useRef(onAutoSubmit);
   const onViolationRef = useRef(onViolation);
+  const hasStartedFullscreenRef = useRef<boolean>(hasStartedFullscreen);
 
-  // Đồng bộ refs với props
   useEffect(() => {
     onAutoSubmitRef.current = onAutoSubmit;
   }, [onAutoSubmit]);
@@ -110,52 +141,57 @@ export function useTabSwitchDetection({
     tabSwitchCountRef.current = tabSwitchCount;
   }, [tabSwitchCount]);
 
-  const handleViolation = useCallback(() => {
-    if (!enabled || isTerminatedRef.current) return;
+  useEffect(() => {
+    hasStartedFullscreenRef.current = hasStartedFullscreen;
+  }, [hasStartedFullscreen]);
 
-    const now = Date.now();
-    // Chống ghi nhận trùng lặp nếu cả blur và visibilitychange cùng kích hoạt đồng thời
-    if (now - lastViolationTimeRef.current < debounceMs) {
-      return;
-    }
-    lastViolationTimeRef.current = now;
+  const handleViolation = useCallback(
+    (reason: ProctorViolationReason = 'tab_switch') => {
+      if (!enabled || isTerminatedRef.current) return;
 
-    const newCount = tabSwitchCountRef.current + 1;
-    tabSwitchCountRef.current = newCount;
-    setTabSwitchCount(newCount);
-    setIsWarningOpen(true);
-
-    // Ghi log vào cơ sở dữ liệu qua Server Action (nếu được truyền vào)
-    if (onViolationRef.current) {
-      try {
-        void onViolationRef.current(newCount);
-      } catch (err) {
-        console.error('Failed to log exam violation:', err);
+      const now = Date.now();
+      if (now - lastViolationTimeRef.current < debounceMs) {
+        return;
       }
-    }
+      lastViolationTimeRef.current = now;
 
-    // Nếu số lần vi phạm chạm hoặc vượt quá ngưỡng cho phép
-    if (newCount >= maxViolations) {
-      isTerminatedRef.current = true;
-      setIsTerminated(true);
-      // Kích hoạt nộp bài thi bắt buộc ngay lập tức
-      void onAutoSubmitRef.current();
-    }
-  }, [debounceMs, enabled, maxViolations]);
+      const newCount = tabSwitchCountRef.current + 1;
+      tabSwitchCountRef.current = newCount;
+      setTabSwitchCount(newCount);
+      setLastViolationReason(reason);
+      setIsWarningOpen(true);
 
+      // Ghi log vào CSDL qua Server Action
+      if (onViolationRef.current) {
+        try {
+          void onViolationRef.current(newCount, reason);
+        } catch (err) {
+          console.error('Failed to log exam violation:', err);
+        }
+      }
+
+      // Nếu chạm hoặc vượt ngưỡng 3 lần vi phạm
+      if (newCount >= maxViolations) {
+        isTerminatedRef.current = true;
+        setIsTerminated(true);
+        void onAutoSubmitRef.current();
+      }
+    },
+    [debounceMs, enabled, maxViolations]
+  );
+
+  // 1. Lắng nghe tab switch / window blur
   useEffect(() => {
     if (!enabled || typeof window === 'undefined') return;
 
-    // 1. Lắng nghe sự kiện chuyển đổi trạng thái hiển thị của tab/trang web
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden' || document.hidden) {
-        handleViolation();
+        handleViolation('tab_switch');
       }
     };
 
-    // 2. Lắng nghe sự kiện cửa sổ trình duyệt mất tiêu điểm (chuyển sang cửa sổ khác)
     const handleWindowBlur = () => {
-      handleViolation();
+      handleViolation('tab_switch');
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -167,10 +203,59 @@ export function useTabSwitchDetection({
     };
   }, [enabled, handleViolation]);
 
+  // 2. Lắng nghe thoát chế độ toàn màn hình (Fullscreen Lockdown)
+  useEffect(() => {
+    if (!enabled || !enableFullscreenLockdown || typeof window === 'undefined') return;
+
+    const handleFullscreenChange = () => {
+      // Chỉ kiểm tra khi thí sinh đã chính thức bấm "Bắt đầu làm bài (Toàn màn hình)"
+      if (hasStartedFullscreenRef.current && !document.fullscreenElement) {
+        handleViolation('fullscreen_exit');
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
+  }, [enabled, enableFullscreenLockdown, handleViolation]);
+
+  const requestFullscreen = useCallback(async (): Promise<boolean> => {
+    if (typeof window === 'undefined') return false;
+    try {
+      if (!document.fullscreenElement) {
+        const docEl = document.documentElement as HTMLElement & {
+          webkitRequestFullscreen?: () => Promise<void>;
+          mozRequestFullScreen?: () => Promise<void>;
+          msRequestFullscreen?: () => Promise<void>;
+        };
+
+        if (docEl.requestFullscreen) {
+          await docEl.requestFullscreen();
+        } else if (docEl.webkitRequestFullscreen) {
+          await docEl.webkitRequestFullscreen();
+        } else if (docEl.mozRequestFullScreen) {
+          await docEl.mozRequestFullScreen();
+        }
+      }
+      return true;
+    } catch (err) {
+      console.warn('Cannot request fullscreen mode:', err);
+      return false;
+    }
+  }, []);
+
   const dismissWarning = useCallback(() => {
     if (isTerminated) return;
     setIsWarningOpen(false);
-  }, [isTerminated]);
+    // Tự động yêu cầu quay lại toàn màn hình nếu đang bật lockdown
+    if (enableFullscreenLockdown) {
+      void requestFullscreen();
+    }
+  }, [enableFullscreenLockdown, isTerminated, requestFullscreen]);
 
   const resetViolations = useCallback(() => {
     tabSwitchCountRef.current = 0;
@@ -185,12 +270,14 @@ export function useTabSwitchDetection({
 
   return {
     tabSwitchCount,
+    lastViolationReason,
     isWarningOpen,
     isTerminated,
     remainingChances,
     maxViolations,
     dismissWarning,
+    requestFullscreen,
     resetViolations,
+    triggerManualViolation: handleViolation,
   };
 }
-
