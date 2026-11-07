@@ -37,7 +37,7 @@
     - Tạo commit cục bộ an toàn (không push).
 
 
-- [x] **Phase 40 (Commit Pending)**: Tích hợp Resend Email Service & Hệ thống OTP Xác thực:
+- [x] **Phase 40 (Commit `30ea1e7`)**: Tích hợp Resend Email Service & Hệ thống OTP Xác thực:
   - [x] **Mục tiêu 1 (Cơ sở dữ liệu & Cấu hình)**: Tạo migration `supabase/migrations/20261108_auth_otps.sql` lưu mã băm SHA-256 OTP, mục đích (reset_password, register_verify, login_2fa), hạn sử dụng (TTL 5p), giới hạn nhập sai (max 5 lần). Bật RLS `auth_otps_deny_all` để bảo vệ mã nguồn. Cập nhật `.env.example` với `RESEND_API_KEY` và `RESEND_FROM_EMAIL`.
   - [x] **Mục tiêu 2 (Resend Email Service & HTML Templates)**: Xây dựng module `lib/email/resend.ts` và `lib/email/otp-service.ts` với giao diện HTML email responsive chuẩn Đại học Lạc Hồng:
     - Gửi mã OTP xác thực (6 chữ số to rõ, thời hạn 5 phút, thông điệp an toàn).
