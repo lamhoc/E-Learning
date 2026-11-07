@@ -3,6 +3,8 @@
 import { createHash } from 'node:crypto';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createAndSendOtp, verifyOtp } from '@/lib/email/otp-service';
+import { isResendConfigured } from '@/lib/email/resend';
 
 export type RegistrationState = {
   status: 'idle' | 'error' | 'success';
@@ -26,59 +28,143 @@ function validateForm(fullName: string, email: string, password: string) {
   return null;
 }
 
-export async function registerStudent(
-  _previousState: RegistrationState,
+/**
+ * Yêu cầu gửi mã OTP xác thực email khi Đăng ký tài khoản
+ */
+export async function requestRegistrationOtpAction(
   formData: FormData,
-): Promise<RegistrationState> {
+  role: 'student' | 'teacher',
+): Promise<{
+  success: boolean;
+  message: string;
+  email?: string;
+  bypass?: boolean;
+  redirectTo?: string;
+}> {
   const { fullName, email, password } = getFormValues(formData);
   const validationError = validateForm(fullName, email, password);
-  if (validationError) return { status: 'error', message: validationError };
+  if (validationError) return { success: false, message: validationError };
 
+  const invitationToken = String(formData.get('invitationToken') ?? '').trim();
   const adminClient = createAdminClient();
-  const { error } = await adminClient.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: { full_name: fullName },
-  });
 
-  if (error) {
-    console.error('Student Admin API createUser failed:', {
-      code: error.code,
-      status: error.status,
-      message: error.message,
+  // Kiểm tra email đã tồn tại hay chưa
+  try {
+    const { data: usersList } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 100 });
+    const existingUser = usersList?.users?.find(
+      (u) => u.email?.toLowerCase() === email.toLowerCase(),
+    );
+    if (existingUser) {
+      return {
+        success: false,
+        message: 'Email này đã có tài khoản. Hãy đăng nhập hoặc dùng tính năng Quên mật khẩu.',
+      };
+    }
+  } catch {
+    // Tiếp tục nếu không kiểm tra được danh sách
+  }
+
+  // Nếu Resend chưa được cấu hình, đăng ký trực tiếp (chế độ dự phòng dev)
+  if (!isResendConfigured()) {
+    const signupData: Record<string, string> = { full_name: fullName };
+    if (role === 'teacher') {
+      if (invitationToken) {
+        signupData.teacher_invitation_hash = createHash('sha256')
+          .update(invitationToken)
+          .digest('hex');
+      } else {
+        signupData.requested_role = 'teacher';
+      }
+    }
+
+    const { error } = await adminClient.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: signupData,
     });
+
+    if (error) {
+      return {
+        success: false,
+        message: 'Không thể tạo tài khoản: ' + error.message,
+      };
+    }
+
     return {
-      status: 'error',
-      message: 'Không thể tạo tài khoản. Email có thể đã được sử dụng; hãy đăng nhập hoặc đặt lại mật khẩu.',
+      success: true,
+      bypass: true,
+      message: 'Đăng ký thành công! Đang chuyển hướng...',
+      redirectTo: `/login?registered=${role}`,
     };
   }
 
+  // Gửi mã OTP xác thực email qua Resend
+  const otpResult = await createAndSendOtp({
+    email,
+    purpose: 'register_verify',
+    userName: fullName,
+    metadata: {
+      fullName,
+      password,
+      role,
+      invitationToken,
+    },
+  });
+
+  if (!otpResult.success) {
+    return { success: false, message: otpResult.message };
+  }
+
   return {
-    status: 'success',
-    message: 'Tài khoản sinh viên đã được tạo, không cần xác nhận email. Đăng nhập để tiếp tục.',
-    redirectTo: '/login?registered=student',
+    success: true,
+    email,
+    message: otpResult.message,
   };
 }
 
-export async function registerTeacher(
-  _previousState: RegistrationState,
-  formData: FormData,
-): Promise<RegistrationState> {
-  const { fullName, email, password } = getFormValues(formData);
-  const validationError = validateForm(fullName, email, password);
-  if (validationError) return { status: 'error', message: validationError };
+/**
+ * Xác thực mã OTP 6 số và chính thức tạo tài khoản người dùng
+ */
+export async function completeRegistrationWithOtpAction(
+  email: string,
+  otp: string,
+): Promise<{ success: boolean; message: string; redirectTo?: string }> {
+  const verifyResult = await verifyOtp({
+    email,
+    otp,
+    purpose: 'register_verify',
+  });
 
-  const invitationToken = String(formData.get('invitationToken') ?? '').trim();
-  const signupData: Record<string, string> = { full_name: fullName };
-
-  if (invitationToken) {
-    signupData.teacher_invitation_hash = createHash('sha256').update(invitationToken).digest('hex');
-  } else {
-    signupData.requested_role = 'teacher';
+  if (!verifyResult.valid) {
+    return { success: false, message: verifyResult.message || 'Mã xác thực OTP không hợp lệ.' };
   }
 
+  const metadata = (verifyResult.metadata as {
+    fullName?: string;
+    password?: string;
+    role?: 'student' | 'teacher';
+    invitationToken?: string;
+  }) || {};
+
+  const fullName = metadata.fullName || '';
+  const password = metadata.password || '';
+  const role = metadata.role || 'student';
+  const invitationToken = metadata.invitationToken || '';
+
   const adminClient = createAdminClient();
+  const signupData: Record<string, string> = { full_name: fullName };
+
+  if (role === 'teacher') {
+    if (invitationToken) {
+      signupData.teacher_invitation_hash = createHash('sha256')
+        .update(invitationToken)
+        .digest('hex');
+    } else {
+      signupData.requested_role = 'teacher';
+    }
+  }
+
   const { error } = await adminClient.auth.admin.createUser({
     email,
     password,
@@ -86,38 +172,40 @@ export async function registerTeacher(
     user_metadata: signupData,
   });
 
-  const claimHref = invitationToken
-    ? `/login?claimInvite=${encodeURIComponent(invitationToken)}&claimEmail=${encodeURIComponent(email)}`
-    : undefined;
-
   if (error) {
-    console.error('Teacher Admin API createUser failed:', {
-      code: error.code,
-      status: error.status,
-      message: error.message,
-    });
-
-    const accountAlreadyExists =
-      error.code === 'email_exists' || /already (been )?registered|already exists/i.test(error.message);
-
+    console.error('Lỗi tạo tài khoản sau xác thực OTP:', error);
     return {
-      status: 'error',
-      message: invitationToken
-        ? accountAlreadyExists
-          ? 'Email này đã có tài khoản. Hãy đăng nhập bằng email đó để nhận lời mời.'
-          : 'Không thể tạo tài khoản. Mã mời có thể sai/hết hạn hoặc migration trên Supabase chưa được cập nhật.'
-        : 'Không thể tạo yêu cầu giảng viên. Hãy kiểm tra email hoặc thử lại sau.',
-      ...(claimHref ? { claimHref } : {}),
+      success: false,
+      message: 'Không thể kích hoạt tài khoản: ' + error.message,
     };
   }
 
   return {
-    status: 'success',
-    message: invitationToken
-      ? 'Tài khoản giảng viên đã được tạo, không cần xác nhận email. Đăng nhập để tiếp tục.'
-      : 'Yêu cầu đã được gửi. Tài khoản sẽ chờ quản trị viên duyệt; không cần xác nhận email.',
-    redirectTo: '/login?registered=teacher',
+    success: true,
+    message: 'Xác thực email thành công! Tài khoản của bạn đã được kích hoạt.',
+    redirectTo: `/login?registered=${role}`,
   };
+}
+
+// Giữ lại các hàm cũ để duy trì tương thích ngược
+export async function registerStudent(
+  _previousState: RegistrationState,
+  formData: FormData,
+): Promise<RegistrationState> {
+  const res = await requestRegistrationOtpAction(formData, 'student');
+  if (!res.success) return { status: 'error', message: res.message };
+  if (res.redirectTo) return { status: 'success', message: res.message, redirectTo: res.redirectTo };
+  return { status: 'success', message: res.message };
+}
+
+export async function registerTeacher(
+  _previousState: RegistrationState,
+  formData: FormData,
+): Promise<RegistrationState> {
+  const res = await requestRegistrationOtpAction(formData, 'teacher');
+  if (!res.success) return { status: 'error', message: res.message };
+  if (res.redirectTo) return { status: 'success', message: res.message, redirectTo: res.redirectTo };
+  return { status: 'success', message: res.message };
 }
 
 export type ClaimInvitationResult = {
@@ -131,7 +219,10 @@ export async function claimTeacherInvitation(token: string): Promise<ClaimInvita
   }
 
   const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
   if (authError || !user) {
     return { success: false, message: 'Hãy đăng nhập bằng đúng email nhận mã mời trước.' };
   }

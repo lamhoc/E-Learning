@@ -7,6 +7,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentUserWithRole } from '@/lib/auth-cache';
 import { revalidateSubjectsCache } from '@/lib/data-cache';
+import { sendTeacherInvitationEmail, sendTeacherApplicationReviewEmail } from '@/lib/email/resend';
 
 export type InvitationState = {
   status: 'idle' | 'error' | 'success';
@@ -101,12 +102,28 @@ export async function approveTeacher(userId: string) {
       console.error('Không thể cập nhật teacher_applications:', appError);
     }
 
-    // 4. Gửi thông báo đến giáo viên
+    // 4. Gửi thông báo đến giáo viên trong hệ thống
     await adminClient.from('notifications').insert({
       user_id: userId,
       title: 'Tài khoản Giáo viên đã được phê duyệt',
       message: 'Hồ sơ xin cấp quyền giáo viên của bạn đã được phê duyệt thành công. Bạn đã có quyền tạo đề thi, quản lý lớp và chấm bài.',
     });
+
+    // 5. Gửi email thông báo qua Resend nếu có email
+    try {
+      const { data: userData } = await adminClient.auth.admin.getUserById(userId);
+      const teacherEmail = userData?.user?.email;
+      const teacherName = userData?.user?.user_metadata?.full_name || teacherEmail?.split('@')[0] || 'Quý Thầy/Cô';
+      if (teacherEmail) {
+        await sendTeacherApplicationReviewEmail({
+          to: teacherEmail,
+          teacherName,
+          approved: true,
+        });
+      }
+    } catch (emailErr) {
+      console.warn('Lỗi gửi email thông báo phê duyệt qua Resend:', emailErr);
+    }
 
     await revalidateSubjectsCache(userId);
     revalidatePath('/admin/teacher-access');
@@ -159,6 +176,23 @@ export async function rejectTeacher(userId: string, note?: string) {
         ? `Đơn xin cấp quyền giáo viên của bạn không được phê duyệt: ${note.trim()}`
         : 'Đơn xin cấp quyền giáo viên của bạn chưa được phê duyệt. Vui lòng liên hệ ban quản trị để biết thêm chi tiết.',
     });
+
+    // Gửi email thông báo từ chối qua Resend
+    try {
+      const { data: userData } = await adminClient.auth.admin.getUserById(userId);
+      const teacherEmail = userData?.user?.email;
+      const teacherName = userData?.user?.user_metadata?.full_name || teacherEmail?.split('@')[0] || 'Quý Thầy/Cô';
+      if (teacherEmail) {
+        await sendTeacherApplicationReviewEmail({
+          to: teacherEmail,
+          teacherName,
+          approved: false,
+          note: note?.trim(),
+        });
+      }
+    } catch (emailErr) {
+      console.warn('Lỗi gửi email thông báo từ chối qua Resend:', emailErr);
+    }
 
     revalidatePath('/admin/teacher-access');
     return { success: true };
@@ -466,9 +500,23 @@ export async function createTeacherInvitation(
   invitationUrl.searchParams.set('email', email);
   invitationUrl.searchParams.set('invite', token);
 
+  // Tự động gửi email mời qua Resend nếu có cấu hình
+  let emailSent = false;
+  try {
+    const emailResult = await sendTeacherInvitationEmail({
+      to: email,
+      invitationUrl: invitationUrl.toString(),
+    });
+    emailSent = emailResult.success;
+  } catch (emailErr) {
+    console.warn('Lỗi khi gửi email mời giáo viên qua Resend:', emailErr);
+  }
+
   return {
     status: 'success',
-    message: 'Link mời có hiệu lực 24 giờ và chỉ dùng được một lần. Hãy sao chép ngay; token thô sẽ không được lưu lại.',
+    message: emailSent
+      ? 'Đã tạo link mời và tự động gửi thư kích hoạt tài khoản tới email của giảng viên qua Resend!'
+      : 'Link mời có hiệu lực 24 giờ và chỉ dùng được một lần. Hãy sao chép ngay; token thô sẽ không được lưu lại.',
     invitationUrl: invitationUrl.toString(),
   };
 }
