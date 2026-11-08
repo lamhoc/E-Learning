@@ -1,12 +1,15 @@
 import Link from 'next/link';
 import {
   BookOpen,
+  Bot,
   ClipboardList,
   FileCheck,
   FileText,
+  GraduationCap,
   HelpCircle,
   LayoutDashboard,
   LogOut,
+  PenTool,
   Sparkles,
 } from 'lucide-react';
 import { signOut } from '@/app/subjects/actions';
@@ -17,11 +20,14 @@ import { sanitizeVietnameseText } from '@/lib/utils';
 
 export type TeacherSidebarActiveRoute =
   | 'dashboard'
+  | 'subjects'
+  | 'classes'
   | 'materials'
   | 'assignments'
-  | 'grading'
   | 'questions'
-  | 'subjects'
+  | 'ai-generator'
+  | 'exams'
+  | 'grading'
   | 'ai-tutor';
 
 type TeacherSidebarProps = {
@@ -47,6 +53,20 @@ export function TeacherSidebar({ activeRoute, teacherName }: TeacherSidebarProps
       active: activeRoute === 'dashboard',
     },
     {
+      id: 'subjects',
+      label: 'Môn học',
+      href: '/teacher/subjects',
+      icon: BookOpen,
+      active: activeRoute === 'subjects',
+    },
+    {
+      id: 'classes',
+      label: 'Lớp học',
+      href: '/teacher/classes',
+      icon: GraduationCap,
+      active: activeRoute === 'classes',
+    },
+    {
       id: 'materials',
       label: 'Tài liệu giảng dạy',
       href: '/teacher/materials',
@@ -61,13 +81,6 @@ export function TeacherSidebar({ activeRoute, teacherName }: TeacherSidebarProps
       active: activeRoute === 'assignments',
     },
     {
-      id: 'grading',
-      label: 'Chấm bài thi',
-      href: '/teacher/grading',
-      icon: FileCheck,
-      active: activeRoute === 'grading',
-    },
-    {
       id: 'questions',
       label: 'Ngân hàng câu hỏi',
       href: '/teacher/questions',
@@ -75,17 +88,31 @@ export function TeacherSidebar({ activeRoute, teacherName }: TeacherSidebarProps
       active: activeRoute === 'questions',
     },
     {
-      id: 'subjects',
-      label: 'Môn học',
-      href: '/teacher/subjects',
-      icon: BookOpen,
-      active: activeRoute === 'subjects',
+      id: 'ai-generator',
+      label: 'Sinh câu hỏi AI',
+      href: '/teacher/ai-generator',
+      icon: Sparkles,
+      active: activeRoute === 'ai-generator',
+    },
+    {
+      id: 'exams',
+      label: 'Đề thi',
+      href: '/teacher/exams',
+      icon: FileCheck,
+      active: activeRoute === 'exams',
+    },
+    {
+      id: 'grading',
+      label: 'Chấm bài thi',
+      href: '/teacher/grading',
+      icon: PenTool,
+      active: activeRoute === 'grading',
     },
     {
       id: 'ai-tutor',
       label: 'Gia sư AI',
       href: '/teacher/ai-tutor',
-      icon: Sparkles,
+      icon: Bot,
       active: activeRoute === 'ai-tutor',
     },
   ];

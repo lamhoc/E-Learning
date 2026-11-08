@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   LogOut,
   Sparkles,
+  Trophy,
 } from 'lucide-react';
 import { signOut } from '@/app/subjects/actions';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ export type StudentSidebarRoute =
   | 'materials'
   | 'assignments'
   | 'exams'
+  | 'results'
   | 'ai-tutor';
 
 type StudentSidebarProps = {
@@ -45,6 +47,7 @@ export function StudentSidebar({ studentName, activeRoute }: StudentSidebarProps
     { id: 'materials' as const, label: 'Tài liệu', href: '/student/materials', icon: FileText },
     { id: 'assignments' as const, label: 'Bài tập', href: '/student/assignments', icon: FileCheck2 },
     { id: 'exams' as const, label: 'Đề thi', href: '/student/exams', icon: ClipboardList },
+    { id: 'results' as const, label: 'Kết quả học tập', href: '/student/results', icon: Trophy },
     { id: 'ai-tutor' as const, label: 'Gia sư AI', href: '/student/ai-tutor', icon: Sparkles },
   ];
 

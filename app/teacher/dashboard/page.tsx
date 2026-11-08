@@ -120,7 +120,7 @@ function MetricCard({
     <Card className="group h-full border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
       <CardContent className="flex h-full flex-col justify-between p-5">
         <div className="flex items-start justify-between gap-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 line-clamp-1">
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-200 leading-snug">
             {label}
           </p>
           <span
@@ -133,7 +133,7 @@ function MetricCard({
           <p className={`text-3xl font-bold tabular-nums tracking-tight ${valueTone[tone]}`}>
             {value}
           </p>
-          <p className="mt-1 text-xs leading-4 text-slate-400 dark:text-slate-500 line-clamp-2 min-h-[32px] flex items-center">
+          <p className="mt-1 text-xs leading-4 text-slate-600 dark:text-slate-300 line-clamp-2 min-h-[32px] flex items-center">
             {detail}
           </p>
         </div>
@@ -168,15 +168,15 @@ const QUICK_ACTIONS = [
     label: 'Chấm bài thi',
     desc: 'Chấm tự luận',
     href: '/teacher/grading',
-    color: 'bg-white dark:bg-[#111C2D] hover:bg-slate-50 dark:hover:bg-[#16243A] border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white',
+    color: 'bg-white dark:bg-[#111C2D] border border-slate-200 dark:border-slate-700/80 hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50/40 dark:hover:bg-[#16263D] transition-all shadow-sm text-slate-900 dark:text-white',
     iconBg: 'bg-amber-600 text-white',
   },
   {
     icon: Sparkles,
     label: 'Sinh câu hỏi AI',
     desc: 'Dùng Groq AI',
-    href: '/teacher/questions',
-    color: 'bg-white dark:bg-[#111C2D] hover:bg-slate-50 dark:hover:bg-[#16243A] border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white',
+    href: '/teacher/ai-generator',
+    color: 'bg-white dark:bg-[#111C2D] border border-slate-200 dark:border-slate-700/80 hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50/40 dark:hover:bg-[#16263D] transition-all shadow-sm text-slate-900 dark:text-white',
     iconBg: 'bg-emerald-600 text-white',
   },
   {
@@ -184,7 +184,7 @@ const QUICK_ACTIONS = [
     label: 'Tài liệu giảng dạy',
     desc: 'Slide / PDF / Video',
     href: '/teacher/materials',
-    color: 'bg-white dark:bg-[#111C2D] hover:bg-slate-50 dark:hover:bg-[#16243A] border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white',
+    color: 'bg-white dark:bg-[#111C2D] border border-slate-200 dark:border-slate-700/80 hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50/40 dark:hover:bg-[#16263D] transition-all shadow-sm text-slate-900 dark:text-white',
     iconBg: 'bg-teal-600 text-white',
   },
   {
@@ -192,15 +192,15 @@ const QUICK_ACTIONS = [
     label: 'Bài tập về nhà',
     desc: 'Giao & chấm bài',
     href: '/teacher/assignments',
-    color: 'bg-white dark:bg-[#111C2D] hover:bg-slate-50 dark:hover:bg-[#16243A] border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white',
+    color: 'bg-white dark:bg-[#111C2D] border border-slate-200 dark:border-slate-700/80 hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50/40 dark:hover:bg-[#16263D] transition-all shadow-sm text-slate-900 dark:text-white',
     iconBg: 'bg-[#154C99] text-white',
   },
   {
     icon: Plus,
     label: 'Tạo lớp học',
     desc: 'Lớp học mới',
-    href: '#create-class',
-    color: 'bg-white dark:bg-[#111C2D] hover:bg-slate-50 dark:hover:bg-[#16243A] border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white',
+    href: '/teacher/classes',
+    color: 'bg-white dark:bg-[#111C2D] border border-slate-200 dark:border-slate-700/80 hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50/40 dark:hover:bg-[#16263D] transition-all shadow-sm text-slate-900 dark:text-white',
     iconBg: 'bg-sky-600 text-white',
   },
   {
@@ -208,7 +208,7 @@ const QUICK_ACTIONS = [
     label: 'Ngân hàng câu hỏi',
     desc: 'Xem & quản lý',
     href: '/teacher/questions',
-    color: 'bg-white dark:bg-[#111C2D] hover:bg-slate-50 dark:hover:bg-[#16243A] border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white',
+    color: 'bg-white dark:bg-[#111C2D] border border-slate-200 dark:border-slate-700/80 hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50/40 dark:hover:bg-[#16263D] transition-all shadow-sm text-slate-900 dark:text-white',
     iconBg: 'bg-violet-600 text-white',
   },
   {
@@ -216,7 +216,7 @@ const QUICK_ACTIONS = [
     label: 'Gia sư AI',
     desc: 'Hỏi bất cứ điều gì',
     href: '/teacher/ai-tutor',
-    color: 'bg-white dark:bg-[#111C2D] hover:bg-slate-50 dark:hover:bg-[#16243A] border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white',
+    color: 'bg-white dark:bg-[#111C2D] border border-slate-200 dark:border-slate-700/80 hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50/40 dark:hover:bg-[#16263D] transition-all shadow-sm text-slate-900 dark:text-white',
     iconBg: 'bg-orange-500 text-white',
   },
   {
@@ -224,7 +224,7 @@ const QUICK_ACTIONS = [
     label: 'Tạo đề thi',
     desc: 'Từ ngân hàng câu hỏi',
     href: '/teacher/exams/create',
-    color: 'bg-white dark:bg-[#111C2D] hover:bg-slate-50 dark:hover:bg-[#16243A] border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white',
+    color: 'bg-white dark:bg-[#111C2D] border border-slate-200 dark:border-slate-700/80 hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50/40 dark:hover:bg-[#16263D] transition-all shadow-sm text-slate-900 dark:text-white',
     iconBg: 'bg-rose-600 text-white',
   },
 ];
@@ -280,13 +280,15 @@ async function TeacherDashboardDataContent() {
 
       {/* ── Metric cards (Bento Grid) ── */}
       <section aria-label="Chỉ số giảng dạy" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5 items-stretch">
-        <MetricCard
-          label="Lớp đang phụ trách"
-          value={data.classCount.toLocaleString('vi-VN')}
-          detail="Lớp chưa lưu trữ"
-          icon={BookOpen}
-          tone="green"
-        />
+        <Link href="/teacher/classes" className="block h-full transition hover:opacity-95">
+          <MetricCard
+            label="Lớp đang phụ trách"
+            value={data.classCount.toLocaleString('vi-VN')}
+            detail="Bấm để xem danh sách lớp"
+            icon={BookOpen}
+            tone="green"
+          />
+        </Link>
         <MetricCard
           label="Lượt ghi danh"
           value={data.enrollmentCount.toLocaleString('vi-VN')}
@@ -303,13 +305,15 @@ async function TeacherDashboardDataContent() {
             tone="blue"
           />
         </Link>
-        <MetricCard
-          label="Đề đã phát hành"
-          value={data.publishedExamCount.toLocaleString('vi-VN')}
-          detail="Trong các đề bạn tạo"
-          icon={ClipboardList}
-          tone="yellow"
-        />
+        <Link href="/teacher/exams" className="block h-full transition hover:opacity-95">
+          <MetricCard
+            label="Đề đã phát hành"
+            value={data.publishedExamCount.toLocaleString('vi-VN')}
+            detail="Bấm để quản lý đề thi"
+            icon={ClipboardList}
+            tone="yellow"
+          />
+        </Link>
         <Link href="/teacher/grading" className="block h-full transition hover:opacity-95">
           <MetricCard
             label="Bài chờ chấm"
@@ -720,7 +724,7 @@ export default async function TeacherDashboardPage() {
                 href="/teacher/grading"
                 className={buttonVariants({
                   variant: 'outline',
-                  className: 'gap-2 shadow-xs border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100',
+                  className: 'gap-2 shadow-xs border border-amber-500/40 bg-amber-500/15 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 font-semibold hover:bg-amber-500/30',
                 })}
               >
                 <PenTool className="size-4 text-amber-700" />
@@ -762,8 +766,8 @@ export default async function TeacherDashboardPage() {
                       <Icon className="size-4" />
                     </span>
                     <span>
-                      <span className="block text-xs font-semibold text-slate-900 dark:text-white">{action.label}</span>
-                      <span className="mt-0.5 block text-[10px] text-slate-500 dark:text-slate-400">{action.desc}</span>
+                      <span className="block text-sm font-bold text-slate-900 dark:text-white">{action.label}</span>
+                      <span className="mt-0.5 block text-xs font-medium text-slate-600 dark:text-slate-300">{action.desc}</span>
                     </span>
                   </Link>
                 );

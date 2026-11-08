@@ -145,14 +145,14 @@ function MetricCard({
   };
 
   return (
-    <Card className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md border-slate-200">
+    <Card className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
       <CardContent className="flex min-h-[126px] items-start justify-between gap-4 p-5">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-200 leading-snug">{label}</p>
           <p className={`mt-3 text-3xl font-bold tabular-nums tracking-tight ${styles[tone].value}`}>
             {value}
           </p>
-          <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{detail}</p>
+          <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{detail}</p>
         </div>
         <span className={`grid size-10 shrink-0 place-items-center rounded-xl ${styles[tone].icon}`}>
           <Icon aria-hidden="true" className="size-5" />
@@ -178,7 +178,7 @@ function StudentDashboardContentSkeleton() {
           <Skeleton key={i} className="h-32 rounded-xl" />
         ))}
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {Array.from({ length: 4 }, (_, i) => (
           <Skeleton key={i} className="h-40 rounded-2xl" />
         ))}
@@ -265,7 +265,7 @@ async function StudentDashboardDataContent() {
               <h3 className="mt-4 font-bold text-slate-900 dark:text-white group-hover:text-primary dark:group-hover:text-[#60A5FA]">
                 Lớp học của tôi
               </h3>
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
                 Xem toàn bộ các lớp bạn đang theo học, thông tin giảng viên và năm học.
               </p>
             </div>
@@ -286,7 +286,7 @@ async function StudentDashboardDataContent() {
               <h3 className="mt-4 font-bold text-slate-900 dark:text-white group-hover:text-primary dark:group-hover:text-[#60A5FA]">
                 Kho tài liệu học tập
               </h3>
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
                 Tải slide bài giảng, giáo trình PDF, file DOCX và tài liệu theo tuần học.
               </p>
             </div>
@@ -307,7 +307,7 @@ async function StudentDashboardDataContent() {
               <h3 className="mt-4 font-bold text-slate-900 dark:text-white group-hover:text-primary dark:group-hover:text-[#60A5FA]">
                 Bài tập & Đồ án
               </h3>
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
                 Nộp bài tập tự luận, báo cáo thực hành và xem điểm số, nhận xét của giảng viên.
               </p>
             </div>
@@ -328,12 +328,33 @@ async function StudentDashboardDataContent() {
               <h3 className="mt-4 font-bold text-slate-900 dark:text-white group-hover:text-primary dark:group-hover:text-[#60A5FA]">
                 Phòng thi trực tuyến
               </h3>
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
                 Làm bài thi trắc nghiệm & tự luận trực tuyến, theo dõi thời gian và lịch sử điểm thi.
               </p>
             </div>
             <div className="mt-4 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 pt-3 text-xs font-semibold text-amber-800">
               <span>{data.openExams.length} đề đang mở</span>
+              <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
+            </div>
+          </Link>
+
+          <Link
+            href="/student/results"
+            className="group flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-5 transition-all duration-200 hover:-translate-y-1 hover:border-[#154C99]/50 hover:shadow-md"
+          >
+            <div>
+              <span className="grid size-11 place-items-center rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 transition-colors group-hover:bg-amber-500 group-hover:text-white">
+                <Trophy className="size-5" />
+              </span>
+              <h3 className="mt-4 font-bold text-slate-900 dark:text-white group-hover:text-primary dark:group-hover:text-[#60A5FA]">
+                Kết quả học tập
+              </h3>
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
+                Bảng điểm tổng hợp, lịch sử làm bài thi, điểm trung bình và bài tập đã nộp.
+              </p>
+            </div>
+            <div className="mt-4 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 pt-3 text-xs font-semibold text-amber-800 dark:text-amber-400">
+              <span>{data.attempts.length} bài đã nộp</span>
               <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
             </div>
           </Link>
