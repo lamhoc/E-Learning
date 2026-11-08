@@ -37,14 +37,9 @@
     - Tạo commit cục bộ an toàn (không push).
 
 
-- [x] **Phase 40 (Commit `30ea1e7`)**: Tích hợp Resend Email Service & Hệ thống OTP Xác thực:
-  - [x] **Mục tiêu 1 (Cơ sở dữ liệu & Cấu hình)**: Tạo migration `supabase/migrations/20261108_auth_otps.sql` lưu mã băm SHA-256 OTP, mục đích (reset_password, register_verify, login_2fa), hạn sử dụng (TTL 5p), giới hạn nhập sai (max 5 lần). Bật RLS `auth_otps_deny_all` để bảo vệ mã nguồn. Cập nhật `.env.example` với `RESEND_API_KEY` và `RESEND_FROM_EMAIL`.
-  - [x] **Mục tiêu 2 (Resend Email Service & HTML Templates)**: Xây dựng module `lib/email/resend.ts` và `lib/email/otp-service.ts` với giao diện HTML email responsive chuẩn Đại học Lạc Hồng:
-    - Gửi mã OTP xác thực (6 chữ số to rõ, thời hạn 5 phút, thông điệp an toàn).
-    - Gửi thư mời giảng viên tự động với nút CTA một chạm "Kích hoạt tài khoản" (hết hạn 24h).
-    - Gửi thông báo phê duyệt / từ chối hồ sơ giảng viên.
-    - Cơ chế graceful fallback khi môi trường dev chưa nạp `RESEND_API_KEY`.
-  - [x] **Mục tiêu 3 (OTP Quên mật khẩu tại Trang Đăng nhập)**: Xây dựng Modal OTP Đặt lại mật khẩu tại `components/auth/forgot-password-otp-modal.tsx` kết nối `app/login/login-form.tsx` (Nhập email -> Nhận OTP 6 số qua Resend -> Đếm ngược 60s -> Nhập OTP & Mật khẩu mới -> Cập nhật trực tiếp qua Supabase Admin API). Khắc phục triệt để lỗi Supabase Rate Limit 429.
-  - [x] **Mục tiêu 4 (OTP Xác thực Email khi Đăng ký)**: Tích hợp bước xác thực OTP 2 giai đoạn vào `app/register/registration-form.tsx` và `app/register/actions.ts`. Chỉ tạo tài khoản và kích hoạt khi người dùng xác minh OTP hợp lệ gửi qua hộp thư thật.
-  - [x] **Mục tiêu 5 (Tự động gửi Thư mời & Duyệt hồ sơ Giảng viên qua Resend)**: Trong `app/admin/teacher-access/actions.ts`, khi admin tạo thư mời giảng viên, tự động dispatch email kích hoạt qua Resend; khi admin phê duyệt/từ chối hồ sơ giảng viên, tự động gửi email thông báo kết quả.
-  - [x] **Mục tiêu 6 (Kiểm thử & Nghiệm thu)**: Đã kiểm tra `npx tsc --noEmit` và `npm run build` đạt 0 lỗi 100%, 33 routes tĩnh/động build thành công.
+- [x] **Phase 40 (Commit `30ea1e7` & `1c6ff1c`)**: Tích hợp Resend Email Service & Hệ thống OTP Xác thực & Nhận diện LHU.
+- [x] **Phase 41 (Commit Pending)**: Tích hợp Gmail SMTP (Nodemailer) giải phóng giới hạn Sandbox:
+  - [x] Cài đặt `nodemailer` và `@types/nodemailer`.
+  - [x] Cấu hình Transporter Gmail trong `lib/email/resend.ts` ưu tiên gửi qua Gmail SMTP nếu có `SMTP_USER` và `SMTP_PASS` (App Password).
+  - [x] Cho phép gửi thư đến bất kỳ email nào (sinh viên, giảng viên, các domain khác) miễn phí 100% không yêu cầu Custom Domain.
+  - [x] Dự phòng Resend API với thông báo lỗi Sandbox chi tiết hướng dẫn cấu hình.

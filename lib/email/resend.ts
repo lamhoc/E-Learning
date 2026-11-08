@@ -1,12 +1,59 @@
 import 'server-only';
 
 import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
+// Cấu hình Resend API
 const resendApiKey = process.env.RESEND_API_KEY?.trim();
-const defaultFromEmail = process.env.RESEND_FROM_EMAIL?.trim() || 'LHU E-Learning <onboarding@resend.dev>';
-
-// Khởi tạo client Resend nếu có API Key
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
+
+// Cấu hình Gmail / SMTP
+const smtpUser = process.env.SMTP_USER?.trim() || process.env.GMAIL_USER?.trim();
+// Mật khẩu ứng dụng Google thường gồm 16 ký tự, có thể có khoảng trắng ở giữa (ví dụ: "abcd efgh ijkl mnop")
+const smtpPass = (process.env.SMTP_PASS?.trim() || process.env.GMAIL_APP_PASSWORD?.trim())?.replace(/\s+/g, '');
+
+/**
+ * Khởi tạo Gmail / SMTP Transporter khi có cấu hình
+ */
+function getSmtpTransporter() {
+  if (!smtpUser || !smtpPass) return null;
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: smtpUser,
+      pass: smtpPass,
+    },
+  });
+}
+
+/**
+ * Xác định địa chỉ người gửi chuẩn nhận diện LHU
+ */
+function getSenderAddress(): string {
+  const configuredFrom = process.env.RESEND_FROM_EMAIL?.trim() || process.env.SMTP_FROM?.trim();
+
+  // Nếu sử dụng Gmail SMTP, email gửi bắt buộc phải khớp với tài khoản Gmail đã xác thực
+  if (smtpUser && smtpPass) {
+    if (configuredFrom && configuredFrom.includes('<') && configuredFrom.includes('>')) {
+      const displayName = configuredFrom.split('<')[0].trim();
+      return `${displayName} <${smtpUser}>`;
+    }
+    return `Đại học Lạc Hồng <${smtpUser}>`;
+  }
+
+  return configuredFrom || 'LHU E-Learning <onboarding@resend.dev>';
+}
+
+/**
+ * Kiểm tra hệ thống email (Resend hoặc Gmail SMTP) đã được cấu hình hay chưa
+ */
+export function isEmailConfigured(): boolean {
+  return Boolean((smtpUser && smtpPass) || resendApiKey);
+}
+
+export function isResendConfigured(): boolean {
+  return isEmailConfigured();
+}
 
 /**
  * Lấy URL gốc của ứng dụng web cho link và ảnh trong email
@@ -16,13 +63,6 @@ function getEmailSiteUrl(): string {
   if (configured) return configured.replace(/\/+$/, '');
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
   return 'http://localhost:3000';
-}
-
-/**
- * Kiểm tra Resend đã được cấu hình sẵn sàng hay chưa
- */
-export function isResendConfigured(): boolean {
-  return Boolean(resendApiKey);
 }
 
 /**
@@ -199,6 +239,82 @@ function createEmailTemplate({
 }
 
 /**
+ * Hàm điều phối gửi email thống nhất: Ưu tiên Gmail SMTP (không giới hạn người nhận), sau đó tới Resend
+ */
+async function dispatchEmail({
+  to,
+  subject,
+  html,
+}: {
+  to: string;
+  subject: string;
+  html: string;
+}): Promise<{ success: boolean; error?: string }> {
+  // 1. ƯU TIÊN 1: Gửi qua Gmail SMTP nếu được cấu hình (Gửi được cho mọi sinh viên/giảng viên không cần domain)
+  const transporter = getSmtpTransporter();
+  if (transporter) {
+    try {
+      const from = getSenderAddress();
+      const info = await transporter.sendMail({
+        from,
+        to,
+        subject,
+        html,
+      });
+      console.log(`[GMAIL SMTP SUCCESS] Đã gửi email tới ${to} (MessageId: ${info.messageId})`);
+      return { success: true };
+    } catch (smtpErr: unknown) {
+      console.error('Lỗi khi gửi email qua Gmail SMTP:', smtpErr);
+      // Nếu không cấu hình Resend dự phòng thì trả lỗi về cho client
+      if (!resend) {
+        return {
+          success: false,
+          error: smtpErr instanceof Error ? smtpErr.message : 'Lỗi gửi email qua Gmail SMTP.',
+        };
+      }
+    }
+  }
+
+  // 2. ƯU TIÊN 2: Gửi qua Resend API nếu có cấu hình
+  if (resend) {
+    try {
+      const { data, error } = await resend.emails.send({
+        from: process.env.RESEND_FROM_EMAIL?.trim() || 'LHU E-Learning <onboarding@resend.dev>',
+        to,
+        subject,
+        html,
+      });
+
+      if (error) {
+        console.error('Lỗi khi gửi email qua Resend:', error);
+        // Bắt lỗi Sandbox đặc thù của Resend khi gửi tới email khác chủ tài khoản
+        if (error.message.includes('only send testing emails to your own email address')) {
+          return {
+            success: false,
+            error:
+              'Resend đang ở chế độ Sandbox (chưa gắn domain riêng) nên chỉ gửi được tới email chủ tài khoản. Hãy cấu hình SMTP_USER và SMTP_PASS (Gmail App Password) trong .env để gửi tự do cho mọi sinh viên và giảng viên.',
+          };
+        }
+        return { success: false, error: error.message };
+      }
+
+      console.log(`[RESEND SUCCESS] Đã gửi email tới ${to} (ID: ${data?.id})`);
+      return { success: true };
+    } catch (resendErr: unknown) {
+      console.error('Ngoại lệ khi gọi Resend API:', resendErr);
+      return {
+        success: false,
+        error: resendErr instanceof Error ? resendErr.message : 'Lỗi hệ thống khi gửi email.',
+      };
+    }
+  }
+
+  // 3. Fallback: Mô phỏng trong môi trường Dev (khi chưa cấu hình cả 2)
+  console.warn(`[DEV EMAIL SIMULATION] Chưa cấu hình Gmail SMTP hoặc Resend API Key. Giả lập gửi tới: ${to} - Tiêu đề: ${subject}`);
+  return { success: true };
+}
+
+/**
  * Gửi email chứa mã xác thực OTP 6 số (Quên mật khẩu hoặc Kích hoạt tài khoản)
  */
 export async function sendOtpEmail({
@@ -252,32 +368,7 @@ export async function sendOtpEmail({
     contentHtml,
   });
 
-  if (!resend) {
-    console.warn(`[DEV EMAIL SIMULATION] RESEND_API_KEY chưa cấu hình. Email gửi tới ${to} với OTP: ${otp}`);
-    return { success: true };
-  }
-
-  try {
-    const { error } = await resend.emails.send({
-      from: defaultFromEmail,
-      to,
-      subject,
-      html,
-    });
-
-    if (error) {
-      console.error('Lỗi khi gửi email qua Resend:', error);
-      return { success: false, error: error.message };
-    }
-
-    return { success: true };
-  } catch (err: unknown) {
-    console.error('Ngoại lệ khi gọi Resend API:', err);
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : 'Lỗi hệ thống khi gửi email.',
-    };
-  }
+  return dispatchEmail({ to, subject, html });
 }
 
 /**
@@ -322,32 +413,11 @@ export async function sendTeacherInvitationEmail({
     contentHtml,
   });
 
-  if (!resend) {
-    console.warn(`[DEV EMAIL SIMULATION] Thư mời gửi tới ${to}: ${invitationUrl}`);
-    return { success: true };
-  }
-
-  try {
-    const { error } = await resend.emails.send({
-      from: defaultFromEmail,
-      to,
-      subject: '[LHU E-Learning] Thư mời kích hoạt tài khoản Giảng viên',
-      html,
-    });
-
-    if (error) {
-      console.error('Lỗi gửi thư mời giáo viên qua Resend:', error);
-      return { success: false, error: error.message };
-    }
-
-    return { success: true };
-  } catch (err: unknown) {
-    console.error('Ngoại lệ khi gửi thư mời giáo viên:', err);
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : 'Lỗi gửi thư mời.',
-    };
-  }
+  return dispatchEmail({
+    to,
+    subject: '[LHU E-Learning] Thư mời kích hoạt tài khoản Giảng viên',
+    html,
+  });
 }
 
 /**
@@ -396,24 +466,11 @@ export async function sendTeacherApplicationReviewEmail({
     contentHtml,
   });
 
-  if (!resend) {
-    console.warn(`[DEV EMAIL SIMULATION] Review email gửi tới ${to}: approved=${approved}`);
-    return { success: true };
-  }
-
-  try {
-    const { error } = await resend.emails.send({
-      from: defaultFromEmail,
-      to,
-      subject: approved
-        ? '[LHU E-Learning] Chúc mừng: Hồ sơ Giảng viên đã được phê duyệt!'
-        : '[LHU E-Learning] Thông báo về hồ sơ đăng ký Giảng viên',
-      html,
-    });
-
-    if (error) return { success: false, error: error.message };
-    return { success: true };
-  } catch (err: unknown) {
-    return { success: false, error: err instanceof Error ? err.message : 'Lỗi gửi email review.' };
-  }
+  return dispatchEmail({
+    to,
+    subject: approved
+      ? '[LHU E-Learning] Chúc mừng: Hồ sơ Giảng viên đã được phê duyệt!'
+      : '[LHU E-Learning] Thông báo về hồ sơ đăng ký Giảng viên',
+    html,
+  });
 }
