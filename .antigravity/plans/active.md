@@ -38,7 +38,7 @@
 
 
 - [x] **Phase 40 (Commit `30ea1e7` & `1c6ff1c`)**: Tích hợp Resend Email Service & Hệ thống OTP Xác thực & Nhận diện LHU.
-- [x] **Phase 41 (Commit Pending)**: Tích hợp Gmail SMTP (Nodemailer) giải phóng giới hạn Sandbox:
+- [x] **Phase 41 (Commit `542157a`)**: Tích hợp Gmail SMTP (Nodemailer) giải phóng giới hạn Sandbox:
   - [x] Cài đặt `nodemailer` và `@types/nodemailer`.
   - [x] Cấu hình Transporter Gmail trong `lib/email/resend.ts` ưu tiên gửi qua Gmail SMTP nếu có `SMTP_USER` và `SMTP_PASS` (App Password).
   - [x] Cho phép gửi thư đến bất kỳ email nào (sinh viên, giảng viên, các domain khác) miễn phí 100% không yêu cầu Custom Domain.
