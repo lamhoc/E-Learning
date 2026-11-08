@@ -20,6 +20,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 1. **Tuyệt đối không tự ý `git push`**:
    - Mọi thao tác push lên remote (kể cả tạo PR hay push nhánh) chỉ được thực hiện khi người dùng yêu cầu rõ ràng: *"hãy push code"*.
    - Khuyến khích commit cục bộ (Local Commit) sau mỗi task hoàn thành để lưu vết an toàn.
+   - **Quy tắc ghi nhận mã commit (Commit Tracking Rule)**: Sau khi tạo Local Commit hoàn tất mỗi Phase, bắt buộc phải cập nhật mã hash rút gọn (ví dụ: `(Commit 17ff1b8)`) ngay cạnh tên Phase trong `.antigravity/plans/active.md` để đảm bảo tính minh bạch và truy vết lịch sử.
 2. **Cấm viết lại lịch sử Git**:
    - Tuyệt đối KHÔNG chạy các lệnh phá hủy: `git reset --hard`, `git push --force`, `git rebase` trên các commit đã chia sẻ, hoặc `git commit --amend` trên commit cũ.
 3. **Bảo mật bí mật và thông tin nhạy cảm**:

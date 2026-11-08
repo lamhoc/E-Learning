@@ -11,6 +11,7 @@
 1. **Plan First (Kế hoạch trước - Code sau)**:
    - Trước khi sửa/tạo code, phải lập hoặc cập nhật kế hoạch vào `.antigravity/plans/active.md`.
    - Phân rã công việc thành từng Phase cụ thể kèm tiêu chí nghiệm thu (Acceptance Criteria).
+   - **Ghi chú mã Commit cạnh Phase**: Ngay sau khi commit hoàn tất một Phase, bắt buộc phải cập nhật mã hash của commit đó bên cạnh tiêu đề Phase (ví dụ: `**Phase X (Commit abc1234)**`) trong file active plan.
 2. **Không nói suông (Truthful Verification)**:
    - Tuyệt đối không bao giờ báo cáo `complete` nếu chưa có bằng chứng kiểm thử thực tế (Terminal log, Unit test, Build output, API status code).
    - Nếu bị lỗi hoặc chưa test được, phải báo `partial` hoặc `blocked` kèm lý do rõ ràng.
