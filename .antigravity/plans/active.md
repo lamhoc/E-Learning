@@ -1,4 +1,4 @@
-# Kế hoạch phát triển dự án E-Learning (Mầm Học)
+# Kế hoạch phát triển dự án E-Learning Đại học Lạc Hồng (LHU)
 
 ## Trạng thái các Phase
 

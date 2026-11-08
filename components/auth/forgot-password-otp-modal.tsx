@@ -151,7 +151,7 @@ export function ForgotPasswordOtpModal({
             </div>
 
             <p className="text-sm text-muted-foreground mb-5">
-              Nhập email đăng ký tài khoản Mầm Học. Hệ thống sẽ gửi mã OTP bảo mật để bạn thiết lập mật khẩu mới ngay lập tức.
+              Nhập email tài khoản Đại học Lạc Hồng (@lhu.edu.vn hoặc email đã đăng ký). Hệ thống sẽ gửi mã OTP bảo mật để bạn thiết lập mật khẩu mới ngay lập tức.
             </p>
 
             <form onSubmit={handleSendOtp} className="space-y-4">

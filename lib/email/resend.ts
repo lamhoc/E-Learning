@@ -3,10 +3,20 @@ import 'server-only';
 import { Resend } from 'resend';
 
 const resendApiKey = process.env.RESEND_API_KEY?.trim();
-const defaultFromEmail = process.env.RESEND_FROM_EMAIL?.trim() || 'Mầm Học <onboarding@resend.dev>';
+const defaultFromEmail = process.env.RESEND_FROM_EMAIL?.trim() || 'LHU E-Learning <onboarding@resend.dev>';
 
 // Khởi tạo client Resend nếu có API Key
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
+
+/**
+ * Lấy URL gốc của ứng dụng web cho link và ảnh trong email
+ */
+function getEmailSiteUrl(): string {
+  const configured = process.env.SITE_URL?.trim();
+  if (configured) return configured.replace(/\/+$/, '');
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return 'http://localhost:3000';
+}
 
 /**
  * Kiểm tra Resend đã được cấu hình sẵn sàng hay chưa
@@ -16,7 +26,8 @@ export function isResendConfigured(): boolean {
 }
 
 /**
- * Tạo khung HTML Email responsive chuẩn EdTech với phong cách thương hiệu Mầm Học
+ * Tạo khung HTML Email responsive chuẩn nhận diện Đại học Lạc Hồng (LHU)
+ * Màu chủ đạo: Xanh LHU (#154C99 / #0A275C) & Vàng Gold (#FACC15 / #EAB308)
  */
 function createEmailTemplate({
   title,
@@ -27,6 +38,9 @@ function createEmailTemplate({
   preheader?: string;
   contentHtml: string;
 }) {
+  const siteUrl = getEmailSiteUrl();
+  const logoUrl = `${siteUrl}/logo-lhu.png`;
+
   return `<!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -57,30 +71,49 @@ function createEmailTemplate({
       border: 1px solid #e2e8f0;
     }
     .header {
-      background: linear-gradient(135deg, #154C99 0%, #1e3a8a 100%);
+      background: linear-gradient(135deg, #0A275C 0%, #154C99 50%, #0F3D8A 100%);
       padding: 32px 24px;
       text-align: center;
       color: #ffffff;
+    }
+    .logo-container {
+      margin-bottom: 16px;
+    }
+    .logo-card {
+      display: inline-block;
+      background-color: #ffffff;
+      padding: 10px 20px;
+      border-radius: 14px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
     }
     .logo-badge {
       display: inline-block;
       background-color: rgba(255, 255, 255, 0.15);
       backdrop-filter: blur(8px);
-      padding: 6px 16px;
+      padding: 5px 14px;
       border-radius: 9999px;
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: 0.05em;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
       color: #ffffff;
-      margin-bottom: 12px;
+      margin-bottom: 6px;
       border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .subbadge {
+      font-size: 11px;
+      font-weight: 700;
+      color: #FACC15;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
     }
     .header h1 {
       margin: 0;
-      font-size: 24px;
+      font-size: 22px;
       font-weight: 700;
       letter-spacing: -0.02em;
+      color: #ffffff;
     }
     .content {
       padding: 36px 32px;
@@ -128,7 +161,7 @@ function createEmailTemplate({
       border-top: 1px solid #e2e8f0;
       font-size: 12px;
       color: #64748b;
-      line-height: 1.5;
+      line-height: 1.6;
     }
   </style>
 </head>
@@ -137,15 +170,27 @@ function createEmailTemplate({
   <div class="wrapper">
     <div class="container">
       <div class="header">
-        <div class="logo-badge">MẦM HỌC · ĐẠI HỌC LẠC HỒNG</div>
+        <div class="logo-container">
+          <div class="logo-card">
+            <img
+              src="${logoUrl}"
+              alt="Trường Đại học Lạc Hồng - Powered by Arizona State University"
+              width="160"
+              style="display: block; max-width: 170px; height: auto; border: 0;"
+            />
+          </div>
+        </div>
+        <div class="logo-badge">HỆ THỐNG E-LEARNING LHU</div>
+        <div class="subbadge">⚡ POWERED BY ARIZONA STATE UNIVERSITY</div>
         <h1>${title}</h1>
       </div>
       <div class="content">
         ${contentHtml}
       </div>
       <div class="footer">
-        <p style="margin: 0 0 8px;">Đây là email tự động từ Hệ thống Khảo thí & Học tập Trực tuyến Mầm Học.</p>
-        <p style="margin: 0;">Vui lòng không trả lời trực tiếp email này. Nếu cần hỗ trợ, hãy liên hệ phòng Đào tạo.</p>
+        <p style="margin: 0 0 6px; font-weight: 700; color: #1e293b; font-size: 13px;">TRƯỜNG ĐẠI HỌC LẠC HỒNG (LHU)</p>
+        <p style="margin: 0 0 6px;">Đây là email tự động từ Hệ thống Đào tạo & Khảo thí Trực tuyến Đại học Lạc Hồng.</p>
+        <p style="margin: 0; color: #94a3b8; font-size: 11px;">Số 10 Huỳnh Văn Nghệ, P. Bửu Long, TP. Biên Hòa, Tỉnh Đồng Nai · Website: lhu.edu.vn</p>
       </div>
     </div>
   </div>
@@ -171,16 +216,16 @@ export async function sendOtpEmail({
   const isRegister = purpose === 'register_verify';
 
   const subject = isReset
-    ? `[Mầm Học] Mã xác thực đặt lại mật khẩu: ${otp}`
+    ? `[LHU E-Learning] Mã xác thực đặt lại mật khẩu: ${otp}`
     : isRegister
-      ? `[Mầm Học] Mã kích hoạt tài khoản: ${otp}`
-      : `[Mầm Học] Mã xác thực đăng nhập 2FA: ${otp}`;
+      ? `[LHU E-Learning] Mã kích hoạt tài khoản: ${otp}`
+      : `[LHU E-Learning] Mã xác thực đăng nhập 2FA: ${otp}`;
 
   const purposeText = isReset
-    ? 'Bạn nhận được email này vì đã yêu cầu <strong>đặt lại mật khẩu</strong> cho tài khoản trên hệ thống Mầm Học.'
+    ? 'Bạn nhận được email này vì đã yêu cầu <strong>đặt lại mật khẩu</strong> cho tài khoản trên Hệ thống E-Learning Đại học Lạc Hồng.'
     : isRegister
-      ? 'Chào mừng bạn đến với Mầm Học! Vui lòng dùng mã bên dưới để <strong>xác thực email và kích hoạt tài khoản</strong> của bạn.'
-      : 'Hệ thống phát hiện lượt đăng nhập cần <strong>xác thực 2 bước</strong> để bảo vệ tài khoản của bạn.';
+      ? 'Chào mừng bạn đến với Hệ thống E-Learning Đại học Lạc Hồng! Vui lòng dùng mã bên dưới để <strong>xác thực email và kích hoạt tài khoản</strong> của bạn.'
+      : 'Hệ thống phát hiện lượt đăng nhập cần <strong>xác thực 2 bước</strong> để bảo vệ tài khoản LHU của bạn.';
 
   const contentHtml = `
     <p>Xin chào <strong>${userName || to}</strong>,</p>
@@ -197,7 +242,7 @@ export async function sendOtpEmail({
     </div>
 
     <div style="background-color: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 12px 16px; margin: 20px 0; font-size: 13px; color: #92400e;">
-      ⚠️ <strong>Bảo mật tài khoản:</strong> Tuyệt đối không chia sẻ mã OTP này cho bất kỳ ai, kể cả quản trị viên hay nhân viên kỹ thuật. Nếu bạn không thực hiện yêu cầu này, hãy bỏ qua email này.
+      ⚠️ <strong>Bảo mật tài khoản:</strong> Tuyệt đối không chia sẻ mã OTP này cho bất kỳ ai, kể cả cán bộ quản trị viên hay nhân viên kỹ thuật LHU. Nếu bạn không yêu cầu thao tác này, xin vui lòng bỏ qua email.
     </div>
   `;
 
@@ -246,13 +291,13 @@ export async function sendTeacherInvitationEmail({
   invitationUrl: string;
 }): Promise<{ success: boolean; error?: string }> {
   const contentHtml = `
-    <p>Kính gửi Thầy/Cô,</p>
-    <p>Ban Quản trị Hệ thống Khảo thí <strong>Mầm Học - Đại học Lạc Hồng</strong> trân trọng kính mời Thầy/Cô tham gia vào hệ thống với vai trò <strong>Giảng viên</strong>.</p>
+    <p>Kính gửi Quý Thầy/Cô,</p>
+    <p>Ban Quản trị <strong>Hệ thống E-Learning - Trường Đại học Lạc Hồng</strong> trân trọng kính mời Thầy/Cô tham gia vào hệ thống với vai trò <strong>Giảng viên</strong>.</p>
     
-    <p>Với tài khoản Giảng viên, Thầy/Cô có thể:</p>
+    <p>Với tài khoản Giảng viên LHU, Thầy/Cô có thể:</p>
     <ul style="padding-left: 20px; line-height: 1.8;">
-      <li>Quản lý lớp học, phân quyền sinh viên và chia sẻ học liệu bài giảng.</li>
-      <li>Sinh câu hỏi thi tự động bằng Trí tuệ Nhân tạo từ file Word (.docx) hoặc PDF.</li>
+      <li>Quản lý lớp học phụ trách, phân quyền sinh viên và chia sẻ học liệu bài giảng.</li>
+      <li>Sinh câu hỏi thi tự động bằng Trí tuệ Nhân tạo từ tài liệu Word (.docx) hoặc PDF.</li>
       <li>Tổ chức các kỳ thi trực tuyến và chấm bài tự luận linh hoạt.</li>
     </ul>
 
@@ -273,7 +318,7 @@ export async function sendTeacherInvitationEmail({
 
   const html = createEmailTemplate({
     title: 'Thư mời Giảng viên',
-    preheader: 'Kính mời Thầy/Cô kích hoạt tài khoản giảng viên trên hệ thống Mầm Học',
+    preheader: 'Kính mời Thầy/Cô kích hoạt tài khoản giảng viên trên Hệ thống E-Learning Đại học Lạc Hồng',
     contentHtml,
   });
 
@@ -286,7 +331,7 @@ export async function sendTeacherInvitationEmail({
     const { error } = await resend.emails.send({
       from: defaultFromEmail,
       to,
-      subject: '[Mầm Học] Thư mời kích hoạt tài khoản Giảng viên',
+      subject: '[LHU E-Learning] Thư mời kích hoạt tài khoản Giảng viên',
       html,
     });
 
@@ -319,28 +364,30 @@ export async function sendTeacherApplicationReviewEmail({
   approved: boolean;
   note?: string;
 }): Promise<{ success: boolean; error?: string }> {
+  const siteUrl = getEmailSiteUrl();
+
   const contentHtml = approved
     ? `
-      <p>Kính gửi Thầy/Cô <strong>${teacherName}</strong>,</p>
+      <p>Kính gửi Quý Thầy/Cô <strong>${teacherName}</strong>,</p>
       <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 16px; margin: 20px 0; color: #166534;">
         <h3 style="margin: 0 0 8px; font-size: 16px;">🎉 Hồ sơ của Thầy/Cô đã được phê duyệt thành công!</h3>
-        <p style="margin: 0; font-size: 14px;">Tài khoản của Thầy/Cô đã được nâng cấp chính thức lên vai trò <strong>Giảng viên</strong> trên hệ thống Mầm Học.</p>
+        <p style="margin: 0; font-size: 14px;">Tài khoản của Thầy/Cô đã được nâng cấp chính thức lên vai trò <strong>Giảng viên</strong> trên Hệ thống E-Learning Trường Đại học Lạc Hồng.</p>
       </div>
       ${note ? `<p><strong>Ghi chú từ Ban Quản trị:</strong> <em>${note}</em></p>` : ''}
       <div style="text-align: center; margin: 24px 0;">
-        <a href="${process.env.SITE_URL || 'http://localhost:3000'}/login" class="btn">
+        <a href="${siteUrl}/login" class="btn">
           Đăng nhập vào Bảng điều khiển Giảng viên
         </a>
       </div>
     `
     : `
-      <p>Kính gửi Thầy/Cô <strong>${teacherName}</strong>,</p>
+      <p>Kính gửi Quý Thầy/Cô <strong>${teacherName}</strong>,</p>
       <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 16px; margin: 20px 0; color: #991b1b;">
-        <h3 style="margin: 0 0 8px; font-size: 16px;">Thông báo về hồ sơ đăng ký giảng viên</h3>
+        <h3 style="margin: 0 0 8px; font-size: 16px;">Thông báo về hồ sơ đăng ký Giảng viên</h3>
         <p style="margin: 0; font-size: 14px;">Rất tiếc, hồ sơ đăng ký tài khoản giảng viên của Thầy/Cô chưa thể phê duyệt vào thời điểm này.</p>
       </div>
       ${note ? `<p><strong>Lý do từ Ban Quản trị:</strong> <em>${note}</em></p>` : ''}
-      <p>Thầy/Cô vui lòng cập nhật lại thông tin hoặc liên hệ trực tiếp với Phòng Đào tạo để được hỗ trợ thêm.</p>
+      <p>Thầy/Cô vui lòng cập nhật lại thông tin hoặc liên hệ trực tiếp với Phòng Đào tạo LHU để được hỗ trợ.</p>
     `;
 
   const html = createEmailTemplate({
@@ -359,8 +406,8 @@ export async function sendTeacherApplicationReviewEmail({
       from: defaultFromEmail,
       to,
       subject: approved
-        ? '[Mầm Học] Chúc mừng: Hồ sơ Giảng viên đã được phê duyệt!'
-        : '[Mầm Học] Thông báo về hồ sơ đăng ký Giảng viên',
+        ? '[LHU E-Learning] Chúc mừng: Hồ sơ Giảng viên đã được phê duyệt!'
+        : '[LHU E-Learning] Thông báo về hồ sơ đăng ký Giảng viên',
       html,
     });
 

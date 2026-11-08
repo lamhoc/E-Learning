@@ -109,7 +109,7 @@ export function ExamPreviewModal({
             <div className="border-b-2 border-slate-900 pb-5 text-center">
               <div className="grid grid-cols-2 gap-4 text-xs font-semibold uppercase tracking-wider text-slate-700">
                 <div className="text-left">
-                  <p>HỆ THỐNG ĐÀO TẠO MẦM HỌC</p>
+                  <p>TRƯỜNG ĐẠI HỌC LẠC HỒNG</p>
                   <p className="font-normal text-slate-500">NGÂN HÀNG KHẢO THÍ CHUẨN</p>
                 </div>
                 <div className="text-right">
