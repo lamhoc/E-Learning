@@ -3,37 +3,25 @@ import 'server-only';
 import { Resend } from 'resend';
 import nodemailer from 'nodemailer';
 
-// Cấu hình Resend API
-const resendApiKey = process.env.RESEND_API_KEY?.trim();
-const resend = resendApiKey ? new Resend(resendApiKey) : null;
-
-// Cấu hình Gmail / SMTP
-const smtpUser = process.env.SMTP_USER?.trim() || process.env.GMAIL_USER?.trim();
-// Mật khẩu ứng dụng Google thường gồm 16 ký tự, có thể có khoảng trắng ở giữa (ví dụ: "abcd efgh ijkl mnop")
-const smtpPass = (process.env.SMTP_PASS?.trim() || process.env.GMAIL_APP_PASSWORD?.trim())?.replace(/\s+/g, '');
-
 /**
- * Khởi tạo Gmail / SMTP Transporter khi có cấu hình
+ * Lấy thông tin tài khoản Gmail SMTP động theo mỗi request
  */
-function getSmtpTransporter() {
-  if (!smtpUser || !smtpPass) return null;
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: smtpUser,
-      pass: smtpPass,
-    },
-  });
+function getSmtpConfig() {
+  const user = process.env.SMTP_USER?.trim() || process.env.GMAIL_USER?.trim();
+  // Mật khẩu ứng dụng Google gồm 16 ký tự (loại bỏ toàn bộ khoảng trắng)
+  const pass = (process.env.SMTP_PASS?.trim() || process.env.GMAIL_APP_PASSWORD?.trim())?.replace(/\s+/g, '');
+  return { user, pass };
 }
 
 /**
  * Xác định địa chỉ người gửi chuẩn nhận diện LHU
  */
 function getSenderAddress(): string {
+  const { user: smtpUser } = getSmtpConfig();
   const configuredFrom = process.env.RESEND_FROM_EMAIL?.trim() || process.env.SMTP_FROM?.trim();
 
-  // Nếu sử dụng Gmail SMTP, email gửi bắt buộc phải khớp với tài khoản Gmail đã xác thực
-  if (smtpUser && smtpPass) {
+  // Nếu sử dụng Gmail SMTP, email người gửi bắt buộc phải gắn với tài khoản Gmail đã xác thực
+  if (smtpUser) {
     if (configuredFrom && configuredFrom.includes('<') && configuredFrom.includes('>')) {
       const displayName = configuredFrom.split('<')[0].trim();
       return `${displayName} <${smtpUser}>`;
@@ -48,7 +36,9 @@ function getSenderAddress(): string {
  * Kiểm tra hệ thống email (Resend hoặc Gmail SMTP) đã được cấu hình hay chưa
  */
 export function isEmailConfigured(): boolean {
-  return Boolean((smtpUser && smtpPass) || resendApiKey);
+  const { user, pass } = getSmtpConfig();
+  const resendApiKey = process.env.RESEND_API_KEY?.trim();
+  return Boolean((user && pass) || resendApiKey);
 }
 
 export function isResendConfigured(): boolean {
@@ -250,10 +240,25 @@ async function dispatchEmail({
   subject: string;
   html: string;
 }): Promise<{ success: boolean; error?: string }> {
-  // 1. ƯU TIÊN 1: Gửi qua Gmail SMTP nếu được cấu hình (Gửi được cho mọi sinh viên/giảng viên không cần domain)
-  const transporter = getSmtpTransporter();
-  if (transporter) {
+  const { user: smtpUser, pass: smtpPass } = getSmtpConfig();
+  const resendApiKey = process.env.RESEND_API_KEY?.trim();
+
+  // 1. ƯU TIÊN 1: Gửi qua Gmail SMTP nếu có cấu hình
+  if (smtpUser && smtpPass) {
     try {
+      const transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000,
+      });
+
       const from = getSenderAddress();
       const info = await transporter.sendMail({
         from,
@@ -265,19 +270,18 @@ async function dispatchEmail({
       return { success: true };
     } catch (smtpErr: unknown) {
       console.error('Lỗi khi gửi email qua Gmail SMTP:', smtpErr);
-      // Nếu không cấu hình Resend dự phòng thì trả lỗi về cho client
-      if (!resend) {
-        return {
-          success: false,
-          error: smtpErr instanceof Error ? smtpErr.message : 'Lỗi gửi email qua Gmail SMTP.',
-        };
-      }
+      const errMsg = smtpErr instanceof Error ? smtpErr.message : String(smtpErr);
+      return {
+        success: false,
+        error: `Lỗi kết nối Gmail SMTP (${smtpUser}): ${errMsg}. Vui lòng kiểm tra lại Mật khẩu ứng dụng (App Password) của Google.`,
+      };
     }
   }
 
   // 2. ƯU TIÊN 2: Gửi qua Resend API nếu có cấu hình
-  if (resend) {
+  if (resendApiKey) {
     try {
+      const resend = new Resend(resendApiKey);
       const { data, error } = await resend.emails.send({
         from: process.env.RESEND_FROM_EMAIL?.trim() || 'LHU E-Learning <onboarding@resend.dev>',
         to,
@@ -287,12 +291,11 @@ async function dispatchEmail({
 
       if (error) {
         console.error('Lỗi khi gửi email qua Resend:', error);
-        // Bắt lỗi Sandbox đặc thù của Resend khi gửi tới email khác chủ tài khoản
         if (error.message.includes('only send testing emails to your own email address')) {
           return {
             success: false,
             error:
-              'Resend đang ở chế độ Sandbox (chưa gắn domain riêng) nên chỉ gửi được tới email chủ tài khoản. Hãy cấu hình SMTP_USER và SMTP_PASS (Gmail App Password) trong .env để gửi tự do cho mọi sinh viên và giảng viên.',
+              'Resend đang ở chế độ Sandbox (chưa gắn domain riêng) nên chỉ gửi được tới email chủ tài khoản. Hãy bấm REDEPLOY trên Vercel để hệ thống nạp SMTP_USER & SMTP_PASS bạn vừa thêm!',
           };
         }
         return { success: false, error: error.message };
