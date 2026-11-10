@@ -64,3 +64,11 @@
     - Chạy TypeScript check (`npx tsc --noEmit`) 0 errors.
     - Chạy Production Build (`npm run build`) 37/37 static/dynamic pages biên dịch thành công.
     - Tạo Local commit an toàn (không push tự ý).
+
+- [ ] **Phase 43**: Đồng bộ Layout Sidebar + Sửa Links + Khắc phục màu chữ tàng hình toàn hệ thống:
+  - [ ] **Mục tiêu 1: Đồng bộ Layout cho classId pages**: Wrap `/teacher/classes/[classId]`, `/teacher/classes/[classId]/assignments`, `/teacher/classes/[classId]/materials` vào layout sidebar đầy đủ. Xóa header rời rạc cũ.
+  - [ ] **Mục tiêu 2: Active route đúng** cho `/teacher/exams/[examId]` → `activeRoute="exams"`, `/teacher/exams/create` → `activeRoute="exams"`, classId pages → `activeRoute="classes"`.
+  - [ ] **Mục tiêu 3: Nút bấm & Links**: Nút quay lại `/teacher/classes/[classId]` → `/teacher/classes`. Cụm nút header đồng màu chuẩn dark-mode.
+  - [ ] **Mục tiêu 4: Sửa màu chữ tàng hình** tại `exam-create-form.tsx`, `teacher-assignments-client.tsx`, `teacher-materials-client.tsx`, `grading-queue-client.tsx` — thêm dark: variants cho text/bg bị thiếu.
+  - [ ] **Mục tiêu 5: Rà soát toàn hệ thống** `app/admin`, `app/teacher`, `app/student`, `components` — tìm và sửa text-black/text-slate-900 không có dark variant.
+  - [ ] **Mục tiêu 6: Kiểm thử & Nghiệm thu** — `npx tsc --noEmit` 0 errors, `npm run build` thành công, commit local.

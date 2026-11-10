@@ -69,9 +69,9 @@ export function StudentSidebar({ studentName, activeRoute }: StudentSidebarProps
 
       <nav aria-label="Điều hướng chính" className="mt-3 space-y-1">
         {navItems.map(({ id, label, href, icon: Icon }) => {
-          const isActive = activeRoute
-            ? activeRoute === id
-            : (id === 'dashboard' ? pathname === '/student/dashboard' : pathname.startsWith(href));
+          const isActive = pathname
+            ? (id === 'dashboard' ? (pathname === '/student/dashboard' || pathname === '/student') : pathname.startsWith(href))
+            : activeRoute === id;
 
           return (
             <Link

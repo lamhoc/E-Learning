@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   BookOpen,
   Bot,
@@ -31,11 +34,12 @@ export type TeacherSidebarActiveRoute =
   | 'ai-tutor';
 
 type TeacherSidebarProps = {
-  activeRoute: TeacherSidebarActiveRoute;
+  activeRoute?: TeacherSidebarActiveRoute;
   teacherName: string;
 };
 
 export function TeacherSidebar({ activeRoute, teacherName }: TeacherSidebarProps) {
+  const pathname = usePathname();
   const cleanTeacherName = sanitizeVietnameseText(teacherName) || 'Giảng viên';
   const initials = cleanTeacherName
     .split(/[\s@.]+/)
@@ -44,76 +48,88 @@ export function TeacherSidebar({ activeRoute, teacherName }: TeacherSidebarProps
     .map((part) => part[0]?.toLocaleUpperCase())
     .join('');
 
+  const isRouteActive = (routeId: TeacherSidebarActiveRoute, href: string) => {
+    if (pathname) {
+      if (routeId === 'dashboard') {
+        return pathname === '/teacher/dashboard' || pathname === '/teacher';
+      }
+      if (pathname.startsWith(href)) {
+        return true;
+      }
+    }
+    return activeRoute === routeId;
+  };
+
   const navItems = [
     {
       id: 'dashboard',
       label: 'Tổng quan',
       href: '/teacher/dashboard',
       icon: LayoutDashboard,
-      active: activeRoute === 'dashboard',
+      active: isRouteActive('dashboard', '/teacher/dashboard'),
     },
     {
       id: 'subjects',
       label: 'Môn học',
       href: '/teacher/subjects',
       icon: BookOpen,
-      active: activeRoute === 'subjects',
+      active: isRouteActive('subjects', '/teacher/subjects'),
     },
     {
       id: 'classes',
       label: 'Lớp học',
       href: '/teacher/classes',
       icon: GraduationCap,
-      active: activeRoute === 'classes',
+      active: isRouteActive('classes', '/teacher/classes'),
     },
     {
       id: 'materials',
       label: 'Tài liệu giảng dạy',
       href: '/teacher/materials',
       icon: FileText,
-      active: activeRoute === 'materials',
+      active: isRouteActive('materials', '/teacher/materials'),
     },
     {
       id: 'assignments',
       label: 'Bài tập về nhà',
       href: '/teacher/assignments',
       icon: ClipboardList,
-      active: activeRoute === 'assignments',
+      active: isRouteActive('assignments', '/teacher/assignments'),
     },
     {
       id: 'questions',
       label: 'Ngân hàng câu hỏi',
       href: '/teacher/questions',
       icon: HelpCircle,
-      active: activeRoute === 'questions',
+      active: isRouteActive('questions', '/teacher/questions'),
     },
     {
       id: 'ai-generator',
       label: 'Sinh câu hỏi AI',
       href: '/teacher/ai-generator',
       icon: Sparkles,
-      active: activeRoute === 'ai-generator',
+      active: isRouteActive('ai-generator', '/teacher/ai-generator'),
     },
     {
       id: 'exams',
       label: 'Đề thi',
       href: '/teacher/exams',
       icon: FileCheck,
-      active: activeRoute === 'exams',
+      active: isRouteActive('exams', '/teacher/exams'),
     },
     {
       id: 'grading',
       label: 'Chấm bài thi',
       href: '/teacher/grading',
       icon: PenTool,
-      active: activeRoute === 'grading',
+      active: isRouteActive('grading', '/teacher/grading'),
     },
     {
       id: 'ai-tutor',
       label: 'Gia sư AI',
       href: '/teacher/ai-tutor',
       icon: Bot,
-      active: activeRoute === 'ai-tutor',
+      active: isRouteActive('ai-tutor', '/teacher/ai-tutor'),
     },
   ];
 

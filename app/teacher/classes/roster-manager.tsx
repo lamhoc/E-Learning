@@ -271,7 +271,7 @@ export function RosterManager({ classId, students }: { classId: string; students
         )}
       </section>
 
-      <section>
+      <section id="danh-sach-sinh-vien" className="scroll-mt-24">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
             <h2 className="text-base font-semibold">Danh sách sinh viên</h2>

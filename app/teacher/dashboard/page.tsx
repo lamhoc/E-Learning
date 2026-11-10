@@ -494,23 +494,23 @@ async function TeacherDashboardDataContent() {
                   <Link
                     href={`/teacher/classes/${classItem.id}`}
                     key={classItem.id}
-                    className="group flex items-center gap-3 rounded-xl px-2 py-3 transition hover:bg-slate-50"
+                    className="group flex items-center gap-3 rounded-xl px-2 py-3 transition hover:bg-slate-50 dark:hover:bg-slate-800/60"
                   >
-                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700 transition group-hover:bg-emerald-100">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 transition group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/60">
                       <BookOpen aria-hidden="true" className="size-4" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium text-slate-800">
+                      <span className="block truncate text-sm font-medium text-slate-800 dark:text-slate-100">
                         {classItem.name}
                       </span>
-                      <span className="mt-0.5 block truncate text-xs text-slate-400">
+                      <span className="mt-0.5 block truncate text-xs text-slate-400 dark:text-slate-400">
                         {getSubjectName(classItem.subject) ?? 'Môn học'} ·{' '}
                         {classItem.academic_year}
                       </span>
                     </span>
                     <ArrowUpRight
                       aria-hidden="true"
-                      className="size-4 shrink-0 text-slate-300 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-slate-600"
+                      className="size-4 shrink-0 text-slate-300 dark:text-slate-600 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-slate-600 dark:group-hover:text-slate-300"
                     />
                   </Link>
                 ))}
@@ -601,7 +601,7 @@ async function TeacherDashboardDataContent() {
                         <TableCell className="pr-5 text-right">
                           <Link
                             href={`/teacher/exams/${exam.id}`}
-                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-emerald-800 transition shadow-2xs"
+                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition shadow-2xs"
                           >
                             <span>Thống kê</span>
                           </Link>

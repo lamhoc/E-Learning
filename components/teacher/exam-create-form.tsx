@@ -258,7 +258,7 @@ export function ExamCreateForm({
             variant="outline"
             disabled={isSubmitting}
             onClick={() => handleSubmit(false)}
-            className="h-10 text-xs font-semibold text-slate-700"
+            className="h-10 text-xs font-semibold text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700"
           >
             {isSubmitting ? (
               <LoaderCircle className="size-3.5 animate-spin mr-1.5" />
@@ -309,24 +309,24 @@ export function ExamCreateForm({
       <div className="grid gap-6 xl:grid-cols-[400px_minmax(0,1fr)]">
         {/* LEFT COLUMN: GENERAL SETTINGS */}
         <div className="space-y-6">
-          <Card className="shadow-xs">
-            <CardHeader className="pb-3 border-b border-slate-100">
+          <Card className="shadow-xs dark:bg-[#111C2D] dark:border-slate-800">
+            <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
               <CardTitle className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <BookOpen className="size-4 text-[#246348]" />
+                <BookOpen className="size-4 text-[#246348] dark:text-emerald-400" />
                 1. Thông tin chung & Môn học
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
               {/* Subject Selection */}
               <div className="space-y-1.5">
-                <Label htmlFor="exam-subject" className="text-xs font-bold text-slate-800">
+                <Label htmlFor="exam-subject" className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                   Môn học áp dụng <span className="text-destructive">*</span>
                 </Label>
                 <select
                   id="exam-subject"
                   value={selectedSubjectId}
                   onChange={(e) => handleSubjectChange(e.target.value)}
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="h-10 w-full rounded-lg border border-input dark:border-slate-700 bg-background dark:bg-slate-800/80 px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                 >
                   {assignedSubjects.map((sub) => (
                     <option key={sub.id} value={sub.id}>
@@ -334,14 +334,14 @@ export function ExamCreateForm({
                     </option>
                   ))}
                 </select>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   Ngân hàng câu hỏi và danh sách lớp sẽ tự động cập nhật theo môn học này.
                 </p>
               </div>
 
               {/* Title */}
               <div className="space-y-1.5">
-                <Label htmlFor="exam-title" className="text-xs font-bold text-slate-800">
+                <Label htmlFor="exam-title" className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                   Tiêu đề đề thi <span className="text-destructive">*</span>
                 </Label>
                 <Input
@@ -349,13 +349,13 @@ export function ExamCreateForm({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Ví dụ: Kiểm tra Giữa kỳ - Khóa K22..."
-                  className="h-10 text-xs"
+                  className="h-10 text-xs dark:bg-slate-800/80 dark:border-slate-700 dark:text-slate-100"
                 />
               </div>
 
               {/* Instructions */}
               <div className="space-y-1.5">
-                <Label htmlFor="exam-instructions" className="text-xs font-bold text-slate-800">
+                <Label htmlFor="exam-instructions" className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                   Dặn dò / Hướng dẫn thí sinh (tùy chọn)
                 </Label>
                 <textarea
@@ -364,15 +364,15 @@ export function ExamCreateForm({
                   value={instructions}
                   onChange={(e) => setInstructions(e.target.value)}
                   placeholder="Ví dụ: Thí sinh không được sử dụng tài liệu. Đọc kỹ câu hỏi trước khi trả lời..."
-                  className="w-full rounded-lg border border-input bg-background p-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full rounded-lg border border-input dark:border-slate-700 bg-background dark:bg-slate-800/80 p-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
 
               {/* Assigned Classes */}
-              <div className="space-y-2 pt-1 border-t border-slate-100">
-                <Label className="text-xs font-bold text-slate-800 flex items-center justify-between">
+              <div className="space-y-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+                <Label className="text-sm font-semibold text-slate-800 dark:text-slate-100 flex items-center justify-between">
                   <span>Gán cho các lớp học:</span>
-                  <span className="text-[11px] font-normal text-slate-500">
+                  <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
                     Đã chọn: {selectedClassIds.length} lớp
                   </span>
                 </Label>
@@ -382,7 +382,7 @@ export function ExamCreateForm({
                     Chưa có lớp học nào thuộc môn này do bạn giảng dạy.
                   </p>
                 ) : (
-                  <div className="max-h-36 overflow-y-auto space-y-1.5 rounded-lg border border-slate-200 p-2.5 bg-slate-50/50">
+                  <div className="max-h-36 overflow-y-auto space-y-1.5 rounded-lg border border-slate-200 dark:border-slate-700 p-2.5 bg-slate-100 dark:bg-slate-800/90 text-slate-900 dark:text-slate-100">
                     {availableClasses.map((c) => {
                       const isChecked = selectedClassIds.includes(c.id);
                       return (
@@ -390,8 +390,8 @@ export function ExamCreateForm({
                           key={c.id}
                           className={`flex cursor-pointer items-center justify-between rounded-md p-2 text-xs transition select-none ${
                             isChecked
-                              ? 'bg-emerald-50 text-emerald-950 font-semibold'
-                              : 'hover:bg-slate-100 text-slate-700'
+                              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-950 dark:text-emerald-200 font-semibold border border-emerald-300 dark:border-emerald-700'
+                              : 'hover:bg-slate-200/60 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-200'
                           }`}
                         >
                           <div className="flex items-center gap-2">
@@ -416,17 +416,17 @@ export function ExamCreateForm({
           </Card>
 
           {/* Exam Timing & Limits Card */}
-          <Card className="shadow-xs">
-            <CardHeader className="pb-3 border-b border-slate-100">
+          <Card className="shadow-xs dark:bg-[#111C2D] dark:border-slate-800">
+            <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
               <CardTitle className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Clock className="size-4 text-[#246348]" />
+                <Clock className="size-4 text-[#246348] dark:text-emerald-400" />
                 2. Thời gian & Lượt thi
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="exam-duration" className="text-xs font-bold text-slate-800">
+                  <Label htmlFor="exam-duration" className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                     Thời lượng (phút)
                   </Label>
                   <Input
@@ -436,7 +436,7 @@ export function ExamCreateForm({
                     max={300}
                     value={durationMinutes}
                     onChange={(e) => setDurationMinutes(Number(e.target.value) || 45)}
-                    className="h-10 text-xs"
+                    className="h-10 text-xs dark:bg-slate-800/80 dark:border-slate-700 dark:text-slate-100"
                   />
                   <div className="flex gap-1 pt-1">
                     {[15, 45, 60, 90].map((m) => (
@@ -447,7 +447,7 @@ export function ExamCreateForm({
                         className={`rounded px-1.5 py-0.5 text-[10px] font-semibold border ${
                           durationMinutes === m
                             ? 'bg-primary text-white border-primary'
-                            : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
                         }`}
                       >
                         {m}p
@@ -457,7 +457,7 @@ export function ExamCreateForm({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="exam-attempts" className="text-xs font-bold text-slate-800">
+                  <Label htmlFor="exam-attempts" className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                     Số lượt thi tối đa
                   </Label>
                   <Input
@@ -467,7 +467,7 @@ export function ExamCreateForm({
                     max={10}
                     value={maxAttempts}
                     onChange={(e) => setMaxAttempts(Number(e.target.value) || 1)}
-                    className="h-10 text-xs"
+                    className="h-10 text-xs dark:bg-slate-800/80 dark:border-slate-700 dark:text-slate-100"
                   />
                   <p className="text-[10px] text-slate-400 pt-1">
                     Thường là 1 lượt cho bài thi chính thức.
@@ -476,29 +476,29 @@ export function ExamCreateForm({
               </div>
 
               {/* Window of availability */}
-              <div className="space-y-3 pt-2 border-t border-slate-100">
-                <Label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <Calendar className="size-3.5 text-slate-500" />
+              <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <Label className="text-sm font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                  <Calendar className="size-3.5 text-slate-500 dark:text-slate-400" />
                   Khung giờ mở đề (tùy chọn)
                 </Label>
 
                 <div className="grid gap-2 sm:grid-cols-2">
                   <div className="space-y-1">
-                    <span className="text-[11px] text-slate-500">Mở từ lúc:</span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">Mở từ lúc:</span>
                     <Input
                       type="datetime-local"
                       value={availableFrom}
                       onChange={(e) => setAvailableFrom(e.target.value)}
-                      className="h-9 text-xs"
+                      className="h-9 text-xs dark:bg-slate-800/80 dark:border-slate-700 dark:text-slate-100"
                     />
                   </div>
                   <div className="space-y-1">
-                    <span className="text-[11px] text-slate-500">Đóng lúc:</span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">Đóng lúc:</span>
                     <Input
                       type="datetime-local"
                       value={availableUntil}
                       onChange={(e) => setAvailableUntil(e.target.value)}
-                      className="h-9 text-xs"
+                      className="h-9 text-xs dark:bg-slate-800/80 dark:border-slate-700 dark:text-slate-100"
                     />
                   </div>
                 </div>
@@ -550,11 +550,11 @@ export function ExamCreateForm({
 
         {/* RIGHT COLUMN: QUESTION SELECTION & SCORING */}
         <div className="space-y-6">
-          <Card className="shadow-xs">
-            <CardHeader className="pb-3 border-b border-slate-100">
+          <Card className="shadow-xs dark:bg-[#111C2D] dark:border-slate-800">
+            <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <LibraryBig className="size-4 text-[#246348]" />
+                  <LibraryBig className="size-4 text-[#246348] dark:text-emerald-400" />
                   <CardTitle className="text-sm font-bold text-slate-900 dark:text-white">
                     3. Chọn câu hỏi từ Ngân hàng đề thi
                   </CardTitle>
@@ -564,7 +564,7 @@ export function ExamCreateForm({
                   <Badge className="bg-primary text-white">
                     Đã chọn: {selectedQuestions.length} câu
                   </Badge>
-                  <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-800 font-bold">
+                  <Badge variant="outline" className="border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold">
                     Tổng điểm: {totalScore}
                   </Badge>
                 </div>
@@ -573,7 +573,7 @@ export function ExamCreateForm({
 
             <CardContent className="space-y-4 pt-4">
               {/* Question Bank Filter Bar */}
-              <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/90 p-3 text-slate-900 dark:text-slate-100">
                 <div className="relative flex-1 min-w-[200px]">
                   <Search className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-slate-400" />
                   <Input
@@ -602,7 +602,7 @@ export function ExamCreateForm({
                     variant="outline"
                     size="sm"
                     onClick={handleSelectAllFiltered}
-                    className="h-8 text-[11px]"
+                    className="h-8 text-[11px] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                   >
                     Chọn tất cả
                   </Button>
@@ -613,7 +613,7 @@ export function ExamCreateForm({
                       variant="ghost"
                       size="sm"
                       onClick={handleDeselectAll}
-                      className="h-8 text-[11px] text-slate-500 hover:text-destructive"
+                      className="h-8 text-[11px] text-slate-500 dark:text-slate-400 hover:text-destructive dark:hover:text-destructive"
                     >
                       Bỏ chọn
                     </Button>
@@ -624,7 +624,7 @@ export function ExamCreateForm({
               {/* Bank Question Selector List */}
               <div className="space-y-2 max-h-[36vh] overflow-y-auto pr-1">
                 {filteredBankQuestions.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center text-xs text-slate-400">
+                  <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-700 p-8 text-center text-xs text-slate-400">
                     Không tìm thấy câu hỏi nào phù hợp với bộ lọc trong ngân hàng của môn này.
                   </div>
                 ) : (
@@ -636,10 +636,10 @@ export function ExamCreateForm({
                       <div
                         key={q.id}
                         onClick={() => handleToggleQuestion(q.id)}
-                        className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition select-none ${
+                        className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors select-none ${
                           isSelected
-                            ? 'border-[#246348] bg-emerald-50/40 ring-1 ring-[#246348]/20'
-                            : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50/60 dark:hover:bg-slate-800/60'
+                            ? 'border-emerald-600 dark:border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 ring-1 ring-emerald-500/30'
+                            : 'border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-[#162235] hover:bg-blue-50/50 dark:hover:bg-[#1C2C44]'
                         }`}
                       >
                         <input
@@ -649,25 +649,25 @@ export function ExamCreateForm({
                           className="mt-0.5 size-4 rounded text-emerald-700 focus:ring-emerald-500"
                         />
 
-                        <div className="min-w-0 flex-1 space-y-1">
+                        <div className="min-w-0 flex-1 space-y-1.5">
                           <div className="flex items-center gap-2">
                             <Badge
                               className={`text-[10px] px-1.5 py-0 ${
                                 isMC
-                                  ? 'border-blue-200 bg-blue-50 text-blue-700'
-                                  : 'border-purple-200 bg-purple-50 text-purple-700'
+                                  ? 'border-blue-200 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300'
+                                  : 'border-purple-200 bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300'
                               }`}
                             >
                               {isMC ? 'Trắc nghiệm' : 'Tự luận'}
                             </Badge>
                             {isMC && q.options && (
-                              <span className="text-[10px] text-slate-400">
+                              <span className="text-[10px] text-slate-400 dark:text-slate-400">
                                 {q.options.length} phương án
                               </span>
                             )}
                           </div>
 
-                          <div className="text-xs font-medium text-slate-800 line-clamp-2">
+                          <div className="text-xs font-medium text-slate-900 dark:text-slate-100 [&_.katex]:text-slate-900 dark:[&_.katex]:text-slate-100 line-clamp-2">
                             <MathText content={q.question_text} />
                           </div>
                         </div>
@@ -678,7 +678,7 @@ export function ExamCreateForm({
               </div>
 
               {/* SELECTED QUESTIONS REVIEW & SCORING TABLE */}
-              <div className="pt-4 border-t border-slate-100 space-y-3">
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
@@ -695,17 +695,17 @@ export function ExamCreateForm({
                       variant="outline"
                       size="sm"
                       onClick={handleDistributeTenPoints}
-                      className="h-7 text-[11px] gap-1 text-primary border-primary/20 bg-primary/5 hover:bg-primary/10"
+                      className="h-7 text-[11px] gap-1 text-primary border-primary/20 bg-primary/5 hover:bg-primary/10 dark:border-primary/40 dark:bg-primary/10 dark:hover:bg-primary/20"
                       title="Tự động chia đều 10 điểm cho toàn bộ số câu hỏi đã chọn"
                     >
-                      <Sparkles className="size-3 text-[#246348]" />
+                      <Sparkles className="size-3 text-[#246348] dark:text-emerald-400" />
                       Chia đều thang điểm 10
                     </Button>
                   )}
                 </div>
 
                 {selectedQuestions.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-xs text-slate-400">
+                  <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-700 p-6 text-center text-xs text-slate-400">
                     Chưa có câu hỏi nào được chọn vào đề. Hãy tích chọn từ danh sách phía trên.
                   </div>
                 ) : (
@@ -728,21 +728,21 @@ export function ExamCreateForm({
                             <Badge
                               className={`shrink-0 text-[10px] px-1.5 py-0 ${
                                 isMC
-                                  ? 'border-blue-200 bg-blue-50 text-blue-700'
-                                  : 'border-purple-200 bg-purple-50 text-purple-700'
+                                  ? 'border-blue-200 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300'
+                                  : 'border-purple-200 bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300'
                               }`}
                             >
                               {isMC ? 'TN' : 'TL'}
                             </Badge>
 
-                            <div className="truncate text-xs font-medium text-slate-800">
+                            <div className="truncate text-xs font-medium text-slate-900 dark:text-slate-100 [&_.katex]:text-slate-900 dark:[&_.katex]:text-slate-100">
                               <MathText content={qData.question_text} />
                             </div>
                           </div>
 
                           <div className="flex items-center gap-2 shrink-0">
                             <div className="flex items-center gap-1">
-                              <span className="text-[11px] text-slate-500">Điểm:</span>
+                              <span className="text-[11px] text-slate-500 dark:text-slate-400">Điểm:</span>
                               <input
                                 type="number"
                                 step="0.25"
@@ -752,7 +752,7 @@ export function ExamCreateForm({
                                 onChange={(e) =>
                                   handlePointsChange(sq.questionId, parseFloat(e.target.value) || 1)
                                 }
-                                className="h-7 w-16 rounded border border-slate-200 bg-slate-50 px-1.5 text-center text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary"
+                                className="h-7 w-16 rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-1.5 text-center text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-primary"
                               />
                             </div>
 
@@ -760,7 +760,7 @@ export function ExamCreateForm({
                               type="button"
                               onClick={() => handleToggleQuestion(sq.questionId)}
                               aria-label="Loại khỏi đề"
-                              className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-destructive transition"
+                              className="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-destructive transition"
                             >
                               <Trash2 className="size-3.5" />
                             </button>

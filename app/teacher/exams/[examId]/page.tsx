@@ -72,7 +72,7 @@ export default async function TeacherExamAnalyticsPage({
 
   return (
     <main className="min-h-screen bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
-      <TeacherSidebar activeRoute="dashboard" teacherName={data.teacherName} />
+      <TeacherSidebar activeRoute="exams" teacherName={data.teacherName} />
 
       <div className="min-w-0">
         {/* Sticky Top Header */}
