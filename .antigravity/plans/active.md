@@ -65,10 +65,10 @@
     - Chạy Production Build (`npm run build`) 37/37 static/dynamic pages biên dịch thành công.
     - Tạo Local commit an toàn (không push tự ý).
 
-- [ ] **Phase 43**: Đồng bộ Layout Sidebar + Sửa Links + Khắc phục màu chữ tàng hình toàn hệ thống:
-  - [ ] **Mục tiêu 1: Đồng bộ Layout cho classId pages**: Wrap `/teacher/classes/[classId]`, `/teacher/classes/[classId]/assignments`, `/teacher/classes/[classId]/materials` vào layout sidebar đầy đủ. Xóa header rời rạc cũ.
-  - [ ] **Mục tiêu 2: Active route đúng** cho `/teacher/exams/[examId]` → `activeRoute="exams"`, `/teacher/exams/create` → `activeRoute="exams"`, classId pages → `activeRoute="classes"`.
-  - [ ] **Mục tiêu 3: Nút bấm & Links**: Nút quay lại `/teacher/classes/[classId]` → `/teacher/classes`. Cụm nút header đồng màu chuẩn dark-mode.
-  - [ ] **Mục tiêu 4: Sửa màu chữ tàng hình** tại `exam-create-form.tsx`, `teacher-assignments-client.tsx`, `teacher-materials-client.tsx`, `grading-queue-client.tsx` — thêm dark: variants cho text/bg bị thiếu.
-  - [ ] **Mục tiêu 5: Rà soát toàn hệ thống** `app/admin`, `app/teacher`, `app/student`, `components` — tìm và sửa text-black/text-slate-900 không có dark variant.
-  - [ ] **Mục tiêu 6: Kiểm thử & Nghiệm thu** — `npx tsc --noEmit` 0 errors, `npm run build` thành công, commit local.
+- [x] **Phase 43 (Commit `5cfd027`)**: Đồng bộ Layout Sidebar + Sửa Links + Khắc phục màu chữ tàng hình toàn hệ thống:
+  - [x] **Mục tiêu 1: Đồng bộ Layout cho classId pages**: Wrap `/teacher/classes/[classId]`, `/teacher/classes/[classId]/assignments`, `/teacher/classes/[classId]/assignments/[assignmentId]`, `/teacher/classes/[classId]/materials` vào layout sidebar đầy đủ. Xóa header rời rạc cũ.
+  - [x] **Mục tiêu 2: Active route chuẩn xác**: Nâng cấp Sidebar với `usePathname()` tự động phát hiện route con (`/teacher/exams/create`, `/teacher/exams/[examId]` → sáng "Đề thi"; `/teacher/classes/[classId]` → sáng "Lớp học").
+  - [x] **Mục tiêu 3: Nút bấm & Links**: Nút quay lại `/teacher/classes/[classId]` trỏ về `/teacher/classes`. Cụm nút header: "Bài tập về nhà" (`bg-blue-600`), "Tài liệu học tập" (amber), badge "X sinh viên" cuộn mượt `#danh-sach-sinh-vien`.
+  - [x] **Mục tiêu 4: Sửa màu chữ tàng hình tại `exam-create-form.tsx`**: Nhãn form (`text-slate-800 dark:text-slate-100 font-semibold text-sm`), công thức MathText/KaTeX (`text-slate-900 dark:text-slate-100 [&_.katex]:text-slate-900 dark:[&_.katex]:text-slate-100`), khung tìm kiếm & chọn lớp (`bg-slate-100 dark:bg-slate-800/90`), nút "Lưu bản nháp".
+  - [x] **Mục tiêu 5: Rà soát & sửa màu sắc trang con classId & dashboard**: 3 thẻ thống kê bài tập (`bg-white dark:bg-[#111C2D] border-slate-200 dark:border-slate-800`), khung trạng thái rỗng, link lớp gần đây, nút thống kê đề thi.
+  - [x] **Mục tiêu 6: Kiểm thử & Nghiệm thu**: `npx tsc --noEmit` đạt 0 lỗi, `npm run build` thành công 37/37 static/dynamic pages. Commit cục bộ an toàn.
