@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   BookOpen,
   Calendar,
+  Camera,
   Check,
   CheckCircle2,
   Clock,
@@ -67,6 +68,7 @@ export function ExamCreateForm({
   const [maxAttempts, setMaxAttempts] = useState<number>(1);
   const [availableFrom, setAvailableFrom] = useState<string>('');
   const [availableUntil, setAvailableUntil] = useState<string>('');
+  const [requireCamera, setRequireCamera] = useState<boolean>(false);
 
   // 2. Question Bank Selection States
   const [selectedQuestions, setSelectedQuestions] = useState<SelectedQuestionItem[]>([]);
@@ -204,6 +206,7 @@ export function ExamCreateForm({
       availableUntil: availableUntil ? new Date(availableUntil).toISOString() : null,
       classIds: selectedClassIds,
       publishImmediately,
+      requireCamera,
       selectedQuestions: selectedQuestions.map((q, idx) => ({
         questionId: q.questionId,
         points: q.points,
@@ -503,6 +506,68 @@ export function ExamCreateForm({
                   </div>
                 </div>
               </div>
+
+              {/* Camera Proctoring Toggle Switch */}
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-[#162235] p-4 transition-colors">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-2.5">
+                      <span
+                        className={`grid size-8 shrink-0 place-items-center rounded-lg transition-colors ${
+                          requireCamera
+                            ? 'bg-blue-100 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400'
+                            : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                        }`}
+                      >
+                        <Camera className="size-4" />
+                      </span>
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Label
+                            htmlFor="require-camera-toggle"
+                            className="text-sm font-semibold text-slate-900 dark:text-white cursor-pointer"
+                          >
+                            Bắt buộc học sinh mở Camera trong quá trình thi
+                          </Label>
+                          {requireCamera ? (
+                            <Badge className="bg-blue-500/15 text-blue-600 dark:text-blue-300 border-blue-500/30 text-[10px] font-semibold">
+                              Bắt buộc mở Camera
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px]"
+                            >
+                              Không bắt buộc
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                          Khi bật, thí sinh bắt buộc phải cấp quyền Webcam trước khi vào làm bài và duy trì mở camera suốt giờ thi. Khi tắt, thí sinh được làm bài bình thường không cần camera.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Toggle Switch */}
+                    <button
+                      type="button"
+                      id="require-camera-toggle"
+                      role="switch"
+                      aria-checked={requireCamera}
+                      onClick={() => setRequireCamera((prev) => !prev)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${
+                        requireCamera ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block size-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                          requireCamera ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -536,11 +601,21 @@ export function ExamCreateForm({
               </div>
 
               <div className="flex items-start gap-2.5">
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">✓</span>
+                <span
+                  className={`font-bold mt-0.5 ${
+                    requireCamera ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'
+                  }`}
+                >
+                  {requireCamera ? '✓' : '○'}
+                </span>
                 <div>
-                  <strong className="text-slate-900 dark:text-white">Giám sát Camera AI định kỳ:</strong>
+                  <strong className="text-slate-900 dark:text-white">
+                    {requireCamera ? 'Giám sát Camera AI định kỳ (Bắt buộc):' : 'Giám sát Camera AI (Không bắt buộc):'}
+                  </strong>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                    Khung hình webcam hiển thị góc màn hình thi; quét độ sáng định kỳ 60s phát hiện camera bị che khuất và báo cáo khi chấm bài.
+                    {requireCamera
+                      ? 'Khung hình webcam hiển thị góc màn hình thi; quét độ sáng định kỳ 60s phát hiện camera bị che khuất và báo cáo khi chấm bài.'
+                      : 'Thí sinh làm bài thi bình thường, không yêu cầu cấp quyền webcam hay kiểm tra máy ảnh.'}
                   </p>
                 </div>
               </div>

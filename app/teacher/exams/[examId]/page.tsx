@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import {
   ArrowLeft,
+  Camera,
   Clock,
   FileQuestion,
   Users,
@@ -107,6 +108,16 @@ export default async function TeacherExamAnalyticsPage({
                     {data.exam.subjectCode} · {data.exam.subjectName}
                   </span>
                   {getExamStatusBadge(data.exam.status)}
+                  {data.exam.requireCamera ? (
+                    <Badge className="bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30 text-[11px] font-semibold gap-1">
+                      <Camera className="size-3" />
+                      <span>Bắt buộc Camera</span>
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-[11px]">
+                      Không yêu cầu Camera
+                    </Badge>
+                  )}
                 </div>
                 <h1 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
                   {data.exam.title}

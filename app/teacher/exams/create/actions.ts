@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { appendCameraInstructionTag } from '@/lib/exam-camera';
 
 export type CreateExamPayload = {
   subjectId: string;
@@ -14,6 +15,7 @@ export type CreateExamPayload = {
   availableUntil?: string | null;
   classIds: string[];
   publishImmediately: boolean;
+  requireCamera?: boolean;
   selectedQuestions: {
     questionId: string;
     points: number;
@@ -94,24 +96,56 @@ export async function createExamAction(payload: CreateExamPayload): Promise<Crea
   }
 
   const adminClient = createAdminClient();
+  const requireCamera = Boolean(payload.requireCamera);
+  const taggedInstructions = appendCameraInstructionTag(instructions, requireCamera);
 
   try {
-    // 2. Insert into public.exams
-    const { data: newExam, error: examInsertError } = await adminClient
+    // 2. Insert into public.exams with Zero-Crash Fallback
+    let newExam: { id: string } | null = null;
+    let examInsertError: unknown = null;
+
+    // Lần thử 1: Ghi trực tiếp cột require_camera kèm tag hướng dẫn
+    const firstAttempt = await adminClient
       .from('exams')
       .insert({
         subject_id: subjectId,
         created_by: user.id,
         title: title.trim(),
-        instructions: instructions?.trim() || null,
+        instructions: taggedInstructions,
         duration_minutes: durationMinutes,
         max_attempts: maxAttempts,
         available_from: availableFrom || null,
         available_until: availableUntil || null,
         status: 'draft',
+        require_camera: requireCamera,
       })
       .select('id')
       .single();
+
+    if (firstAttempt.error) {
+      console.warn('Lần thử 1 ghi require_camera thất bại (có thể DB chưa chạy migration). Thử lại chế độ fallback:', firstAttempt.error.message);
+      // Lần thử 2: Bỏ cột require_camera để không crash, tag [CAMERA_REQUIRED:true/false] đã có trong instructions
+      const fallbackAttempt = await adminClient
+        .from('exams')
+        .insert({
+          subject_id: subjectId,
+          created_by: user.id,
+          title: title.trim(),
+          instructions: taggedInstructions,
+          duration_minutes: durationMinutes,
+          max_attempts: maxAttempts,
+          available_from: availableFrom || null,
+          available_until: availableUntil || null,
+          status: 'draft',
+        })
+        .select('id')
+        .single();
+
+      newExam = fallbackAttempt.data;
+      examInsertError = fallbackAttempt.error;
+    } else {
+      newExam = firstAttempt.data;
+    }
 
     if (examInsertError || !newExam) {
       console.error('Failed to insert exam:', examInsertError);

@@ -4,6 +4,7 @@ import { requireRole } from '@/lib/auth-cache';
 import { sanitizeVietnameseText } from '@/lib/utils';
 import type { ClassMaterialItem } from '@/lib/class-materials';
 import { getStudentAssignments, type StudentAssignmentItem } from '@/lib/assignments';
+import { isCameraRequired, cleanExamInstructions } from '@/lib/exam-camera';
 
 type Related<T> = T | T[] | null;
 
@@ -23,6 +24,7 @@ export type StudentExam = {
   max_attempts: number;
   available_from: string | null;
   available_until: string | null;
+  require_camera?: boolean;
   subject: Related<{ name: string }>;
 };
 
@@ -138,7 +140,13 @@ export async function getStudentDashboardData(): Promise<StudentDashboardData> {
       subject,
     }));
 
-  const exams = (examsResult.data ?? []) as StudentExam[];
+  const rawExams = (examsResult.data ?? []) as any[];
+  const exams: StudentExam[] = rawExams.map((exam) => ({
+    ...exam,
+    instructions: cleanExamInstructions(exam.instructions),
+    require_camera: isCameraRequired(exam),
+  }));
+
   const openExams = exams.filter((exam) => {
     const startsAt = exam.available_from ? Date.parse(exam.available_from) : Number.NEGATIVE_INFINITY;
     const endsAt = exam.available_until ? Date.parse(exam.available_until) : Number.POSITIVE_INFINITY;

@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   BookOpen,
   Calendar,
+  Camera,
   CheckCircle2,
   Clock,
   FileQuestion,
@@ -19,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getStudentExamPageData } from '@/lib/student-exam';
+import { isCameraRequired } from '@/lib/exam-camera';
 import { ExamTakingClient } from '@/components/student/exam-taking-client';
 import { StartExamButton } from '@/components/student/start-exam-button';
 import { ExamTutorDrawer } from '@/components/student/exam-tutor-drawer';
@@ -72,10 +74,23 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
         {/* Exam Title & Subject Info */}
         <section className="rounded-2xl border border-[#dce7e0] bg-white p-6 sm:p-8 shadow-xs">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <Badge variant="outline" className="gap-1.5 border-[#246348]/30 bg-[#eef6f1] text-[#17372e] font-semibold">
-              <BookOpen className="size-3.5" />
-              {exam.subject?.code} · {exam.subject?.name}
-            </Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className="gap-1.5 border-[#246348]/30 bg-[#eef6f1] text-[#17372e] font-semibold">
+                <BookOpen className="size-3.5" />
+                {exam.subject?.code} · {exam.subject?.name}
+              </Badge>
+
+              {isCameraRequired(exam) ? (
+                <Badge className="bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30 text-xs font-semibold gap-1">
+                  <Camera className="size-3" />
+                  <span>Bắt buộc Camera</span>
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-xs">
+                  Không yêu cầu Camera
+                </Badge>
+              )}
+            </div>
 
             {isOpenNow ? (
               <Badge className="border-emerald-200 bg-emerald-50 text-emerald-800 font-semibold">
@@ -262,7 +277,22 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
             <h2 className="text-base font-bold text-slate-900 dark:text-white">
               Quy chế và lưu ý quan trọng trước khi làm bài
             </h2>
-            <ul className="space-y-2 text-xs leading-relaxed text-slate-600">
+            <ul className="space-y-2.5 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
+              {isCameraRequired(exam) ? (
+                <li className="flex items-start gap-2">
+                  <Camera className="size-4 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
+                  <span>
+                    <strong>Bắt buộc mở Camera:</strong> Đề thi yêu cầu duy trì mở webcam trong suốt quá trình làm bài. Hệ thống sẽ kiểm tra định kỳ để đảm bảo tính công bằng.
+                  </span>
+                </li>
+              ) : (
+                <li className="flex items-start gap-2">
+                  <Camera className="size-4 shrink-0 text-slate-400 mt-0.5" />
+                  <span>
+                    <strong>Không yêu cầu Camera:</strong> Thí sinh làm bài thi bình thường mà không cần cấp quyền truy cập máy ảnh hay webcam.
+                  </span>
+                </li>
+              )}
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="size-4 shrink-0 text-emerald-600 mt-0.5" />
                 <span>

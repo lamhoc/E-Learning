@@ -1,4 +1,5 @@
 import { sanitizeVietnameseText } from '@/lib/utils';
+import { isCameraRequired, cleanExamInstructions } from '@/lib/exam-camera';
 import 'server-only';
 
 import { redirect } from 'next/navigation';
@@ -28,6 +29,7 @@ export type StudentExamDetail = {
   available_from: string | null;
   available_until: string | null;
   status: 'draft' | 'published' | 'closed' | 'archived';
+  require_camera?: boolean;
   subject: {
     id: string;
     name: string;
@@ -78,28 +80,43 @@ export async function getStudentExamPageData(examId: string): Promise<StudentExa
     redirect('/login');
   }
 
-  // 1. Fetch Exam Detail
-  const { data: examData, error: examError } = await supabase
+  // 1. Fetch Exam Detail (hỗ trợ zero-crash fallback nếu DB chưa cập nhật cột require_camera)
+  let rawExam: any = null;
+  const firstQuery = await supabase
     .from('exams')
-    .select('id, title, instructions, duration_minutes, max_attempts, available_from, available_until, status, subject:subjects(id, name, code)')
+    .select('id, title, instructions, duration_minutes, max_attempts, available_from, available_until, status, subject:subjects(id, name, code), require_camera')
     .eq('id', examId)
     .maybeSingle();
 
-  if (examError || !examData) {
-    redirect('/student/dashboard');
+  if (firstQuery.error || !firstQuery.data) {
+    const fallbackQuery = await supabase
+      .from('exams')
+      .select('id, title, instructions, duration_minutes, max_attempts, available_from, available_until, status, subject:subjects(id, name, code)')
+      .eq('id', examId)
+      .maybeSingle();
+
+    if (fallbackQuery.error || !fallbackQuery.data) {
+      redirect('/student/dashboard');
+    }
+    rawExam = fallbackQuery.data;
+  } else {
+    rawExam = firstQuery.data;
   }
 
-  const subjectRecord = Array.isArray(examData.subject) ? examData.subject[0] : examData.subject;
+  const subjectRecord = Array.isArray(rawExam.subject) ? rawExam.subject[0] : rawExam.subject;
+  const isReqCam = isCameraRequired(rawExam);
+
   const exam: StudentExamDetail = {
-    id: examData.id,
-    title: examData.title,
-    instructions: examData.instructions,
-    duration_minutes: examData.duration_minutes,
-    max_attempts: examData.max_attempts,
-    available_from: examData.available_from,
-    available_until: examData.available_until,
-    status: examData.status,
+    id: rawExam.id,
+    title: rawExam.title,
+    instructions: cleanExamInstructions(rawExam.instructions),
+    duration_minutes: rawExam.duration_minutes,
+    max_attempts: rawExam.max_attempts,
+    available_from: rawExam.available_from,
+    available_until: rawExam.available_until,
+    status: rawExam.status,
     subject: subjectRecord ?? null,
+    require_camera: isReqCam,
   };
 
   // 2. Fetch User Profile

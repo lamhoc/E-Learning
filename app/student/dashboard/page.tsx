@@ -6,6 +6,7 @@ import {
   ArrowRight,
   BookOpen,
   CalendarClock,
+  Camera,
   CheckCircle2,
   ClipboardList,
   Clock3,
@@ -375,9 +376,21 @@ async function StudentDashboardDataContent() {
               <Card key={exam.id} className="border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/20 dark:bg-emerald-950/20">
                 <CardHeader className="p-4 pb-2">
                   <div className="flex items-center justify-between gap-2">
-                    <Badge className="border-primary/20 bg-primary/10 text-primary text-[10px]">
-                      Đang mở
-                    </Badge>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Badge className="border-primary/20 bg-primary/10 text-primary text-[10px]">
+                        Đang mở
+                      </Badge>
+                      {exam.require_camera ? (
+                        <Badge className="bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30 text-[9px] font-semibold gap-1 px-1.5 py-0.5">
+                          <Camera className="size-2.5" />
+                          <span>Camera</span>
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-[9px] px-1.5 py-0.5">
+                          Không Camera
+                        </Badge>
+                      )}
+                    </div>
                     {exam.available_until && (
                       <span className="inline-flex items-center gap-1 text-[11px] text-slate-500">
                         <Clock3 className="size-3" />

@@ -6,6 +6,7 @@ import {
   BarChart3,
   BookOpen,
   Calendar,
+  Camera,
   Clock,
   ExternalLink,
   FileCheck,
@@ -34,6 +35,7 @@ export type ExamItem = {
   assignedClasses: string[];
   totalAttempts: number;
   pendingAttempts: number;
+  requireCamera?: boolean;
 };
 
 type Props = {
@@ -292,12 +294,24 @@ export function TeacherExamsClient({ exams }: Props) {
             >
               <CardHeader className="p-5 pb-3">
                 <div className="flex items-start justify-between gap-2">
-                  <Badge
-                    variant="secondary"
-                    className="bg-blue-50 text-blue-700 dark:bg-blue-950/80 dark:text-blue-300 border-blue-200 dark:border-blue-800 text-[11px]"
-                  >
-                    {exam.subjectName}
-                  </Badge>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Badge
+                      variant="secondary"
+                      className="bg-blue-50 text-blue-700 dark:bg-blue-950/80 dark:text-blue-300 border-blue-200 dark:border-blue-800 text-[11px]"
+                    >
+                      {exam.subjectName}
+                    </Badge>
+                    {exam.requireCamera ? (
+                      <Badge className="bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30 text-[10px] font-semibold gap-1">
+                        <Camera className="size-3" />
+                        <span>Bắt buộc Camera</span>
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-[10px]">
+                        Không yêu cầu Camera
+                      </Badge>
+                    )}
+                  </div>
                   {getStatusBadge(exam.status)}
                 </div>
 

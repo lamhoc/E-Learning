@@ -5,6 +5,7 @@ import { sanitizeVietnameseText } from '@/lib/utils';
 import { TeacherSidebar } from '@/components/teacher/teacher-sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { TeacherExamsClient, type ExamItem } from '@/components/teacher/teacher-exams-client';
+import { isCameraRequired } from '@/lib/exam-camera';
 
 export const metadata = {
   title: 'Quản lý Đề thi | Cổng Giảng viên LHU',
@@ -14,20 +15,45 @@ export const metadata = {
 export default async function TeacherExamsPage() {
   const { user, supabase } = await requireRole('teacher');
 
-  const [profileResult, examsResult] = await Promise.all([
-    supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
-    supabase
+  // Query Profile
+  const profileResult = await supabase
+    .from('profiles')
+    .select('full_name')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  // Query Exams với zero-crash fallback cho trường require_camera
+  let rawExamsData: any[] = [];
+  const firstExamsResult = await supabase
+    .from('exams')
+    .select(`
+      id, title, status, duration_minutes, instructions, created_at, available_from, available_until,
+      require_camera,
+      subject:subjects(name),
+      exam_questions(id),
+      exam_classes(class:classes(name, class_code)),
+      exam_attempts(id, status)
+    `)
+    .eq('created_by', user.id)
+    .order('created_at', { ascending: false });
+
+  if (firstExamsResult.error || !firstExamsResult.data) {
+    const fallbackExamsResult = await supabase
       .from('exams')
       .select(`
-        id, title, status, duration_minutes, created_at, available_from, available_until,
+        id, title, status, duration_minutes, instructions, created_at, available_from, available_until,
         subject:subjects(name),
         exam_questions(id),
         exam_classes(class:classes(name, class_code)),
         exam_attempts(id, status)
       `)
       .eq('created_by', user.id)
-      .order('created_at', { ascending: false }),
-  ]);
+      .order('created_at', { ascending: false });
+
+    rawExamsData = fallbackExamsResult.data ?? [];
+  } else {
+    rawExamsData = firstExamsResult.data ?? [];
+  }
 
   const teacherName = sanitizeVietnameseText(profileResult.data?.full_name) || user.email || 'Giảng viên';
 
@@ -36,6 +62,8 @@ export default async function TeacherExamsPage() {
     title: string;
     status: 'draft' | 'published' | 'closed' | 'archived';
     duration_minutes: number;
+    instructions: string | null;
+    require_camera?: boolean;
     created_at: string;
     available_from: string | null;
     available_until: string | null;
@@ -45,7 +73,7 @@ export default async function TeacherExamsPage() {
     exam_attempts: { id: string; status: string }[];
   };
 
-  const rawExams = (examsResult.data ?? []) as unknown as RawExam[];
+  const rawExams = rawExamsData as unknown as RawExam[];
 
   const examItems: ExamItem[] = rawExams.map((exam) => {
     const subjectName = Array.isArray(exam.subject)
@@ -58,6 +86,7 @@ export default async function TeacherExamsPage() {
 
     const totalAttempts = exam.exam_attempts?.length || 0;
     const pendingAttempts = exam.exam_attempts?.filter((a) => a.status === 'pending_grading').length || 0;
+    const requireCamera = isCameraRequired(exam);
 
     return {
       id: exam.id,
@@ -72,6 +101,7 @@ export default async function TeacherExamsPage() {
       assignedClasses,
       totalAttempts,
       pendingAttempts,
+      requireCamera,
     };
   });
 

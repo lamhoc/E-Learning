@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ArrowRight,
   CalendarClock,
+  Camera,
   CheckCircle2,
   ClipboardList,
   Clock3,
@@ -96,11 +97,23 @@ function getAttemptStatus(attempt: StudentAttempt): { label: string; className: 
 
 function ExamCard({ exam }: { exam: StudentExam }) {
   return (
-    <Card className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md border-emerald-200">
+    <Card className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md border-emerald-200 dark:border-emerald-800/60 bg-white dark:bg-[#111C2D]">
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-3">
-        <Badge className="border-primary/20 bg-primary/10 text-primary hover:bg-emerald-50">
-          Đang mở thi
-        </Badge>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Badge className="border-primary/20 bg-primary/10 text-primary hover:bg-emerald-50">
+            Đang mở thi
+          </Badge>
+          {exam.require_camera ? (
+            <Badge className="bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30 text-[10px] font-semibold gap-1">
+              <Camera className="size-3" />
+              <span>Bắt buộc Camera</span>
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-[10px]">
+              Không yêu cầu Camera
+            </Badge>
+          )}
+        </div>
         {exam.available_until && (
           <span className="inline-flex items-center gap-1 text-xs text-slate-500">
             <Clock3 aria-hidden="true" className="size-3.5" />
@@ -297,4 +310,3 @@ export default async function StudentExamsPage() {
     </main>
   );
 }
-

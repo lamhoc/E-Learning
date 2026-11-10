@@ -1,4 +1,5 @@
 import { sanitizeVietnameseText } from '@/lib/utils';
+import { isCameraRequired } from '@/lib/exam-camera';
 import 'server-only';
 
 import { redirect } from 'next/navigation';
@@ -64,6 +65,7 @@ export type TeacherExamAnalyticsData = {
     mcCount: number;
     essayCount: number;
     maxScore: number;
+    requireCamera: boolean;
   };
   metrics: {
     totalGraded: number;
@@ -121,11 +123,12 @@ export async function getTeacherExamAnalytics(examId: string): Promise<TeacherEx
 
   const adminClient = process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : supabase;
 
-  // 1. Lấy thông tin chi tiết đề thi
-  const { data: examRecord, error: examError } = await adminClient
+  // 1. Lấy thông tin chi tiết đề thi (hỗ trợ zero-crash fallback)
+  let examRecord: any = null;
+  const firstExamQuery = await adminClient
     .from('exams')
     .select(`
-      id, title, duration_minutes, status, created_at, created_by,
+      id, title, duration_minutes, status, created_at, created_by, instructions, require_camera,
       subject:subjects(id, name, code),
       exam_classes(
         class:classes(id, name)
@@ -134,9 +137,26 @@ export async function getTeacherExamAnalytics(examId: string): Promise<TeacherEx
     .eq('id', examId)
     .maybeSingle();
 
-  if (examError || !examRecord) {
-    console.error('Failed to load exam for analytics:', examError);
-    redirect('/teacher/dashboard');
+  if (firstExamQuery.error || !firstExamQuery.data) {
+    const fallbackExamQuery = await adminClient
+      .from('exams')
+      .select(`
+        id, title, duration_minutes, status, created_at, created_by, instructions,
+        subject:subjects(id, name, code),
+        exam_classes(
+          class:classes(id, name)
+        )
+      `)
+      .eq('id', examId)
+      .maybeSingle();
+
+    if (fallbackExamQuery.error || !fallbackExamQuery.data) {
+      console.error('Failed to load exam for analytics:', fallbackExamQuery.error);
+      redirect('/teacher/dashboard');
+    }
+    examRecord = fallbackExamQuery.data;
+  } else {
+    examRecord = firstExamQuery.data;
   }
 
   // Nếu là giáo viên, kiểm tra quyền quản lý đề
@@ -226,6 +246,7 @@ export async function getTeacherExamAnalytics(examId: string): Promise<TeacherEx
         mcCount: mcQuestions.length,
         essayCount: essayQuestions.length,
         maxScore,
+        requireCamera: isCameraRequired(examRecord),
       },
       metrics: {
         totalGraded: 0,
@@ -660,6 +681,7 @@ export async function getTeacherExamAnalytics(examId: string): Promise<TeacherEx
       mcCount: mcQuestions.length,
       essayCount: essayQuestions.length,
       maxScore,
+      requireCamera: isCameraRequired(examRecord),
     },
     metrics: {
       totalGraded,

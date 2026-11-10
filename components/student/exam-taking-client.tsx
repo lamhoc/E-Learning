@@ -47,6 +47,7 @@ import {
   submitExamAttemptAction,
 } from '@/app/student/exams/[examId]/actions';
 import { shuffleExamQuestions } from '@/lib/exam-shuffle';
+import { isCameraRequired } from '@/lib/exam-camera';
 import { ExamWebcamProctor } from '@/components/student/exam-webcam-proctor';
 import type {
   ActiveAttemptData,
@@ -161,8 +162,56 @@ export function ExamTakingClient({
     hasStartedFullscreen: hasEnteredExam,
   });
 
+  const cameraRequired = useMemo(() => isCameraRequired(exam), [exam]);
+  const [cameraPermissionGranted, setCameraPermissionGranted] = useState<boolean>(() => !cameraRequired);
+  const [checkingCamera, setCheckingCamera] = useState<boolean>(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const previewVideoRef = useRef<HTMLVideoElement | null>(null);
+  const previewStreamRef = useRef<MediaStream | null>(null);
+
+  const handleRequestCameraPermission = async () => {
+    setCheckingCamera(true);
+    setCameraError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 320 }, height: { ideal: 240 }, facingMode: 'user' },
+        audio: false,
+      });
+      previewStreamRef.current = stream;
+      if (previewVideoRef.current) {
+        previewVideoRef.current.srcObject = stream;
+        await previewVideoRef.current.play().catch(() => {});
+      }
+      setCameraPermissionGranted(true);
+    } catch (err) {
+      console.warn('Lỗi cấp quyền camera:', err);
+      setCameraPermissionGranted(false);
+      setCameraError('Chưa thể kết nối Webcam. Vui lòng nhấn Cho phép truy cập Camera trên trình duyệt và thử lại.');
+    } finally {
+      setCheckingCamera(false);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (previewStreamRef.current) {
+        previewStreamRef.current.getTracks().forEach((t) => t.stop());
+        previewStreamRef.current = null;
+      }
+    };
+  }, []);
+
   // Xử lý vào phòng thi và bật Toàn màn hình
   const handleStartWithFullscreen = async () => {
+    if (cameraRequired && !cameraPermissionGranted) {
+      await handleRequestCameraPermission();
+      return;
+    }
+    // Dừng stream preview để ExamWebcamProctor mở luồng chính thức trong phòng thi
+    if (previewStreamRef.current) {
+      previewStreamRef.current.getTracks().forEach((t) => t.stop());
+      previewStreamRef.current = null;
+    }
     await requestFullscreen();
     setHasEnteredExam(true);
   };
@@ -301,10 +350,24 @@ export function ExamTakingClient({
             </div>
 
             <div className="flex items-start gap-3">
-              <span className="grid size-6 shrink-0 place-items-center rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold">2</span>
+              <span
+                className={`grid size-6 shrink-0 place-items-center rounded-lg font-bold ${
+                  cameraRequired
+                    ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                }`}
+              >
+                2
+              </span>
               <div>
-                <strong className="text-slate-900 dark:text-white">Giám sát Camera AI định kỳ:</strong>
-                <p className="mt-0.5 text-slate-500 dark:text-slate-400">Vui lòng cấp quyền truy cập Webcam. Hệ thống kiểm tra liên tục, không che ống kính máy ảnh.</p>
+                <strong className="text-slate-900 dark:text-white">
+                  {cameraRequired ? 'Giám sát Camera AI định kỳ:' : 'Không yêu cầu Camera:'}
+                </strong>
+                <p className="mt-0.5 text-slate-500 dark:text-slate-400">
+                  {cameraRequired
+                    ? 'Vui lòng cấp quyền truy cập Webcam. Hệ thống kiểm tra liên tục, không che ống kính máy ảnh.'
+                    : 'Thí sinh làm bài thi bình thường, không cần mở máy ảnh hay cấp quyền webcam.'}
+                </p>
               </div>
             </div>
 
@@ -325,13 +388,82 @@ export function ExamTakingClient({
             </div>
           </div>
 
+          {/* Hộp kiểm tra và cấp quyền Webcam khi đề thi bắt buộc mở Camera */}
+          {cameraRequired && (
+            <div className="rounded-2xl border border-blue-200 dark:border-blue-800/80 bg-blue-50/50 dark:bg-blue-950/30 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Camera className="size-4 text-blue-600 dark:text-blue-400" />
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">
+                    Đề thi này bắt buộc bật Camera giám sát
+                  </span>
+                </div>
+                {cameraPermissionGranted ? (
+                  <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 text-[10px] font-semibold gap-1">
+                    <CheckCircle2 className="size-3" />
+                    <span>Camera sẵn sàng</span>
+                  </Badge>
+                ) : (
+                  <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40 text-[10px] font-semibold">
+                    Chưa cấp quyền Camera
+                  </Badge>
+                )}
+              </div>
+
+              {cameraPermissionGranted ? (
+                <div className="flex items-center gap-3">
+                  <video
+                    ref={previewVideoRef}
+                    autoPlay
+                    muted
+                    playsInline
+                    className="size-16 rounded-xl object-cover border border-emerald-400/50 bg-black"
+                  />
+                  <div className="text-xs text-slate-600 dark:text-slate-300">
+                    <p className="font-semibold text-emerald-600 dark:text-emerald-400">Đã kết nối máy ảnh thành công!</p>
+                    <p className="text-[11px] text-slate-500">Camera sẽ hiển thị góc màn hình để giám sát trong suốt giờ làm bài.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-slate-600 dark:text-slate-300">
+                    Vui lòng bấm nút dưới đây để cấp quyền và kiểm tra tín hiệu máy ảnh trước khi bắt đầu bài thi.
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleRequestCameraPermission}
+                    disabled={checkingCamera}
+                    className="gap-2 border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-300 text-xs font-semibold"
+                  >
+                    {checkingCamera ? (
+                      <LoaderCircle className="size-3.5 animate-spin" />
+                    ) : (
+                      <Camera className="size-3.5" />
+                    )}
+                    <span>{checkingCamera ? 'Đang kết nối camera...' : 'Cấp quyền & Kiểm tra Camera'}</span>
+                  </Button>
+                  {cameraError && (
+                    <p className="text-xs text-rose-600 dark:text-rose-400 font-medium leading-relaxed">
+                      {cameraError}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           <Button
             size="lg"
             onClick={handleStartWithFullscreen}
-            className="w-full gap-2 rounded-2xl py-6 text-sm sm:text-base font-bold bg-[#154C99] hover:bg-[#0F3D8A] dark:bg-[#1E5BBB] dark:hover:bg-[#154C99] text-white shadow-lg shadow-blue-900/20 transition-all cursor-pointer"
+            disabled={cameraRequired && !cameraPermissionGranted}
+            className="w-full gap-2 rounded-2xl py-6 text-sm sm:text-base font-bold bg-[#154C99] hover:bg-[#0F3D8A] dark:bg-[#1E5BBB] dark:hover:bg-[#154C99] text-white shadow-lg shadow-blue-900/20 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <Maximize2 className="size-5" />
-            Bắt đầu làm bài (Chế độ Toàn màn hình)
+            {cameraRequired && !cameraPermissionGranted
+              ? 'Vui lòng cấp quyền Camera để mở khóa bài thi'
+              : 'Bắt đầu làm bài (Chế độ Toàn màn hình)'}
           </Button>
 
           <p className="text-center text-[11px] text-slate-400">
@@ -345,13 +477,15 @@ export function ExamTakingClient({
   // ─── 5. GIAO DIỆN LÀM BÀI CHÍNH THỨC ──────────────────────────────────────
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors select-none">
-      {/* Khung Camera Giám sát AI (Picture-in-Picture góc dưới bên phải) */}
-      <ExamWebcamProctor
-        attemptId={activeAttempt.id}
-        examId={exam.id}
-        enabled={hasEnteredExam && !isSubmitting}
-        onCameraViolation={handleCameraViolation}
-      />
+      {/* Khung Camera Giám sát AI (Picture-in-Picture góc dưới bên phải) - Chỉ render khi đề thi yêu cầu camera */}
+      {cameraRequired && (
+        <ExamWebcamProctor
+          attemptId={activeAttempt.id}
+          examId={exam.id}
+          enabled={hasEnteredExam && !isSubmitting}
+          onCameraViolation={handleCameraViolation}
+        />
+      )}
 
       {/* Top Fixed Exam Banner / Timer Header */}
       <header className="sticky top-0 z-30 border-b border-border bg-card/95 px-4 py-3 shadow-xs backdrop-blur-md sm:px-8">
