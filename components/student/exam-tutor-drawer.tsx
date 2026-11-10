@@ -186,7 +186,7 @@ export function ExamTutorDrawer({
         <button
           type="button"
           onClick={openTutor}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-xs font-semibold text-violet-800 transition hover:bg-violet-100"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 dark:border-violet-700/60 bg-violet-50 dark:bg-violet-950/60 px-2.5 py-1.5 text-xs font-semibold text-violet-800 dark:text-violet-300 transition hover:bg-violet-100 dark:hover:bg-violet-900/60"
         >
           <Sparkles aria-hidden="true" className="size-3.5" />
           Hỏi gia sư AI
@@ -232,22 +232,22 @@ export function ExamTutorDrawer({
 
             <div
               aria-live="polite"
-              className="flex-1 space-y-4 overflow-y-auto bg-slate-50 px-4 py-5 sm:px-5"
+              className="flex-1 space-y-4 overflow-y-auto bg-slate-50 dark:bg-[#09111E] px-4 py-5 sm:px-5"
             >
               {isLoadingHistory ? (
-                <div className="flex h-full items-center justify-center gap-2 text-sm text-slate-500">
+                <div className="flex h-full items-center justify-center gap-2 text-sm text-slate-500 dark:text-slate-400">
                   <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
                   Đang mở cuộc hội thoại...
                 </div>
               ) : messages.length === 0 ? (
-                <div className="mx-auto mt-8 max-w-sm rounded-2xl border border-violet-100 bg-white p-5 text-center shadow-xs">
-                  <span className="mx-auto grid size-11 place-items-center rounded-full bg-violet-50 text-violet-700">
+                <div className="mx-auto mt-8 max-w-sm rounded-2xl border border-violet-100 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-5 text-center shadow-xs">
+                  <span className="mx-auto grid size-11 place-items-center rounded-full bg-violet-50 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300">
                     <Sparkles aria-hidden="true" className="size-5" />
                   </span>
                   <h3 className="mt-3 text-sm font-semibold text-slate-900 dark:text-white">
                     Cùng xem lại bài làm nhé
                   </h3>
-                  <p className="mt-1 text-sm leading-6 text-slate-500">
+                  <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
                     Hỏi về câu bạn chưa hiểu. Gia sư sẽ dựa trên đề bài, đáp án và nhận xét đã công bố.
                   </p>
                 </div>
@@ -261,11 +261,11 @@ export function ExamTutorDrawer({
                       className={`max-w-[90%] rounded-2xl px-4 py-3 text-sm leading-6 ${
                         message.sender === 'student'
                           ? 'rounded-br-md bg-primary text-white'
-                          : 'rounded-bl-md border border-border bg-card text-card-foreground shadow-xs'
+                          : 'rounded-bl-md border border-border bg-card dark:bg-[#111C2D] text-card-foreground dark:text-slate-100 shadow-xs'
                       }`}
                     >
                       {message.sender === 'assistant' && (
-                        <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-primary">
+                        <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-primary dark:text-[#60A5FA]">
                           <Sparkles aria-hidden="true" className="size-3" />
                           Gia sư AI
                         </p>
@@ -276,7 +276,7 @@ export function ExamTutorDrawer({
                 ))
               )}
               {isSending && (
-                <div className="flex items-center gap-2 text-xs text-slate-500">
+                <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                   <LoaderCircle aria-hidden="true" className="size-3.5 animate-spin" />
                   Gia sư đang suy nghĩ...
                 </div>
@@ -287,18 +287,18 @@ export function ExamTutorDrawer({
             {error && (
               <div
                 role="alert"
-                className="mx-4 mt-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800 sm:mx-5"
+                className="mx-4 mt-3 flex items-start gap-2 rounded-lg border border-red-200 dark:border-red-800/80 bg-red-50 dark:bg-red-950/40 px-3 py-2 text-xs text-red-800 dark:text-red-300 sm:mx-5"
               >
                 <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
                 <p>{error}</p>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="border-t border-slate-200 bg-white p-4 sm:p-5">
+            <form onSubmit={handleSubmit} className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B1628] p-4 sm:p-5">
               <label htmlFor={`tutor-message-${attemptId}`} className="sr-only">
                 Nhập câu hỏi cho gia sư AI
               </label>
-              <div className="flex items-end gap-2 rounded-xl border border-slate-300 bg-white p-2 shadow-xs focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-600/15">
+              <div className="flex items-end gap-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#162235] p-2 shadow-xs focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-600/15">
                 <textarea
                   id={`tutor-message-${attemptId}`}
                   ref={inputRef}

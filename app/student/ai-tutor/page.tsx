@@ -149,9 +149,9 @@ export default function StudentAiTutorPage() {
               <button
                 type="button"
                 onClick={startNewChat}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-slate-900 transition"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white transition"
               >
-                <RotateCcw className="size-3.5 text-emerald-700" />
+                <RotateCcw className="size-3.5 text-emerald-700 dark:text-emerald-400" />
                 <span>Đoạn chat mới</span>
               </button>
               <NotificationBell />
@@ -161,7 +161,7 @@ export default function StudentAiTutorPage() {
         </header>
 
         {/* 3. Khung Chat Flexbox cao vừa khít màn hình hiển thị bên phải: h-[calc(100vh-61px)] */}
-        <div className="flex-1 flex flex-col overflow-hidden h-[calc(100vh-61px)] bg-[#f8faf8]">
+        <div className="flex-1 flex flex-col overflow-hidden h-[calc(100vh-61px)] bg-[#f8faf8] dark:bg-[#070D18]">
           {/* Vùng danh sách tin nhắn: flex-1 overflow-y-auto để cuộn độc lập */}
           <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6">
             <div className="mx-auto flex max-w-3xl flex-col gap-5">
@@ -174,8 +174,8 @@ export default function StudentAiTutorPage() {
                   <div
                     className={`grid size-8 shrink-0 place-items-center rounded-full ${
                       msg.role === 'user'
-                        ? 'bg-[#17372e] text-[#c9ed99]'
-                        : 'bg-emerald-100 text-emerald-800'
+                        ? 'bg-[#17372e] dark:bg-emerald-950 text-[#c9ed99] dark:text-emerald-300'
+                        : 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300'
                     }`}
                   >
                     {msg.role === 'user' ? (
@@ -190,7 +190,7 @@ export default function StudentAiTutorPage() {
                     className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                       msg.role === 'user'
                         ? 'rounded-tr-sm bg-[#17372e] text-white shadow-2xs'
-                        : 'rounded-tl-sm border border-[#d9e3dc] bg-white text-slate-800 shadow-2xs'
+                        : 'rounded-tl-sm border border-[#d9e3dc] dark:border-slate-800 bg-white dark:bg-[#111C2D] text-slate-800 dark:text-slate-100 shadow-2xs'
                     }`}
                   >
                     {msg.role === 'assistant' ? (
@@ -208,10 +208,10 @@ export default function StudentAiTutorPage() {
               {/* Hiệu ứng loading khi AI đang phản hồi */}
               {loading && (
                 <div className="flex gap-3">
-                  <div className="grid size-8 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-800">
+                  <div className="grid size-8 shrink-0 place-items-center rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300">
                     <Bot className="size-4" />
                   </div>
-                  <div className="rounded-2xl rounded-tl-sm border border-[#d9e3dc] bg-white px-4 py-3 shadow-2xs">
+                  <div className="rounded-2xl rounded-tl-sm border border-[#d9e3dc] dark:border-slate-800 bg-white dark:bg-[#111C2D] px-4 py-3 shadow-2xs">
                     <div className="flex items-center gap-1.5">
                       <span className="size-1.5 animate-bounce rounded-full bg-emerald-600 [animation-delay:0ms]" />
                       <span className="size-1.5 animate-bounce rounded-full bg-emerald-600 [animation-delay:150ms]" />
@@ -223,9 +223,9 @@ export default function StudentAiTutorPage() {
 
               {/* Gợi ý câu hỏi khi mới mở cuộc hội thoại */}
               {isFirstMessage && !loading && (
-                <div className="mt-4 rounded-xl border border-emerald-200/80 bg-emerald-50/40 p-4">
-                  <p className="mb-2.5 text-xs font-semibold text-emerald-950 flex items-center gap-1.5">
-                    <Sparkles className="size-3.5 text-emerald-700" />
+                <div className="mt-4 rounded-xl border border-emerald-200/80 dark:border-emerald-800 bg-emerald-50/40 dark:bg-emerald-950/30 p-4">
+                  <p className="mb-2.5 text-xs font-semibold text-emerald-950 dark:text-emerald-200 flex items-center gap-1.5">
+                    <Sparkles className="size-3.5 text-emerald-700 dark:text-emerald-400" />
                     <span>Gợi ý câu hỏi ôn tập dành cho bạn:</span>
                   </p>
                   <div className="grid gap-2 sm:grid-cols-2">
@@ -234,7 +234,7 @@ export default function StudentAiTutorPage() {
                         key={s}
                         type="button"
                         onClick={() => setInput(s)}
-                        className="rounded-lg border border-slate-200 bg-white p-2.5 text-left text-xs text-slate-700 shadow-2xs transition hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-900"
+                        className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 text-left text-xs text-slate-700 dark:text-slate-200 shadow-2xs transition hover:border-emerald-400 dark:hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-900 dark:hover:text-emerald-200"
                       >
                         {s}
                       </button>
@@ -248,9 +248,9 @@ export default function StudentAiTutorPage() {
           </div>
 
           {/* Vùng ô nhập text (Input area): Nằm cố định ở đáy trang (shrink-0) */}
-          <footer className="shrink-0 border-t border-[#e2e8e2] bg-white px-4 py-4 sm:px-6">
+          <footer className="shrink-0 border-t border-[#e2e8e2] dark:border-slate-800 bg-white dark:bg-[#0B1628] px-4 py-4 sm:px-6">
             <form onSubmit={sendMessage} className="mx-auto max-w-3xl">
-              <div className="flex items-end gap-2 rounded-2xl border border-slate-300 bg-slate-50/80 p-2 focus-within:border-emerald-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald-600/20 transition-all shadow-2xs">
+              <div className="flex items-end gap-2 rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50/80 dark:bg-[#162235] p-2 focus-within:border-emerald-600 focus-within:bg-white dark:focus-within:bg-[#162235] focus-within:ring-2 focus-within:ring-emerald-600/20 transition-all shadow-2xs">
                 <textarea
                   id="chat-input"
                   value={input}

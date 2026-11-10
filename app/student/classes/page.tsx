@@ -31,34 +31,42 @@ function getRelatedName(relation: { name: string } | { name: string }[] | null |
 
 function ClassCard({ classItem }: { classItem: StudentClass }) {
   return (
-    <Card className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md border-slate-200">
+    <Card className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
       <CardHeader className="flex flex-row items-start justify-between gap-3 pb-3">
-        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700">
+        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400">
           <BookOpen aria-hidden="true" className="size-5" />
         </span>
-        <Badge variant="outline" className="border-emerald-200 bg-emerald-50/60 font-mono text-emerald-800 text-xs">
+        <Badge variant="outline" className="border-emerald-200 dark:border-emerald-700/60 bg-emerald-50/60 dark:bg-emerald-950/40 font-mono text-emerald-800 dark:text-emerald-300 text-xs">
           {classItem.class_code}
         </Badge>
       </CardHeader>
       <CardContent>
         <h3 className="text-base font-bold text-slate-900 dark:text-white line-clamp-1">{classItem.name}</h3>
-        <p className="mt-1 text-sm text-slate-500 font-medium">
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300 font-medium">
           {getRelatedName(classItem.subject) || 'Môn học đại cương'}
         </p>
-        <p className="mt-2 text-xs text-slate-400">
+        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
           Năm học: {classItem.academic_year}
         </p>
-        <div className="mt-5 flex items-center gap-2 border-t border-slate-100 pt-4">
+        <div className="mt-5 flex items-center gap-2 border-t border-slate-100 dark:border-slate-800 pt-4">
           <Link
             href="/student/materials"
-            className={buttonVariants({ variant: 'outline', size: 'sm', className: 'text-xs flex-1 gap-1.5' })}
+            className={buttonVariants({
+              variant: 'outline',
+              size: 'sm',
+              className: 'text-xs flex-1 gap-1.5 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-100 dark:hover:bg-slate-700',
+            })}
           >
             <FileText className="size-3.5" />
             <span>Tài liệu</span>
           </Link>
           <Link
             href="/student/assignments"
-            className={buttonVariants({ variant: 'outline', size: 'sm', className: 'text-xs flex-1 gap-1.5' })}
+            className={buttonVariants({
+              variant: 'outline',
+              size: 'sm',
+              className: 'text-xs flex-1 gap-1.5 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-100 dark:hover:bg-slate-700',
+            })}
           >
             <FileCheck2 className="size-3.5" />
             <span>Bài tập</span>
@@ -114,7 +122,7 @@ export default async function StudentClassesPage() {
         </header>
 
         <div className="mx-auto max-w-[1440px] space-y-7 px-5 py-7 sm:px-8 sm:py-8 lg:px-10">
-          <section className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200 pb-5">
+          <section className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
                 Không gian học tập
@@ -122,13 +130,17 @@ export default async function StudentClassesPage() {
               <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-[28px]">
                 Lớp học của tôi
               </h1>
-              <p className="mt-1.5 text-sm text-slate-500">
+              <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-300">
                 Danh sách các lớp học bạn đã được giảng viên ghi danh trong năm học.
               </p>
             </div>
             <Link
               href="/student/dashboard"
-              className={buttonVariants({ variant: 'outline', size: 'sm', className: 'gap-1.5' })}
+              className={buttonVariants({
+                variant: 'outline',
+                size: 'sm',
+                className: 'gap-1.5 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-100 dark:hover:bg-slate-700',
+              })}
             >
               <ArrowLeft className="size-4" /> Về Tổng quan
             </Link>
@@ -141,12 +153,12 @@ export default async function StudentClassesPage() {
               ))}
             </div>
           ) : (
-            <div className="flex min-h-48 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center">
-              <span className="grid size-12 place-items-center rounded-full bg-slate-50 text-slate-400">
+            <div className="flex min-h-48 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-8 text-center">
+              <span className="grid size-12 place-items-center rounded-full bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500">
                 <BookOpen className="size-6" />
               </span>
-              <h3 className="mt-3 text-base font-semibold text-slate-700">Chưa ghi danh vào lớp nào</h3>
-              <p className="mt-1 max-w-sm text-sm text-slate-400">
+              <h3 className="mt-3 text-base font-semibold text-slate-800 dark:text-slate-200">Chưa ghi danh vào lớp nào</h3>
+              <p className="mt-1 max-w-sm text-sm text-slate-500 dark:text-slate-400">
                 Bạn chưa được thêm vào lớp học nào. Hãy liên hệ với giảng viên phụ trách để nhận mã lớp.
               </p>
             </div>
@@ -156,4 +168,3 @@ export default async function StudentClassesPage() {
     </main>
   );
 }
-

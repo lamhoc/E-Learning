@@ -73,7 +73,7 @@ export function GradeSubmissionDialog({
           variant={isGraded ? 'outline' : 'default'}
           className={
             isGraded
-              ? 'border-slate-300 hover:bg-slate-50 text-slate-700 text-xs'
+              ? 'border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs'
               : 'bg-primary hover:bg-primary/90 text-white text-xs'
           }
         >
@@ -82,14 +82,14 @@ export function GradeSubmissionDialog({
       </DialogTrigger>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-emerald-700">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
             <Award className="size-4" />
             <span>Chấm bài tập về nhà</span>
           </div>
-          <DialogTitle className="text-lg font-bold text-slate-900">
+          <DialogTitle className="text-lg font-bold text-slate-900 dark:text-white">
             {submission.student?.full_name || 'Sinh viên'}
           </DialogTitle>
-          <DialogDescription className="text-slate-500 text-xs">
+          <DialogDescription className="text-slate-500 dark:text-slate-400 text-xs">
             {submission.student?.student_code ? `MSSV: ${submission.student.student_code} · ` : ''}
             {submission.student?.email}
           </DialogDescription>
@@ -106,7 +106,7 @@ export function GradeSubmissionDialog({
           {/* Nhập điểm số */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <Label htmlFor="score" className="text-xs font-semibold text-slate-800">
+              <Label htmlFor="score" className="text-xs font-semibold text-slate-800 dark:text-slate-200">
                 Điểm số (Thang điểm: {maxScore}) <span className="text-destructive">*</span>
               </Label>
               {/* Nút cho điểm nhanh */}
@@ -118,7 +118,7 @@ export function GradeSubmissionDialog({
                       type="button"
                       key={ratio}
                       onClick={() => setScore(String(quickVal))}
-                      className="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 transition"
+                      className="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"
                     >
                       {quickVal}đ
                     </button>
@@ -137,13 +137,13 @@ export function GradeSubmissionDialog({
               placeholder={`Nhập từ 0 đến ${maxScore}`}
               required
               disabled={isPending}
-              className="text-sm font-semibold"
+              className="text-sm font-semibold text-slate-900 dark:text-white"
             />
           </div>
 
           {/* Nhận xét / Góp ý */}
           <div className="space-y-1.5">
-            <Label htmlFor="feedback" className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
+            <Label htmlFor="feedback" className="text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
               <MessageSquare className="size-3.5 text-slate-500" />
               <span>Nhận xét & Góp ý cho sinh viên</span>
             </Label>

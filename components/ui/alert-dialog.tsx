@@ -64,7 +64,7 @@ export function AlertDialogContent({
       {/* Popup / Dialog Card */}
       <div
         className={cn(
-          'relative z-10 w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl transition-all animate-in zoom-in-95 duration-200',
+          'relative z-10 w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] text-slate-900 dark:text-white p-6 shadow-2xl transition-all animate-in zoom-in-95 duration-200',
           className
         )}
         {...props}
@@ -105,7 +105,7 @@ export function AlertDialogTitle({
 }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h2
-      className={cn('text-lg font-bold text-slate-900 tracking-tight', className)}
+      className={cn('text-lg font-bold text-slate-900 dark:text-white tracking-tight', className)}
       {...props}
     />
   );
@@ -117,7 +117,7 @@ export function AlertDialogDescription({
 }: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
     <p
-      className={cn('text-sm text-slate-600 leading-relaxed', className)}
+      className={cn('text-sm text-slate-600 dark:text-slate-300 leading-relaxed', className)}
       {...props}
     />
   );
@@ -155,7 +155,11 @@ export function AlertDialogCancel({
   return (
     <button
       type="button"
-      className={cn(buttonVariants({ variant: 'outline' }), className)}
+      className={cn(
+        buttonVariants({ variant: 'outline' }),
+        'dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700',
+        className
+      )}
       onClick={(e) => {
         onClick?.(e);
         if (!e.defaultPrevented) {

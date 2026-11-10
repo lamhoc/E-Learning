@@ -438,7 +438,7 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
                     <div className="p-5 sm:p-6 space-y-4 bg-slate-50/30 dark:bg-slate-900/30">
                       {/* Đề bài */}
                       <div className="space-y-1">
-                        <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        <Label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                           Đề bài câu hỏi #{q.position}:
                         </Label>
                         <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/60 p-3.5 text-sm font-medium text-slate-900 dark:text-slate-100 leading-relaxed shadow-2xs">
@@ -449,8 +449,8 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
                       {/* Đáp án mẫu (Model Answer) */}
                       {q.modelAnswer && (
                         <div className="space-y-1.5 rounded-xl border border-purple-200/80 dark:border-purple-900/50 bg-purple-50/50 dark:bg-purple-950/30 p-4 text-xs">
-                          <div className="flex items-center gap-1.5 font-bold text-purple-900">
-                            <Sparkles className="size-3.5 text-purple-600" />
+                          <div className="flex items-center gap-1.5 font-bold text-purple-900 dark:text-purple-200">
+                            <Sparkles className="size-3.5 text-purple-600 dark:text-purple-400" />
                             <span>Đáp án tham khảo / Bài giải mẫu:</span>
                           </div>
                           <div className="mt-1 text-purple-950 dark:text-purple-200 leading-relaxed font-normal">
@@ -462,8 +462,8 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
                       {/* Thang điểm & Rubric */}
                       {q.gradingRubric && (
                         <div className="space-y-1.5 rounded-xl border border-blue-200/80 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-950/30 p-4 text-xs">
-                          <div className="flex items-center gap-1.5 font-bold text-blue-900">
-                            <Layers className="size-3.5 text-blue-600" />
+                          <div className="flex items-center gap-1.5 font-bold text-blue-900 dark:text-blue-200">
+                            <Layers className="size-3.5 text-blue-600 dark:text-blue-400" />
                             <span>Thang điểm & Tiêu chuẩn chấm (Rubric):</span>
                           </div>
                           <div className="mt-1 text-blue-950 dark:text-blue-200 leading-relaxed font-normal">
@@ -485,11 +485,11 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
                       {/* Bài làm của thí sinh */}
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
-                          <Label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                          <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                             <User className="size-3.5 text-slate-500" />
                             Bài làm của thí sinh:
                           </Label>
-                          <span className="text-[11px] text-slate-400">
+                          <span className="text-[11px] text-slate-400 dark:text-slate-500">
                             {q.studentAnswerText?.length || 0} ký tự
                           </span>
                         </div>
@@ -527,8 +527,8 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
                               {...register(`grades.${q.questionId}.points` as never, {
                                 valueAsNumber: true,
                               })}
-                              className={`h-9 w-32 rounded-xl bg-white dark:bg-slate-900 font-mono text-sm font-bold text-center dark:text-white ${
-                                fieldError ? 'border-red-500 focus:ring-red-500' : 'border-slate-300'
+                              className={`h-9 w-32 rounded-xl bg-white dark:bg-slate-900 font-mono text-sm font-bold text-center text-slate-900 dark:text-white ${
+                                fieldError ? 'border-red-500 focus:ring-red-500' : 'border-slate-300 dark:border-slate-700'
                               }`}
                             />
 

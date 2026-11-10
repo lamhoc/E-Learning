@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -8,11 +9,13 @@ import {
   FileCheck2,
   FileText,
   LayoutDashboard,
+  LoaderCircle,
   LogOut,
   Sparkles,
   Trophy,
 } from 'lucide-react';
 import { signOut } from '@/app/subjects/actions';
+import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { BrandLogo } from '@/components/ui/brand-logo';
@@ -33,6 +36,7 @@ type StudentSidebarProps = {
 
 export function StudentSidebar({ studentName, activeRoute }: StudentSidebarProps) {
   const pathname = usePathname();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const initials = studentName
     .split(/[\s@.]+/)
@@ -40,6 +44,30 @@ export function StudentSidebar({ studentName, activeRoute }: StudentSidebarProps
     .slice(0, 2)
     .map((part) => part[0]?.toLocaleUpperCase())
     .join('');
+
+  // Nguồn chân lý duy nhất cho active state:
+  const isRouteActive = (routeId: StudentSidebarRoute, href: string) => {
+    if (pathname) {
+      if (routeId === 'dashboard') {
+        return pathname === '/student/dashboard' || pathname === '/student';
+      }
+      return pathname.startsWith(href);
+    }
+    return activeRoute === routeId;
+  };
+
+  const handleSignOut = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('Client student signOut error:', err);
+    } finally {
+      window.location.href = '/login';
+    }
+  };
 
   const navItems = [
     { id: 'dashboard' as const, label: 'Tổng quan', href: '/student/dashboard', icon: LayoutDashboard },
@@ -52,26 +80,24 @@ export function StudentSidebar({ studentName, activeRoute }: StudentSidebarProps
   ];
 
   return (
-    <aside className="hidden min-h-screen flex-col border-r border-white/10 bg-[#0A275C] dark:bg-[#0B1628] dark:border-slate-800/80 px-4 py-6 text-white lg:sticky lg:top-0 lg:flex lg:h-screen">
-      {/* Brand Logo LHU ở góc trên bên trái */}
-      <div className="px-1">
+    <aside className="hidden h-screen w-64 shrink-0 flex-col border-r border-white/10 bg-[#0A275C] dark:bg-[#0B1628] dark:border-slate-800/80 text-white overflow-hidden lg:sticky lg:top-0 lg:flex">
+      {/* Phần 1: Brand Logo LHU ở đỉnh Sidebar */}
+      <div className="shrink-0 p-4 border-b border-white/10 dark:border-slate-800/80">
         <BrandLogo
           href="/student/dashboard"
           size="md"
           variant="framed"
           subtitle="Khu vực Sinh viên"
         />
+        <div className="mt-3 px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/50">
+          Menu Sinh viên
+        </div>
       </div>
 
-      <div className="mt-8 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/50">
-        Menu Sinh viên
-      </div>
-
-      <nav aria-label="Điều hướng chính" className="mt-3 space-y-1">
+      {/* Phần 2: Danh sách Menu ở giữa (Cuộn mượt mà khi màn hình thấp) */}
+      <nav aria-label="Điều hướng chính" className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-1 scrollbar-thin">
         {navItems.map(({ id, label, href, icon: Icon }) => {
-          const isActive = pathname
-            ? (id === 'dashboard' ? (pathname === '/student/dashboard' || pathname === '/student') : pathname.startsWith(href))
-            : activeRoute === id;
+          const isActive = isRouteActive(id, href);
 
           return (
             <Link
@@ -79,7 +105,7 @@ export function StudentSidebar({ studentName, activeRoute }: StudentSidebarProps
               href={href}
               prefetch={true}
               aria-current={isActive ? 'page' : undefined}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
+              className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all ${
                 isActive
                   ? 'bg-white/15 text-white ring-1 ring-[#FACC15]/50 shadow-xs font-semibold'
                   : 'text-white/75 hover:bg-white/10 hover:text-white'
@@ -89,33 +115,50 @@ export function StudentSidebar({ studentName, activeRoute }: StudentSidebarProps
                 aria-hidden="true"
                 className={`size-4 transition-colors ${isActive ? 'text-[#FACC15]' : 'text-white/70'}`}
               />
-              {label}
+              <span className="truncate">{label}</span>
             </Link>
           );
         })}
       </nav>
 
-      <div className="mt-auto rounded-xl border border-white/10 bg-white/5 p-4 dark:border-slate-800 dark:bg-slate-900/40">
-        <div className="flex items-center gap-3">
-          <span className="grid size-9 place-items-center rounded-full bg-[#FACC15] text-xs font-bold text-[#0A275C] shadow-xs">
-            {initials || 'SV'}
-          </span>
-          <span className="min-w-0">
-            <span className="block truncate text-sm font-medium text-white">{studentName}</span>
-            <span className="block text-xs text-white/60">Sinh viên LHU</span>
-          </span>
-        </div>
-        <Separator className="my-4 bg-white/15 dark:bg-slate-800" />
-        <form action={signOut}>
-          <Button
-            type="submit"
-            variant="ghost"
-            className="h-9 w-full justify-start gap-2 px-2 text-white/75 hover:bg-white/10 hover:text-white dark:hover:bg-slate-800"
+      {/* Phần 3: Khung Thông tin tài khoản & Nút Đăng xuất ở Đáy (Cố định 100%) */}
+      <div className="shrink-0 p-3 border-t border-white/10 dark:border-slate-800/80 bg-[#0A275C] dark:bg-[#0B1628] z-10">
+        <div className="rounded-xl border border-white/10 bg-white/5 p-3 dark:border-slate-800 dark:bg-slate-900/40">
+          <div className="flex items-center gap-3">
+            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[#FACC15] text-xs font-bold text-[#0A275C] shadow-xs">
+              {initials || 'SV'}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-medium text-white">{studentName}</span>
+              <span className="block text-[11px] text-white/60">Sinh viên LHU</span>
+            </span>
+          </div>
+
+          <Separator className="my-2.5 bg-white/15 dark:bg-slate-800" />
+
+          <form
+            action={signOut}
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSignOut();
+            }}
           >
-            <LogOut aria-hidden="true" className="size-4" />
-            Đăng xuất
-          </Button>
-        </form>
+            <Button
+              type="submit"
+              variant="ghost"
+              disabled={isLoggingOut}
+              onClick={handleSignOut}
+              className="h-8 w-full justify-start gap-2 px-2 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white dark:hover:bg-slate-800 cursor-pointer disabled:opacity-60"
+            >
+              {isLoggingOut ? (
+                <LoaderCircle aria-hidden="true" className="size-3.5 animate-spin text-[#FACC15]" />
+              ) : (
+                <LogOut aria-hidden="true" className="size-3.5 text-white/70" />
+              )}
+              <span>{isLoggingOut ? 'Đang đăng xuất...' : 'Đăng xuất'}</span>
+            </Button>
+          </form>
+        </div>
       </div>
     </aside>
   );

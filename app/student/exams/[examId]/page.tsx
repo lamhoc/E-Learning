@@ -53,29 +53,29 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
   return (
     <main className="min-h-screen bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors">
       {/* Top Header */}
-      <header className="border-b border-[#dfe5dd] bg-white px-5 py-3.5 sm:px-8">
+      <header className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B1628] px-5 py-3.5 sm:px-8">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
           <Link
             href="/student/dashboard"
-            className="inline-flex items-center gap-2 text-xs font-semibold text-[#17372e] hover:underline"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-[#17372e] dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:underline transition"
           >
             <ArrowLeft className="size-4" /> Quay lại Bảng điều khiển
           </Link>
           <div className="flex items-center gap-2">
-            <span className="grid size-7 place-items-center rounded-md bg-[#17372e] text-[#c9ed99]">
+            <span className="grid size-7 place-items-center rounded-md bg-[#17372e] dark:bg-emerald-950 text-[#c9ed99] dark:text-emerald-300">
               <GraduationCap className="size-4" />
             </span>
-            <span className="text-xs font-bold text-slate-800">Mầm Học Khảo Thí</span>
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Mầm Học Khảo Thí</span>
           </div>
         </div>
       </header>
 
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-10 space-y-6">
-        {/* Exam Title & Subject Info */}
-        <section className="rounded-2xl border border-[#dce7e0] bg-white p-6 sm:p-8 shadow-xs">
+        {/* 1. Exam Title & Subject Info */}
+        <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-6 sm:p-8 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className="gap-1.5 border-[#246348]/30 bg-[#eef6f1] text-[#17372e] font-semibold">
+              <Badge variant="outline" className="gap-1.5 border-[#246348]/30 dark:border-emerald-700/50 bg-[#eef6f1] dark:bg-emerald-950/40 text-[#17372e] dark:text-emerald-300 font-semibold">
                 <BookOpen className="size-3.5" />
                 {exam.subject?.code} · {exam.subject?.name}
               </Badge>
@@ -93,7 +93,7 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
             </div>
 
             {isOpenNow ? (
-              <Badge className="border-emerald-200 bg-emerald-50 text-emerald-800 font-semibold">
+              <Badge className="border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-semibold">
                 Đang mở làm bài
               </Badge>
             ) : (
@@ -108,41 +108,41 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
           </h1>
 
           {exam.instructions && (
-            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+            <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
               {exam.instructions}
             </p>
           )}
 
           {/* Quick Stats Grid */}
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="rounded-xl border border-slate-100 bg-slate-50 p-3.5 text-center">
-              <Clock className="mx-auto size-5 text-[#246348]" />
-              <p className="mt-1 text-xs text-slate-500">Thời gian làm</p>
-              <p className="mt-0.5 text-lg font-bold text-slate-900">
+            <div className="rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-slate-50 dark:bg-[#162235] p-3.5 text-center">
+              <Clock className="mx-auto size-5 text-[#246348] dark:text-emerald-400" />
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Thời gian làm</p>
+              <p className="mt-0.5 text-lg font-bold text-slate-900 dark:text-white">
                 {exam.duration_minutes} phút
               </p>
             </div>
 
-            <div className="rounded-xl border border-slate-100 bg-slate-50 p-3.5 text-center">
-              <FileQuestion className="mx-auto size-5 text-blue-600" />
-              <p className="mt-1 text-xs text-slate-500">Số lượng câu</p>
-              <p className="mt-0.5 text-lg font-bold text-slate-900">
+            <div className="rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-slate-50 dark:bg-[#162235] p-3.5 text-center">
+              <FileQuestion className="mx-auto size-5 text-blue-600 dark:text-blue-400" />
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Số lượng câu</p>
+              <p className="mt-0.5 text-lg font-bold text-slate-900 dark:text-white">
                 {questions.length} câu
               </p>
             </div>
 
-            <div className="rounded-xl border border-slate-100 bg-slate-50 p-3.5 text-center">
-              <History className="mx-auto size-5 text-purple-600" />
-              <p className="mt-1 text-xs text-slate-500">Lượt thi còn lại</p>
-              <p className="mt-0.5 text-lg font-bold text-slate-900">
+            <div className="rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-slate-50 dark:bg-[#162235] p-3.5 text-center">
+              <History className="mx-auto size-5 text-purple-600 dark:text-purple-400" />
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Lượt thi còn lại</p>
+              <p className="mt-0.5 text-lg font-bold text-slate-900 dark:text-white">
                 {remainingAttempts} / {exam.max_attempts}
               </p>
             </div>
 
-            <div className="rounded-xl border border-slate-100 bg-slate-50 p-3.5 text-center">
-              <Trophy className="mx-auto size-5 text-amber-600" />
-              <p className="mt-1 text-xs text-slate-500">Điểm cao nhất</p>
-              <p className="mt-0.5 text-lg font-bold text-slate-900">
+            <div className="rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-slate-50 dark:bg-[#162235] p-3.5 text-center">
+              <Trophy className="mx-auto size-5 text-amber-600 dark:text-amber-400" />
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Điểm cao nhất</p>
+              <p className="mt-0.5 text-lg font-bold text-slate-900 dark:text-white">
                 {attempts.length > 0 && attempts.some((a) => a.total_score != null)
                   ? Math.max(...attempts.map((a) => a.total_score ?? 0)).toLocaleString('vi-VN')
                   : '—'}
@@ -151,9 +151,9 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
           </div>
         </section>
 
-        {/* If Latest Attempt Result is Released: AI Tutor Callout */}
+        {/* 2. Banner Gia sư AI Chữa đề (Nếu đã công bố kết quả) */}
         {latestAttempt?.released_at && (
-          <section className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-violet-200 bg-linear-to-r from-violet-50/90 via-purple-50/50 to-emerald-50/40 p-5 sm:p-6 shadow-xs">
+          <section className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-indigo-200 dark:border-indigo-500/30 bg-gradient-to-r from-indigo-50 via-purple-50 to-blue-50 dark:from-[#171836] dark:via-[#1E1B4B] dark:to-[#111C2D] p-5 sm:p-6 shadow-xs">
             <div className="flex items-start gap-3.5">
               <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-violet-700 text-white shadow-xs">
                 <Sparkles className="size-5" />
@@ -163,11 +163,11 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
                   <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
                     Gia sư AI Chữa đề — Lượt #{latestAttempt.attempt_no}
                   </h2>
-                  <Badge className="border-violet-200 bg-violet-100 text-violet-800 text-[10px]">
+                  <Badge className="border-violet-200 dark:border-violet-700 bg-violet-100 dark:bg-violet-950/60 text-violet-800 dark:text-violet-300 text-[10px]">
                     Groq AI
                   </Badge>
                 </div>
-                <p className="mt-1 text-xs text-slate-600 max-w-xl leading-relaxed">
+                <p className="mt-1 text-xs text-slate-600 dark:text-slate-200 max-w-xl leading-relaxed">
                   Gia sư AI sẽ phân tích các câu bạn làm sai, hướng dẫn phương pháp giải từng bước kèm công thức Toán học chuẩn xác.
                 </p>
               </div>
@@ -181,23 +181,23 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
           </section>
         )}
 
-        {/* If Student Already Has Previous Attempts */}
+        {/* 3. Lịch sử các lần làm bài */}
         {attempts.length > 0 && (
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-6 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
-                <History className="size-4 text-slate-600" />
+                <History className="size-4 text-slate-600 dark:text-slate-400" />
                 <h2 className="text-base font-bold text-slate-900 dark:text-white">Lịch sử các lần làm bài</h2>
               </div>
-              <span className="text-xs text-slate-500">
-                Đã làm: <strong>{attempts.length}</strong> / {exam.max_attempts} lượt
+              <span className="text-xs text-slate-600 dark:text-slate-300">
+                Đã làm: <strong className="text-slate-900 dark:text-white">{attempts.length}</strong> / {exam.max_attempts} lượt
               </span>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-slate-100 text-slate-500">
+                  <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400">
                     <th className="py-2.5 font-semibold">Lượt thi</th>
                     <th className="py-2.5 font-semibold">Bắt đầu</th>
                     <th className="py-2.5 font-semibold">Nộp bài</th>
@@ -206,19 +206,19 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
                     <th className="py-2.5 text-right font-semibold">Gia sư AI</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {attempts.map((att) => (
-                    <tr key={att.id} className="hover:bg-slate-50/80">
-                      <td className="py-3 font-bold text-slate-800">
+                    <tr key={att.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="py-3 font-bold text-slate-800 dark:text-slate-200">
                         Lượt #{att.attempt_no}
                       </td>
-                      <td className="py-3 text-slate-600">
+                      <td className="py-3 text-slate-600 dark:text-slate-300">
                         {new Intl.DateTimeFormat('vi-VN', {
                           dateStyle: 'short',
                           timeStyle: 'short',
                         }).format(new Date(att.started_at))}
                       </td>
-                      <td className="py-3 text-slate-600">
+                      <td className="py-3 text-slate-600 dark:text-slate-300">
                         {att.submitted_at
                           ? new Intl.DateTimeFormat('vi-VN', {
                               dateStyle: 'short',
@@ -228,28 +228,28 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
                       </td>
                       <td className="py-3">
                         {att.status === 'completed' && (
-                          <Badge className="border-emerald-200 bg-emerald-50 text-emerald-800">
+                          <Badge className="border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
                             Đã chấm điểm
                           </Badge>
                         )}
                         {att.status === 'pending_grading' && (
-                          <Badge className="border-amber-200 bg-amber-50 text-amber-800">
+                          <Badge className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
                             Chờ chấm tự luận
                           </Badge>
                         )}
                         {att.status === 'in_progress' && (
-                          <Badge className="border-blue-200 bg-blue-50 text-blue-800">
+                          <Badge className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300">
                             Đang làm dở
                           </Badge>
                         )}
                       </td>
-                      <td className="py-3 text-right font-bold text-slate-900">
+                      <td className="py-3 text-right font-bold text-slate-900 dark:text-white">
                         {att.total_score != null ? (
-                          <span className="text-emerald-700 text-sm">
+                          <span className="text-emerald-700 dark:text-emerald-400 text-sm">
                             {att.total_score.toLocaleString('vi-VN')}
                           </span>
                         ) : (
-                          <span className="text-slate-400">Chờ duyệt</span>
+                          <span className="text-slate-400 dark:text-slate-500">Chờ duyệt</span>
                         )}
                       </td>
                       <td className="py-3 text-right">
@@ -260,7 +260,7 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
                             attemptNo={att.attempt_no}
                           />
                         ) : (
-                          <span className="text-slate-300">—</span>
+                          <span className="text-slate-400 dark:text-slate-600">—</span>
                         )}
                       </td>
                     </tr>
@@ -271,10 +271,10 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
           </section>
         )}
 
-        {/* Rules & Action Container */}
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs space-y-6">
+        {/* 4. Rules & Action Container */}
+        <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-6 sm:p-8 shadow-sm space-y-6">
           <div className="space-y-3">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
               Quy chế và lưu ý quan trọng trước khi làm bài
             </h2>
             <ul className="space-y-2.5 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
@@ -282,47 +282,47 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
                 <li className="flex items-start gap-2">
                   <Camera className="size-4 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
                   <span>
-                    <strong>Bắt buộc mở Camera:</strong> Đề thi yêu cầu duy trì mở webcam trong suốt quá trình làm bài. Hệ thống sẽ kiểm tra định kỳ để đảm bảo tính công bằng.
+                    <strong className="text-slate-900 dark:text-white font-semibold">Bắt buộc mở Camera:</strong> Đề thi yêu cầu duy trì mở webcam trong suốt quá trình làm bài. Hệ thống sẽ kiểm tra định kỳ để đảm bảo tính công bằng.
                   </span>
                 </li>
               ) : (
                 <li className="flex items-start gap-2">
                   <Camera className="size-4 shrink-0 text-slate-400 mt-0.5" />
                   <span>
-                    <strong>Không yêu cầu Camera:</strong> Thí sinh làm bài thi bình thường mà không cần cấp quyền truy cập máy ảnh hay webcam.
+                    <strong className="text-slate-900 dark:text-white font-semibold">Không yêu cầu Camera:</strong> Thí sinh làm bài thi bình thường mà không cần cấp quyền truy cập máy ảnh hay webcam.
                   </span>
                 </li>
               )}
               <li className="flex items-start gap-2">
-                <CheckCircle2 className="size-4 shrink-0 text-emerald-600 mt-0.5" />
+                <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
                 <span>
-                  <strong>Hệ thống tự động lưu:</strong> Mọi lựa chọn trắc nghiệm và nội dung tự luận sẽ được lưu ngay tức thì vào máy chủ.
+                  <strong className="text-slate-900 dark:text-white font-semibold">Hệ thống tự động lưu:</strong> Mọi lựa chọn trắc nghiệm và nội dung tự luận sẽ được lưu ngay tức thì vào máy chủ.
                 </span>
               </li>
               <li className="flex items-start gap-2">
-                <CheckCircle2 className="size-4 shrink-0 text-emerald-600 mt-0.5" />
+                <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
                 <span>
-                  <strong>Đồng hồ đếm ngược:</strong> Thời gian làm bài sẽ liên tục chạy kể cả khi bạn đóng trình duyệt. Khi hết giờ, bài thi sẽ tự động được thu và chấm điểm.
+                  <strong className="text-slate-900 dark:text-white font-semibold">Đồng hồ đếm ngược:</strong> Thời gian làm bài sẽ liên tục chạy kể cả khi bạn đóng trình duyệt. Khi hết giờ, bài thi sẽ tự động được thu và chấm điểm.
                 </span>
               </li>
               <li className="flex items-start gap-2">
-                <CheckCircle2 className="size-4 shrink-0 text-emerald-600 mt-0.5" />
+                <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
                 <span>
-                  <strong>Chấm điểm tự động:</strong> Đối với các câu hỏi trắc nghiệm, hệ thống sẽ tính điểm tự động ngay khi bạn bấm nộp bài.
+                  <strong className="text-slate-900 dark:text-white font-semibold">Chấm điểm tự động:</strong> Đối với các câu hỏi trắc nghiệm, hệ thống sẽ tính điểm tự động ngay khi bạn bấm nộp bài.
                 </span>
               </li>
             </ul>
           </div>
 
-          {/* Action Button */}
-          <div className="border-t border-slate-100 pt-6">
+          {/* Action Button Container */}
+          <div className="border-t border-slate-100 dark:border-slate-800 pt-6">
             {canStartNewAttempt ? (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-slate-50 dark:bg-[#162235] p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-bold text-slate-900">
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">
                     Bạn đã sẵn sàng bước vào bài thi?
                   </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
                     Thời gian sẽ bắt đầu đếm ngược ngay khi bạn bấm nút bên cạnh.
                   </p>
                 </div>
@@ -332,19 +332,23 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
                 />
               </div>
             ) : !isOpenNow ? (
-              <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">
-                <AlertCircle className="size-5 shrink-0 text-amber-600" />
+              <div className="flex items-center gap-3 rounded-xl border border-amber-200 dark:border-amber-800/80 bg-amber-50 dark:bg-amber-950/40 p-4 text-xs text-amber-900 dark:text-amber-200">
+                <AlertCircle className="size-5 shrink-0 text-amber-600 dark:text-amber-400" />
                 <div>
                   <p className="font-bold">Đề thi hiện không mở</p>
-                  <p className="mt-0.5">Vui lòng kiểm tra lại thời gian bắt đầu và kết thúc của đợt thi.</p>
+                  <p className="mt-0.5 text-amber-800 dark:text-amber-300">Vui lòng kiểm tra lại thời gian bắt đầu và kết thúc của đợt thi.</p>
                 </div>
               </div>
             ) : (
-              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
-                <span>Bạn đã hoàn thành đủ số lượt thi tối đa cho đề thi này.</span>
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-[#162235] p-4 text-xs text-slate-800 dark:text-slate-200">
+                <span className="font-medium">Bạn đã hoàn thành đủ số lượt thi tối đa cho đề thi này.</span>
                 <Link
                   href="/student/dashboard"
-                  className={buttonVariants({ variant: 'outline', size: 'sm' })}
+                  className={buttonVariants({
+                    variant: 'outline',
+                    size: 'sm',
+                    className: 'bg-slate-200 hover:bg-slate-300 text-slate-900 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-white dark:border-slate-700 font-semibold',
+                  })}
                 >
                   Quay về trang chủ
                 </Link>

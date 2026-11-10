@@ -151,13 +151,13 @@ export function StudentAssignments({ assignments }: StudentAssignmentsProps) {
               >
                 <CardContent className="p-5 space-y-4">
                   {/* Top Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-800 text-[11px]">
+                      <Badge variant="outline" className="border-emerald-300 dark:border-emerald-700/60 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 text-[11px]">
                         {assignment.class_name}
                       </Badge>
                       {assignment.subject_name && (
-                        <span className="text-xs text-slate-500">{assignment.subject_name}</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">{assignment.subject_name}</span>
                       )}
                     </div>
 
@@ -228,22 +228,22 @@ export function StudentAssignments({ assignments }: StudentAssignmentsProps) {
 
                   {/* Kết quả chấm điểm (Nếu đã chấm) */}
                   {isGraded && (
-                    <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/50 space-y-1.5">
-                      <div className="flex items-center gap-2 text-xs font-bold text-emerald-900">
-                        <Award className="size-4 text-emerald-700" />
+                    <div className="p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/30 space-y-1.5">
+                      <div className="flex items-center gap-2 text-xs font-bold text-emerald-900 dark:text-emerald-200">
+                        <Award className="size-4 text-emerald-700 dark:text-emerald-400" />
                         <span>Kết quả chấm điểm: {submission?.score} / {assignment.max_score} điểm</span>
                         {submission?.is_late && (
-                          <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800 text-[10px] px-1.5 py-0">
+                          <Badge variant="outline" className="border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] px-1.5 py-0">
                             Nộp muộn
                           </Badge>
                         )}
                       </div>
                       {submission?.feedback ? (
-                        <p className="text-xs text-slate-700 leading-relaxed italic bg-white/80 p-2.5 rounded-lg border border-emerald-100">
+                        <p className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed italic bg-white/80 dark:bg-[#162235] p-2.5 rounded-lg border border-emerald-100 dark:border-emerald-800/60">
                           &quot;{submission.feedback}&quot;
                         </p>
                       ) : (
-                        <p className="text-xs text-slate-500 italic">Giảng viên không để lại lời nhận xét.</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 italic">Giảng viên không để lại lời nhận xét.</p>
                       )}
                     </div>
                   )}

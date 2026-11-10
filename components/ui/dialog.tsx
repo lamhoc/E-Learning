@@ -108,7 +108,7 @@ export function DialogContent({
         role="dialog"
         aria-modal="true"
         className={cn(
-          'relative z-50 w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl transition-all animate-in zoom-in-95',
+          'relative z-50 w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] text-slate-900 dark:text-white p-6 shadow-2xl transition-all animate-in zoom-in-95',
           className
         )}
         {...props}
@@ -116,7 +116,7 @@ export function DialogContent({
         <button
           type="button"
           onClick={() => onOpenChange(false)}
-          className="absolute right-4 top-4 rounded-md p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+          className="absolute right-4 top-4 rounded-md p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
           aria-label="Đóng"
         >
           <X className="size-4" />
@@ -161,7 +161,7 @@ export function DialogTitle({
   return (
     <h2
       className={cn(
-        'text-lg font-semibold leading-none tracking-tight text-slate-900',
+        'text-lg font-semibold leading-none tracking-tight text-slate-900 dark:text-white',
         className
       )}
       {...props}
@@ -175,7 +175,7 @@ export function DialogDescription({
 }: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
     <p
-      className={cn('text-sm text-slate-500', className)}
+      className={cn('text-sm text-slate-500 dark:text-slate-400', className)}
       {...props}
     />
   );

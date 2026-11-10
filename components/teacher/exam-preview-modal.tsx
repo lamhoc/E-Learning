@@ -132,7 +132,7 @@ export function ExamPreviewModal({
                 {essayCount > 0 && <span>(Tự luận: {essayCount})</span>}
               </div>
 
-              <div className="mt-3 rounded-md bg-slate-50 p-2 text-xs italic text-slate-500 print:bg-transparent">
+              <div className="mt-3 rounded-md bg-slate-50 dark:bg-slate-800/80 p-2 text-xs italic text-slate-600 dark:text-slate-300 print:bg-transparent">
                 (Thí sinh không được sử dụng tài liệu. Cán bộ coi thi không giải thích gì thêm)
               </div>
             </div>
@@ -205,8 +205,8 @@ export function ExamPreviewModal({
                       {/* Tự luận */}
                       {!isMC && (
                         <div className="pl-4">
-                          <div className="h-16 rounded border border-dashed border-slate-300 bg-slate-50/50 print:h-24 print:border-slate-400" />
-                          <p className="mt-1 text-[11px] italic text-slate-400 print:hidden">
+                          <div className="h-16 rounded border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 print:h-24 print:border-slate-400" />
+                          <p className="mt-1 text-[11px] italic text-slate-400 dark:text-slate-500 print:hidden">
                             (Phần dành cho thí sinh trình bày bài giải tự luận)
                           </p>
                         </div>
@@ -214,32 +214,32 @@ export function ExamPreviewModal({
 
                       {/* Đáp án & Lời giải (Chỉ hiện khi bật showAnswers) */}
                       {showAnswers && (
-                        <div className="mt-2.5 rounded-lg border border-emerald-100 bg-emerald-50/50 p-2.5 text-xs text-slate-700 print:border-slate-300 print:bg-slate-50">
+                        <div className="mt-2.5 rounded-lg border border-emerald-100 dark:border-emerald-800/60 bg-emerald-50/50 dark:bg-emerald-950/40 p-2.5 text-xs text-slate-700 dark:text-slate-200 print:border-slate-300 print:bg-slate-50">
                           {isMC && correctKey && (
-                            <p className="font-semibold text-emerald-900">
+                            <p className="font-semibold text-emerald-900 dark:text-emerald-300">
                               Đáp án đúng: <span className="underline">{correctKey}</span>
                             </p>
                           )}
 
                           {!isMC && q.answer_key?.model_answer && (
                             <div className="mt-1">
-                              <span className="font-semibold text-emerald-900">Đáp án mẫu:</span>{' '}
-                              <MathText content={q.answer_key.model_answer} className="inline text-slate-800" />
+                              <span className="font-semibold text-emerald-900 dark:text-emerald-300">Đáp án mẫu:</span>{' '}
+                              <MathText content={q.answer_key.model_answer} className="inline text-slate-800 dark:text-slate-100" />
                             </div>
                           )}
 
                           {!isMC && q.answer_key?.grading_rubric && (
                             <div className="mt-1">
-                              <span className="font-semibold text-emerald-900">Thang điểm chấm:</span>{' '}
-                              <MathText content={q.answer_key.grading_rubric} className="inline text-slate-800" />
+                              <span className="font-semibold text-emerald-900 dark:text-emerald-300">Thang điểm chấm:</span>{' '}
+                              <MathText content={q.answer_key.grading_rubric} className="inline text-slate-800 dark:text-slate-100" />
                             </div>
                           )}
 
                           {q.explanation && (
-                            <div className="mt-1 flex items-start gap-1 text-slate-600">
+                            <div className="mt-1 flex items-start gap-1 text-slate-600 dark:text-slate-300">
                               <Sparkles className="mt-0.5 size-3 shrink-0 text-amber-600" />
                               <div className="flex-1">
-                                <span className="font-semibold text-slate-700">Lời giải chi tiết:</span>{' '}
+                                <span className="font-semibold text-slate-700 dark:text-slate-200">Lời giải chi tiết:</span>{' '}
                                 <MathText content={q.explanation} className="inline" />
                               </div>
                             </div>

@@ -64,7 +64,7 @@ export default async function StudentMaterialsPage() {
         </header>
 
         <div className="mx-auto max-w-[1440px] space-y-7 px-5 py-7 sm:px-8 sm:py-8 lg:px-10">
-          <section className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200 pb-5">
+          <section className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
                 Kho học liệu
@@ -72,13 +72,17 @@ export default async function StudentMaterialsPage() {
               <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-[28px]">
                 Tài liệu học tập theo tuần
               </h1>
-              <p className="mt-1.5 text-sm text-slate-500">
+              <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-300">
                 Slide bài giảng, giáo trình PDF/Word và video học tập của các lớp bạn tham gia.
               </p>
             </div>
             <Link
               href="/student/dashboard"
-              className={buttonVariants({ variant: 'outline', size: 'sm', className: 'gap-1.5' })}
+              className={buttonVariants({
+                variant: 'outline',
+                size: 'sm',
+                className: 'gap-1.5 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-100 dark:hover:bg-slate-700',
+              })}
             >
               <ArrowLeft className="size-4" /> Về Tổng quan
             </Link>

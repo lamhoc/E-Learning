@@ -72,7 +72,7 @@ export default async function StudentAssignmentsPage() {
         </header>
 
         <div className="mx-auto max-w-[1440px] space-y-7 px-5 py-7 sm:px-8 sm:py-8 lg:px-10">
-          <section className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200 pb-5">
+          <section className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
                 Nhiệm vụ học tập
@@ -80,13 +80,17 @@ export default async function StudentAssignmentsPage() {
               <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-[28px]">
                 Bài tập về nhà
               </h1>
-              <p className="mt-1.5 text-sm text-slate-500">
+              <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-300">
                 Tải đề bài, nộp file bài làm (.zip, .pdf, .docx) và theo dõi phản hồi chấm điểm của giảng viên.
               </p>
             </div>
             <Link
               href="/student/dashboard"
-              className={buttonVariants({ variant: 'outline', size: 'sm', className: 'gap-1.5' })}
+              className={buttonVariants({
+                variant: 'outline',
+                size: 'sm',
+                className: 'gap-1.5 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-100 dark:hover:bg-slate-700',
+              })}
             >
               <ArrowLeft className="size-4" /> Về Tổng quan
             </Link>
