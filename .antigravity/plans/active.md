@@ -123,7 +123,7 @@
     - `npm run build` thành công 100% (37/37 routes).
     - Local commit an toàn (tuyệt đối không push tự ý) với mã commit hash `b17953b`.
 
-- [x] **Phase 47**: Sửa triệt để lỗi Groq `400 json_validate_failed` & Tổng rà soát hệ thống AI + UI:
+- [x] **Phase 47 (Commit `1ac0af7`)**: Sửa triệt để lỗi Groq `400 json_validate_failed` & Tổng rà soát hệ thống AI + UI:
   - [x] **Mục tiêu 1 (Sửa lỗi Groq `json_validate_failed` tại AI Generator)**:
     - Nâng cấp `lib/ai-question-generator.ts`: Dùng model `llama-3.3-70b-versatile` (fallback `llama-3.1-8b-instant`), tăng `max_tokens: 8192`, `temperature: 0.3`.
     - Multi-layer fallback 3 lớp: Layer 1 (json_object mode) → Layer 2 (text mode + `parseAiJsonSafely()`) → Layer 3 (smart local fallback).
