@@ -148,4 +148,14 @@
   .dark h4 {
     color: #F8FAFC;
   }
+
+  /* KaTeX math formula styling in light & dark mode */
+  .katex {
+    color: inherit;
+  }
+  .dark .katex,
+  .dark .katex-display,
+  .dark .katex-html {
+    color: #F8FAFC !important;
+  }
 }

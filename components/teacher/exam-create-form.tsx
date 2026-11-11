@@ -223,7 +223,7 @@ export function ExamCreateForm({
       setSuccessMessage(res.message);
       setTimeout(() => {
         startTransition(() => {
-          router.push('/teacher/dashboard');
+          router.push('/teacher/exams');
           router.refresh();
         });
       }, 1200);
@@ -233,13 +233,13 @@ export function ExamCreateForm({
   return (
     <div className="space-y-6">
       {/* Top Banner Navigation & Actions */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 dark:border-slate-800 pb-5">
         <div>
           <Link
-            href="/teacher/dashboard"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition mb-1"
+            href="/teacher/exams"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition mb-1"
           >
-            <ArrowLeft className="size-3.5" /> Quay về Tổng quan
+            <ArrowLeft className="size-3.5" /> Quay lại danh sách đề thi
           </Link>
           <div className="flex items-center gap-2">
             <span className="grid size-8 place-items-center rounded-lg bg-[#e5f0e9] text-[#246348]">
@@ -304,7 +304,7 @@ export function ExamCreateForm({
           className="flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-800 animate-in zoom-in-95"
         >
           <CheckCircle2 className="size-5 shrink-0 text-emerald-600" />
-          <span>{successMessage} Đang chuyển hướng về Bảng điều khiển...</span>
+          <span>{successMessage} Đang chuyển hướng về danh sách đề thi...</span>
         </div>
       )}
 

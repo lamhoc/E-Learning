@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { ClassTeacherAssigner } from './class-teacher-assigner';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -96,13 +95,10 @@ export function AcademicAccess({
                   {classes.map((classItem) => (
                     <TableRow key={classItem.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
                       <TableCell className="pl-5">
-                        <Link
-                          href={`/teacher/classes/${classItem.id}`}
-                          className="block font-medium text-[#154C99] dark:text-[#3B82F6] hover:underline"
-                        >
+                        <span className="block font-semibold text-slate-900 dark:text-white">
                           {classItem.name}
-                        </Link>
-                        <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                        </span>
+                        <span className="mt-0.5 block text-[11px] text-slate-500 dark:text-slate-400">
                           {classItem.classCode} · {classItem.academicYear}
                         </span>
                       </TableCell>

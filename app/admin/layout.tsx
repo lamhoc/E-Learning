@@ -1,18 +1,8 @@
 import { ReactNode } from 'react';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import {
-  BookOpen,
-  GraduationCap,
-  LayoutDashboard,
-  LogOut,
-  Users,
-} from 'lucide-react';
 import { getCurrentUserWithRole } from '@/lib/auth-cache';
-import { signOut } from '@/app/subjects/actions';
-import { Button, buttonVariants } from '@/components/ui/button';
 import { BrandLogo } from '@/components/ui/brand-logo';
-import { ThemeToggle } from '@/components/theme-toggle';
+import { AdminNav } from '@/components/admin/admin-nav';
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const { user, role } = await getCurrentUserWithRole();
@@ -43,56 +33,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             subtitle="Quản trị Hệ thống LHU"
           />
 
-          {/* Admin Navigation Hub */}
-          <nav className="flex items-center gap-1.5 sm:gap-2">
-            <Link
-              prefetch={true}
-              href="/admin"
-              className={buttonVariants({ variant: 'ghost', size: 'sm' })}
-            >
-              <LayoutDashboard className="size-4 text-[#154C99] dark:text-[#3B82F6]" />
-              <span className="hidden sm:inline">Tổng quan</span>
-            </Link>
-            <Link
-              prefetch={true}
-              href="/admin/teacher-access"
-              className={buttonVariants({ variant: 'ghost', size: 'sm' })}
-            >
-              <GraduationCap className="size-4 text-[#154C99] dark:text-[#3B82F6]" />
-              <span className="hidden md:inline">Giảng viên & Phân môn</span>
-            </Link>
-            <Link
-              prefetch={true}
-              href="/admin/student-management"
-              className={buttonVariants({ variant: 'ghost', size: 'sm' })}
-            >
-              <Users className="size-4 text-[#154C99] dark:text-[#3B82F6]" />
-              <span className="hidden md:inline">Tài khoản Sinh viên</span>
-            </Link>
-            <Link
-              prefetch={true}
-              href="/admin/subjects"
-              className={buttonVariants({ variant: 'ghost', size: 'sm' })}
-            >
-              <BookOpen className="size-4 text-[#154C99] dark:text-[#3B82F6]" />
-              <span className="hidden lg:inline">Môn học</span>
-            </Link>
-
-            {/* Nút chuyển đổi Sáng / Tối */}
-            <ThemeToggle />
-
-            <form action={signOut}>
-              <Button
-                type="submit"
-                variant="outline"
-                size="sm"
-                className="gap-1.5 text-muted-foreground hover:text-red-700 hover:border-red-200 dark:hover:text-red-400 dark:hover:border-red-900"
-              >
-                <LogOut className="size-3.5" />
-                <span className="hidden sm:inline">Đăng xuất</span>
-              </Button>
-            </form>
-          </nav>
+          {/* Admin Navigation Hub (Client Component hỗ trợ Active State & Đăng xuất chuẩn) */}
+          <AdminNav />
         </div>
       </header>
 

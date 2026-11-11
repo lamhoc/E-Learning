@@ -81,11 +81,11 @@ export default async function TeacherExamAnalyticsPage({
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <Link
-                href="/teacher/dashboard"
-                className={buttonVariants({ variant: 'ghost', size: 'sm', className: 'gap-1.5' })}
+                href="/teacher/exams"
+                className={buttonVariants({ variant: 'ghost', size: 'sm', className: 'gap-1.5 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white' })}
               >
                 <ArrowLeft className="size-4" />
-                <span className="hidden sm:inline">Tổng quan</span>
+                <span>Quay lại danh sách đề thi</span>
               </Link>
             </div>
             <p className="hidden text-xs font-medium capitalize text-slate-500 dark:text-slate-400 sm:block">

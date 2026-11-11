@@ -676,7 +676,7 @@ export default async function TeacherDashboardPage() {
                 <span className="hidden sm:inline">Môn học</span>
               </Link>
               <Link
-                href="/chat"
+                href="/teacher/ai-tutor"
                 className={buttonVariants({ variant: 'ghost', size: 'sm' })}
               >
                 <Sparkles className="size-3.5" />
@@ -781,9 +781,9 @@ export default async function TeacherDashboardPage() {
           </Suspense>
 
           {/* ── Footer ── */}
-          <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 py-4 text-xs text-slate-400">
+          <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 dark:border-slate-800 py-4 text-xs text-slate-400">
             <span>Mầm Học · Hệ thống quản lý đào tạo</span>
-            <Link href="/chat" className="inline-flex items-center gap-1.5 transition hover:text-slate-700">
+            <Link href="/teacher/ai-tutor" className="inline-flex items-center gap-1.5 transition hover:text-slate-700 dark:hover:text-slate-200">
               <Sparkles aria-hidden="true" className="size-3.5" /> Mở gia sư AI
             </Link>
           </footer>

@@ -85,18 +85,27 @@ export default async function AdminHubPage() {
 
           {/* Quick Metrics Strip */}
           <div className="pt-3 flex flex-wrap items-center gap-4 text-xs font-medium text-white/80">
-            <div className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3.5 py-1.5 backdrop-blur-xs border border-white/10">
+            <Link
+              href="/admin/teacher-access"
+              className="flex items-center gap-1.5 rounded-xl bg-white/10 hover:bg-white/20 px-3.5 py-1.5 backdrop-blur-xs border border-white/10 transition cursor-pointer"
+            >
               <GraduationCap className="size-4 text-[#FACC15]" />
               <span><strong>{teacherCount}</strong> Giảng viên</span>
-            </div>
-            <div className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3.5 py-1.5 backdrop-blur-xs border border-white/10">
+            </Link>
+            <Link
+              href="/admin/student-management"
+              className="flex items-center gap-1.5 rounded-xl bg-white/10 hover:bg-white/20 px-3.5 py-1.5 backdrop-blur-xs border border-white/10 transition cursor-pointer"
+            >
               <Users className="size-4 text-sky-300" />
               <span><strong>{studentCount}</strong> Sinh viên</span>
-            </div>
-            <div className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3.5 py-1.5 backdrop-blur-xs border border-white/10">
+            </Link>
+            <Link
+              href="/admin/subjects"
+              className="flex items-center gap-1.5 rounded-xl bg-white/10 hover:bg-white/20 px-3.5 py-1.5 backdrop-blur-xs border border-white/10 transition cursor-pointer"
+            >
               <BookOpen className="size-4 text-amber-300" />
               <span><strong>{subjectCount}</strong> Môn học</span>
-            </div>
+            </Link>
           </div>
         </div>
       </section>
