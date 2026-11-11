@@ -107,18 +107,18 @@
     - `npm run build` thành công 37/37 routes.
     - Local commit (tuyệt đối không push) và ghi mã commit hash `f843f47` vào kế hoạch.
 
-- [ ] **Phase 46**: Tổng rà soát & sửa lỗi liên kết chức năng, điều hướng & màu chữ (Sáng/Tối) trên cả 3 giao diện (Admin, Giảng viên, Sinh viên):
-  - [ ] **Mục tiêu 1 (Rà soát & Sửa toàn bộ Liên kết và Điều hướng Admin, Teacher, Student)**:
-    - Admin: Kiểm tra `app/admin/layout.tsx` (active nav, không trỏ nhầm sang cổng khác), `/admin` dashboard metric links, `/admin/teacher-access` tabs & action buttons, `/admin/student-management` search & filters, `/admin/subjects` actions.
-    - Giảng viên: Đồng bộ 10 mục Sidebar và 8 ô Thao tác nhanh trên `/teacher/dashboard`. Đảm bảo tất cả các trang con (`/teacher/classes/[classId]/**`, `/teacher/exams/[examId]`, `/teacher/exams/create`, `/teacher/grading/[attemptId]`) có Sidebar chuẩn và active chính xác route cha.
-    - Sinh viên: Đồng bộ Sidebar và Thao tác nhanh trên `/student/dashboard`. Xóa bỏ triệt để link `#hash` cuộn trang; chuyển sang route trang riêng biệt (`/student/classes`, `/student/materials`, `/student/assignments`, `/student/exams`, `/student/results`, `/student/ai-tutor`). Sửa các nút điều hướng quay về trong phòng thi `/student/exams/[examId]` trỏ đúng `/student/exams` hoặc `/student/dashboard`.
-  - [ ] **Mục tiêu 2 (Sửa triệt để 5 Lỗi Màu sắc Sáng/Tối)**:
-    - Lỗi 1: Thẻ Card và box con có nền trắng cứng trong Dark Mode (`dark:bg-[#111C2D]`, `dark:bg-[#162235]`, `dark:border-slate-800`).
-    - Lỗi 2: Chữ màu đen/tối cứng trên nền Dark Mode (thêm `dark:text-white` cho tiêu đề và `dark:text-slate-100` cho nội dung/nhãn).
-    - Lỗi 3: Chữ mô tả phụ, placeholder và bảng dữ liệu quá mờ (thay thế bằng `text-slate-600 dark:text-slate-300`, ô nhập liệu có `dark:bg-[#162235] text-slate-900 dark:text-white placeholder:text-slate-400`).
-    - Lỗi 4: Công thức Toán học KaTeX (`<MathText />`) bị đen trong Dark Mode (quy tắc CSS `.dark .katex { color: #F8FAFC !important; }` và `.katex { color: inherit; }`).
+- [x] **Phase 46 (Commit `b17953b`)**: Tổng rà soát & sửa lỗi liên kết chức năng, điều hướng & màu chữ (Sáng/Tối) trên cả 3 giao diện (Admin, Giảng viên, Sinh viên):
+  - [x] **Mục tiêu 1 (Rà soát & Sửa toàn bộ Liên kết và Điều hướng Admin, Teacher, Student)**:
+    - Admin: Cập nhật `AdminNav` độc lập với client signOut + hard redirect, highlight active tab rõ ràng với `!bg-blue-600 !text-white`, chuyển các card thống kê dashboard `/admin` thành link dẫn sang các trang quản lý tương ứng. Xóa bỏ link nhảy nhầm từ Admin sang Giảng viên tại `/admin/teacher-access` (chuyển sang `<span>` chuẩn).
+    - Giảng viên: Đồng bộ 10 mục Sidebar và 8 ô Thao tác nhanh trên `/teacher/dashboard`. Sửa link `/chat` thành `/teacher/ai-tutor`. Sửa nút quay lại tại `/teacher/exams/[examId]` trỏ đúng `/teacher/exams` ("Quay lại danh sách đề thi"). Sửa chuyển hướng sau khi tạo đề thi mới `/teacher/exams/create` về `/teacher/exams` thay vì dashboard. Giữ nguyên khung Sidebar và active route chuẩn.
+    - Sinh viên: 100% link Thao tác nhanh trên `/student/dashboard` trỏ tới trang độc lập (`/student/classes`, `/student/materials`, `/student/assignments`, `/student/exams`, `/student/results`, `/student/ai-tutor`), sạch bóng link `#hash`. Các nút điều hướng trong luồng thi `/student/exams/[examId]` trỏ chuẩn `/student/dashboard` và `/student/exams`, tuyệt đối không trỏ về `/`.
+  - [x] **Mục tiêu 2 (Sửa triệt để 5 Lỗi Màu sắc Sáng/Tối)**:
+    - Lỗi 1: Thẻ Card và box con có nền trắng cứng trong Dark Mode đã được phủ đầy đủ `dark:bg-[#111C2D]`, `dark:bg-[#162235]`, `dark:border-slate-800`.
+    - Lỗi 2: Chữ màu đen/tối cứng trên nền Dark Mode đã được nâng cấp `dark:text-white` cho tiêu đề và `dark:text-slate-100` cho nội dung/nhãn.
+    - Lỗi 3: Chữ mô tả phụ, placeholder và bảng dữ liệu quá mờ được chuẩn hóa sang `text-slate-600 dark:text-slate-300`, ô nhập liệu có `dark:bg-[#162235] text-slate-900 dark:text-white placeholder:text-slate-400`.
+    - Lỗi 4: Công thức Toán học KaTeX (`<MathText />`) bị đen trong Dark Mode: Đã bổ sung quy tắc CSS chuẩn trong `app/globals.css`: `.katex { color: inherit; }` và `.dark .katex, .dark .katex-display, .dark .katex-html { color: #F8FAFC !important; }`.
     - Lỗi 5: Đồng bộ các thanh Tab lọc & Badge trạng thái sang màu xanh active `!bg-blue-600 !text-white font-semibold shadow-sm`.
-  - [ ] **Mục tiêu 3 (Kiểm thử, Xác minh & Bàn giao)**:
+  - [x] **Mục tiêu 3 (Kiểm thử, Xác minh & Bàn giao)**:
     - `npx tsc --noEmit` đạt 0 lỗi.
     - `npm run build` thành công 100% (37/37 routes).
-    - Local commit an toàn (tuyệt đối không push) và ghi mã commit hash vào kế hoạch.
+    - Local commit an toàn (tuyệt đối không push tự ý) với mã commit hash `b17953b`.
