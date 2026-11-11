@@ -4,6 +4,7 @@ import JSZip from 'jszip';
 import mammoth from 'mammoth';
 import { extractText as extractPdfText } from 'unpdf';
 import Groq from 'groq-sdk';
+import { parseAiJsonSafely } from '@/lib/ai-question-generator';
 
 export type ParsedQuestionItem = {
   tempId: string;
@@ -181,7 +182,7 @@ export async function parseDocumentWithGroq(params: {
   }
 
   const groq = new Groq({ apiKey });
-  const model = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
+  const model = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 
   const systemPrompt = `Bạn là trợ lý khảo thí chuyên nghiệp bóc tách đề thi từ tài liệu (Word/PDF) cho hệ thống giáo dục Việt Nam.
 Nhiệm vụ của bạn là đọc toàn bộ văn bản đề thi và chuyển đổi thành danh sách các câu hỏi có cấu trúc JSON chính xác.
@@ -240,11 +241,22 @@ Hãy bóc tách tất cả các câu hỏi và trả về mảng JSON chuẩn:`;
     });
 
     const content = response.choices?.[0]?.message?.content ?? '';
-    const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/) || [null, content.trim()];
-    const cleanJson = jsonMatch[1]?.trim() || content.trim();
+    const parsedData = parseAiJsonSafely(content);
 
-    const parsedArray = JSON.parse(cleanJson);
-    if (!Array.isArray(parsedArray)) {
+    let parsedArray: Record<string, unknown>[] = [];
+    if (Array.isArray(parsedData)) {
+      parsedArray = parsedData as Record<string, unknown>[];
+    } else if (parsedData && typeof parsedData === 'object') {
+      const obj = parsedData as Record<string, unknown>;
+      if (Array.isArray(obj.questions)) {
+        parsedArray = obj.questions as Record<string, unknown>[];
+      } else {
+        const found = Object.values(obj).find(Array.isArray);
+        if (found) parsedArray = found as Record<string, unknown>[];
+      }
+    }
+
+    if (parsedArray.length === 0) {
       throw new Error('Dữ liệu AI trả về không phải là mảng danh sách câu hỏi.');
     }
 

@@ -56,14 +56,14 @@ export async function POST(request: Request) {
   try {
     const groq = new Groq({ apiKey });
     const completion = await groq.chat.completions.create({
-      model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
+      model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
       temperature: 0.4,
-      max_tokens: 1000,
+      max_tokens: 4096,
       messages: [
         {
           role: 'system',
           content:
-            'Bạn là gia sư AI cho hệ thống E-Learning. Giải thích rõ ràng bằng tiếng Việt, khuyến khích người học tự suy luận. Nếu thiếu ngữ cảnh hoặc không chắc chắn, hãy nói rõ thay vì bịa thông tin.',
+            'Bạn là gia sư AI tận tâm cho hệ thống E-Learning Đại học Lạc Hồng. Giải thích rõ ràng bằng tiếng Việt, ân cần, khuyến khích người học tự suy luận. Mọi công thức Toán học, Vật lý và Khoa học hãy dùng cú pháp KaTeX: $...$ cho công thức nằm trong dòng và $$...$$ cho công thức riêng dòng. Nếu thiếu ngữ cảnh hoặc không chắc chắn, hãy nói rõ thay vì bịa thông tin.',
         },
         ...messages,
       ],

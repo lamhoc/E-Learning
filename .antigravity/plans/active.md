@@ -122,3 +122,22 @@
     - `npx tsc --noEmit` đạt 0 lỗi.
     - `npm run build` thành công 100% (37/37 routes).
     - Local commit an toàn (tuyệt đối không push tự ý) với mã commit hash `b17953b`.
+
+- [x] **Phase 47**: Sửa triệt để lỗi Groq `400 json_validate_failed` & Tổng rà soát hệ thống AI + UI:
+  - [x] **Mục tiêu 1 (Sửa lỗi Groq `json_validate_failed` tại AI Generator)**:
+    - Nâng cấp `lib/ai-question-generator.ts`: Dùng model `llama-3.3-70b-versatile` (fallback `llama-3.1-8b-instant`), tăng `max_tokens: 8192`, `temperature: 0.3`.
+    - Multi-layer fallback 3 lớp: Layer 1 (json_object mode) → Layer 2 (text mode + `parseAiJsonSafely()`) → Layer 3 (smart local fallback).
+    - Hàm `parseAiJsonSafely`: Thoát markdown, tự động sửa dấu `\` đơn của LaTeX thành `\\`, khôi phục các câu hỏi đã hoàn tất khi JSON bị ngắt giữa chừng.
+    - Không văng lỗi thô `400 {"error":...}` lên UI.
+  - [x] **Mục tiêu 2 (Lưu câu hỏi Tự luận & Preview Rubric)**:
+    - Nâng cấp Preview Tự luận tại `ai-generator-standalone.tsx` và `ai-generator-modal.tsx`: Hiển thị rõ ràng Đáp án mẫu (`model_answer`) và Thang điểm Rubric (`grading_rubric`) kèm render KaTeX `<MathText />`.
+    - Server action `saveAIQuestionsBatchAction`: Payload gửi vào Supabase chuẩn xác với schema `question_bank`, `question_answer_keys` (essay: `options` không chèn thừa, `correct_option_key: null`, `model_answer`, `grading_rubric`).
+  - [x] **Mục tiêu 3 (Rà soát Toàn bộ AI Chat, AI Tutor & Upload Document)**:
+    - `app/api/chat-ai/route.ts`: Model `llama-3.3-70b-versatile`, `max_tokens: 4096`, system prompt yêu cầu KaTeX `$ ... $` / `$$ ... $$`.
+    - `app/api/student/exam-tutor/route.ts`: Model `llama-3.3-70b-versatile`, `max_tokens: 4096`, streaming mượt mà, lưu lịch sử hội thoại.
+    - `lib/document-parser.ts`: Model `llama-3.3-70b-versatile`, `max_tokens: 8192`, tích hợp `parseAiJsonSafely` bóc tách DOCX/PDF an toàn 100%.
+  - [x] **Mục tiêu 4 (Tinh chỉnh Scrollbar Sidebar & Kiểm thử)**:
+    - Tinh chỉnh scrollbar siêu mảnh trên `<nav>` của cả `components/teacher/teacher-sidebar.tsx` và `components/student/student-sidebar.tsx`: `[&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/20 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700/50 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent`.
+    - `npx tsc --noEmit` đạt 0 lỗi.
+    - `npm run build` thành công 100% (37/37 routes).
+    - Local commit an toàn (tuyệt đối không push tự ý) và cập nhật commit hash.

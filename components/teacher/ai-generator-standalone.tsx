@@ -749,14 +749,31 @@ export function AIGeneratorStandalone({ subjects, teacherName }: Props) {
                           </div>
                         )}
 
-                        {!isMC && draft.model_answer && (
-                          <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 p-3 text-xs">
-                            <p className="font-bold text-slate-800 dark:text-slate-200">
-                              Gợi ý đáp án / Rubric chấm:
-                            </p>
-                            <div className="mt-1 text-slate-600 dark:text-slate-300">
-                              <MathText content={draft.model_answer} />
-                            </div>
+                        {!isMC && (
+                          <div className="space-y-2 pt-1">
+                            {draft.model_answer && (
+                              <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 p-3 text-xs">
+                                <p className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                  <span>📝</span>
+                                  <span>Đáp án mẫu / Lời giải gợi ý:</span>
+                                </p>
+                                <div className="mt-1.5 text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
+                                  <MathText content={draft.model_answer} />
+                                </div>
+                              </div>
+                            )}
+
+                            {draft.grading_rubric && (
+                              <div className="rounded-lg border border-purple-200 dark:border-purple-900/60 bg-purple-50/40 dark:bg-purple-950/20 p-3 text-xs">
+                                <p className="font-bold text-purple-900 dark:text-purple-200 flex items-center gap-1.5">
+                                  <span>🎯</span>
+                                  <span>Thang điểm & Tiêu chí chấm (Rubric):</span>
+                                </p>
+                                <div className="mt-1.5 text-purple-950 dark:text-purple-200 leading-relaxed whitespace-pre-wrap">
+                                  <MathText content={draft.grading_rubric} />
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
 

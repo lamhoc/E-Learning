@@ -15,7 +15,7 @@ type TutorMessage = {
 
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_HISTORY_MESSAGES = 24;
-const TUTOR_MODEL = 'openai/gpt-oss-120b';
+const TUTOR_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 
 function jsonError(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
@@ -193,7 +193,7 @@ export async function POST(request: Request) {
       completion = await groq.chat.completions.create({
         model: TUTOR_MODEL,
         temperature: 0.3,
-        max_tokens: 1200,
+        max_tokens: 4096,
         messages,
         stream: true,
       });

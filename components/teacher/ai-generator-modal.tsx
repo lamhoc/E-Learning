@@ -703,23 +703,21 @@ export function AIGeneratorModal({
 
                             {/* Essay Fields */}
                             {!isMC && (
-                              <div className="mt-3 space-y-1.5 rounded-lg border border-purple-100 bg-purple-50/40 p-2.5 text-xs">
+                              <div className="mt-3 space-y-2 rounded-lg border border-purple-200 dark:border-purple-900/60 bg-purple-50/40 dark:bg-purple-950/20 p-3 text-xs">
                                 {draft.model_answer && (
                                   <div>
-                                    <strong className="text-purple-900">Đáp án mẫu:</strong>{' '}
-                                    <MathText
-                                      content={draft.model_answer}
-                                      className="inline text-purple-950"
-                                    />
+                                    <strong className="text-purple-900 dark:text-purple-300 font-semibold">📝 Đáp án mẫu:</strong>{' '}
+                                    <div className="mt-1 text-purple-950 dark:text-purple-200 leading-relaxed">
+                                      <MathText content={draft.model_answer} />
+                                    </div>
                                   </div>
                                 )}
                                 {draft.grading_rubric && (
-                                  <div>
-                                    <strong className="text-purple-900">Thang điểm:</strong>{' '}
-                                    <MathText
-                                      content={draft.grading_rubric}
-                                      className="inline text-purple-950"
-                                    />
+                                  <div className="pt-1 border-t border-purple-100 dark:border-purple-900/40">
+                                    <strong className="text-purple-900 dark:text-purple-300 font-semibold">🎯 Thang điểm & Rubric:</strong>{' '}
+                                    <div className="mt-1 text-purple-950 dark:text-purple-200 leading-relaxed">
+                                      <MathText content={draft.grading_rubric} />
+                                    </div>
                                   </div>
                                 )}
                               </div>

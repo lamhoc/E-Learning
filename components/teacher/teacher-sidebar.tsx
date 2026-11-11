@@ -169,7 +169,7 @@ export function TeacherSidebar({ activeRoute, teacherName }: TeacherSidebarProps
       </div>
 
       {/* Phần 2: Danh sách Menu ở giữa (Tự do cuộn mượt mà nếu màn hình thấp) */}
-      <nav aria-label="Điều hướng chính" className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-1 scrollbar-thin">
+      <nav aria-label="Điều hướng chính" className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/20 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700/50 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
         {navItems.map((item) => {
           const Icon = item.icon;
           return (
