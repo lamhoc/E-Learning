@@ -310,11 +310,12 @@ export function ExamTutorDrawer({
                       event.currentTarget.form?.requestSubmit();
                     }
                   }}
+                  spellCheck={false}
                   maxLength={2000}
                   rows={2}
                   disabled={!conversationId || isLoadingHistory || isSending}
                   placeholder="Bạn chưa hiểu câu nào? Hãy hỏi gia sư..."
-                  className="max-h-36 min-h-12 flex-1 resize-y bg-transparent px-2 py-1.5 text-sm leading-6 text-foreground outline-none placeholder:text-muted-foreground disabled:opacity-60"
+                  className="max-h-36 min-h-12 flex-1 resize-y bg-transparent px-2 py-1.5 text-sm leading-6 !text-slate-900 dark:!text-white caret-blue-600 dark:caret-amber-400 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-400 disabled:opacity-60"
                 />
                 <button
                   type="submit"

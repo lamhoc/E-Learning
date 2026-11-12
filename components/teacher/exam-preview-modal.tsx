@@ -106,15 +106,15 @@ export function ExamPreviewModal({
         <div className="flex-1 overflow-y-auto bg-slate-50/70 dark:bg-[#09111E] p-4 sm:p-8 print:bg-white print:p-0">
           <div className="mx-auto max-w-[800px] rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#111C2D] text-slate-900 dark:text-slate-100 p-6 sm:p-10 shadow-sm print:border-none print:p-0 print:shadow-none">
             {/* Header Kiểu Đề Thi Quốc Gia / Học Phần */}
-            <div className="border-b-2 border-slate-900 pb-5 text-center">
-              <div className="grid grid-cols-2 gap-4 text-xs font-semibold uppercase tracking-wider text-slate-700">
+            <div className="border-b-2 border-slate-900 dark:border-slate-700 pb-5 text-center">
+              <div className="grid grid-cols-2 gap-4 text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                 <div className="text-left">
                   <p>TRƯỜNG ĐẠI HỌC LẠC HỒNG</p>
-                  <p className="font-normal text-slate-500">NGÂN HÀNG KHẢO THÍ CHUẨN</p>
+                  <p className="font-normal text-slate-500 dark:text-slate-400">NGÂN HÀNG KHẢO THÍ CHUẨN</p>
                 </div>
                 <div className="text-right">
                   <p>ĐỀ THI ĐÁNH GIÁ NĂNG LỰC</p>
-                  <p className="font-normal text-slate-500">HỌC KỲ HIỆN HÀNH</p>
+                  <p className="font-normal text-slate-500 dark:text-slate-400">HỌC KỲ HIỆN HÀNH</p>
                 </div>
               </div>
 
@@ -122,7 +122,7 @@ export function ExamPreviewModal({
                 ĐỀ THI MÔN: {subjectName || 'TỔNG HỢP'}
               </h1>
 
-              <div className="mt-2 flex flex-wrap items-center justify-center gap-4 text-xs text-slate-600">
+              <div className="mt-2 flex flex-wrap items-center justify-center gap-4 text-xs text-slate-600 dark:text-slate-300">
                 <span className="inline-flex items-center gap-1">
                   <Clock className="size-3.5" /> Thời gian làm bài dự kiến: <strong>{estimatedMinutes} phút</strong>
                 </span>
@@ -140,7 +140,7 @@ export function ExamPreviewModal({
             {/* Danh Sách Câu Hỏi */}
             <div className="mt-6 space-y-6">
               {questions.length === 0 ? (
-                <div className="py-12 text-center text-sm text-slate-500">
+                <div className="py-12 text-center text-sm text-slate-500 dark:text-slate-400">
                   Không có câu hỏi nào để hiển thị trong đề thi xem trước.
                 </div>
               ) : (
@@ -151,14 +151,14 @@ export function ExamPreviewModal({
                   return (
                     <div
                       key={q.id}
-                      className="break-inside-avoid space-y-2.5 rounded-lg border border-slate-100 p-3.5 sm:p-4 hover:border-slate-300 print:border-none print:p-0"
+                      className="break-inside-avoid space-y-2.5 rounded-lg border border-slate-200 dark:border-slate-800 p-3.5 sm:p-4 hover:border-slate-300 dark:hover:border-slate-700 print:border-none print:p-0"
                     >
                       {/* Đề bài */}
                       <div className="flex items-baseline gap-2">
-                        <span className="font-bold text-slate-900">
+                        <span className="font-bold text-slate-900 dark:text-white">
                           Câu {idx + 1}:
                         </span>
-                        <div className="flex-1 font-medium leading-relaxed text-slate-800">
+                        <div className="flex-1 font-medium leading-relaxed text-slate-800 dark:text-slate-200">
                           <MathText content={q.question_text} />
                         </div>
                       </div>
@@ -175,15 +175,15 @@ export function ExamPreviewModal({
                                 key={opt.option_key}
                                 className={`flex items-baseline gap-2 rounded-md p-1.5 text-xs leading-relaxed ${
                                   shouldHighlight
-                                    ? 'bg-emerald-50 font-semibold text-emerald-900 print:bg-transparent print:font-bold'
-                                    : 'text-slate-700'
+                                    ? 'bg-emerald-50 dark:bg-emerald-950/50 font-semibold text-emerald-900 dark:text-emerald-200 print:bg-transparent print:font-bold'
+                                    : 'text-slate-700 dark:text-slate-300'
                                 }`}
                               >
                                 <span
                                   className={`inline-flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
                                     shouldHighlight
                                       ? 'bg-emerald-600 text-white print:border print:border-slate-900 print:bg-transparent print:text-slate-900'
-                                      : 'bg-slate-100 text-slate-700 print:bg-transparent'
+                                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 print:bg-transparent'
                                   }`}
                                 >
                                   {opt.option_key}
@@ -192,7 +192,7 @@ export function ExamPreviewModal({
                                   <MathText content={opt.option_text} />
                                 </div>
                                 {shouldHighlight && (
-                                  <span className="text-[10px] text-emerald-600 print:hidden">
+                                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 print:hidden">
                                     ✓
                                   </span>
                                 )}

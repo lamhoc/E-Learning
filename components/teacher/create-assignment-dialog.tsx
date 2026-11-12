@@ -115,10 +115,10 @@ export function CreateAssignmentDialog({
             <FileCheck2 className="size-4" />
             <span>Bài tập về nhà {classNameTitle ? `· ${classNameTitle}` : ''}</span>
           </div>
-          <DialogTitle className="text-xl font-bold text-slate-900">
+          <DialogTitle className="text-xl font-bold text-slate-900 dark:text-white">
             Tạo và giao bài tập mới
           </DialogTitle>
-          <DialogDescription className="text-slate-500 text-sm">
+          <DialogDescription className="text-slate-500 dark:text-slate-300 text-sm">
             Giao bài tập tự luận, bài tập lớn hoặc đồ án cho sinh viên trong lớp nộp file (.pdf, .zip, .docx).
           </DialogDescription>
         </DialogHeader>

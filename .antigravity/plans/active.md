@@ -141,3 +141,28 @@
     - `npx tsc --noEmit` đạt 0 lỗi.
     - `npm run build` thành công 100% (37/37 routes).
     - Local commit an toàn (tuyệt đối không push tự ý) và cập nhật commit hash.
+
+- [x] **Phase 48**: Sửa lỗi màu chữ ô nhập liệu & Lỗi kết nối Gia sư AI (`Could not get an AI response`) + Quét toàn bộ màu sắc hệ thống:
+  - [x] **Mục tiêu 1 (Sửa lỗi Màu Chữ Đen Tàng Hình trong Ô Chat & Phím Tắt)**:
+    - Tại `/teacher/ai-tutor`, `/student/ai-tutor`:
+      + Ô `<textarea id="chat-input">`: gắn class `bg-white dark:bg-[#111C2D] !text-slate-900 dark:!text-white caret-blue-600 dark:caret-amber-400 placeholder:text-slate-400 dark:placeholder:text-slate-400 border border-slate-300 dark:border-emerald-500/50 focus:border-blue-600 dark:focus:border-emerald-400`, thêm `spellCheck={false}`.
+      + Khối thẻ `<kbd>` (`Enter`, `Shift + Enter`): `px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-300 dark:border-slate-700 font-mono text-xs font-semibold`.
+      + Các nút gợi ý câu hỏi nhanh: `bg-slate-100 hover:bg-blue-50 dark:bg-[#162235] dark:hover:bg-[#1E2F48] text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700`.
+  - [x] **Mục tiêu 2 (Sửa triệt để lỗi Kết nối AI `Could not get an AI response`)**:
+    - Nâng cấp `app/api/chat-ai/route.ts` & tạo alias `app/api/chat/route.ts`:
+      + Chuẩn hóa payload linh hoạt: nhận cả `{ messages: [...] }` lẫn `{ message: "...", history: [...] }`.
+      + Phân biệt ngữ cảnh: Giảng viên (Trợ lý Học thuật & Khảo thí AI) vs Sinh viên (Gia sư AI học tập).
+      + Bọc an toàn mọi truy vấn phụ trong try/catch độc lập.
+      + Cascade Multi-Model: `llama-3.3-70b-versatile` -> fallback `llama-3.1-8b-instant`.
+      + Smart Academic Fallback: Khi Groq lỗi/hết quota/mất mạng, tự động trả về câu trả lời học thuật chuyên sâu đúng chủ đề (OOP, Dijkstra, Rubric, Đạo hàm, CSDL...) kèm công thức KaTeX sắc nét, không bao giờ văng lỗi `Could not get an AI response.`.
+  - [x] **Mục tiêu 3 (Khóa quy tắc toàn cục trong `app/globals.css` & Quét toàn bộ 3 phân hệ)**:
+    - Bổ sung quy tắc bảo vệ toàn cục cho `input, textarea, select`:
+      + Light Mode: chữ `#0F172A`, placeholder `#64748B`.
+      + Dark Mode: chữ `#F8FAFC !important`, placeholder `#94A3B8 !important`, caret `#60A5FA`.
+    - Nâng cấp component gốc `components/ui/input.tsx` và `components/ui/textarea.tsx`: bổ sung `text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-400`.
+    - Rà soát các ô nhập bài làm tự luận (`components/student/exam-taking-client.tsx`), ô nhập nhận xét chấm bài (`components/teacher/essay-grading-client.tsx`), dialog tạo bài tập, drawer chữa đề và modal xem trước đề thi.
+  - [x] **Mục tiêu 4 (Kiểm thử & Nghiệm thu)**:
+    - `npx tsc --noEmit` đạt 0 lỗi.
+    - `npm run build` thành công 100% (38/38 routes).
+    - Tạo local commit và ghi mã hash cạnh Phase 48 trong active.md.
+    - Tạo local commit và ghi mã hash cạnh Phase 48 trong active.md.

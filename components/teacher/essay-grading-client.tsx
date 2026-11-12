@@ -588,14 +588,15 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
 
                         {/* Ô Nhập Nhận Xét (Feedback) */}
                         <div>
-                          <Label className="text-xs font-bold text-slate-700 block mb-1">
+                          <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
                             Nhận xét / Lời khuyên cho câu này:
                           </Label>
                           <textarea
                             rows={2}
+                            spellCheck={false}
                             {...register(`grades.${q.questionId}.feedback` as never)}
                             placeholder="Nhận xét ưu điểm, lỗi sai hoặc giải pháp cải thiện cho thí sinh..."
-                            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 shadow-2xs"
+                            className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#162235] p-3 text-xs !text-slate-900 dark:!text-white placeholder:text-slate-400 dark:placeholder:text-slate-400 focus:border-blue-600 dark:focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs"
                           />
                         </div>
                       </div>

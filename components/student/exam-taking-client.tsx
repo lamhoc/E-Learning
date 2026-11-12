@@ -673,8 +673,9 @@ export function ExamTakingClient({
                           value={currentAns?.answer_text || ''}
                           onChange={(e) => handleEssayChange(q.id, e.target.value)}
                           onBlur={() => handleEssayBlur(q.id)}
+                          spellCheck={false}
                           placeholder="Nhập nội dung bài làm hoặc các bước giải toán tại đây (hỗ trợ $công thức$ nếu cần)..."
-                          className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3.5 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 shadow-2xs"
+                          className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#111C2D] p-3.5 text-sm !text-slate-900 dark:!text-white caret-blue-600 dark:caret-amber-400 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-blue-600 dark:focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-emerald-500/20 shadow-2xs"
                         />
                         <div className="flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500">
                           <span>Dữ liệu được tự động lưu khi bạn rời khỏi ô nhập liệu (blur).</span>

@@ -234,7 +234,7 @@ export default function TeacherAiTutorPage() {
                         key={s}
                         type="button"
                         onClick={() => setInput(s)}
-                        className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 text-left text-xs text-slate-700 dark:text-slate-200 shadow-2xs transition hover:border-emerald-400 dark:hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-900 dark:hover:text-emerald-200"
+                        className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 hover:bg-blue-50 dark:bg-[#162235] dark:hover:bg-[#1E2F48] p-2.5 text-left text-xs font-medium text-slate-800 dark:text-slate-100 shadow-2xs transition hover:border-emerald-400 dark:hover:border-emerald-500"
                       >
                         {s}
                       </button>
@@ -248,9 +248,9 @@ export default function TeacherAiTutorPage() {
           </div>
 
           {/* Vùng ô nhập text (Input area): Nằm cố định ở đáy trang (shrink-0) */}
-          <footer className="shrink-0 border-t border-[#e2e8e2] dark:border-slate-800 bg-white dark:bg-[#0B1628] px-4 py-4 sm:px-6">
+          <footer className="shrink-0 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B1628] px-4 py-4 sm:px-6">
             <form onSubmit={sendMessage} className="mx-auto max-w-3xl">
-              <div className="flex items-end gap-2 rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50/80 dark:bg-[#162235] p-2 focus-within:border-emerald-600 focus-within:bg-white dark:focus-within:bg-[#162235] focus-within:ring-2 focus-within:ring-emerald-600/20 transition-all shadow-2xs">
+              <div className="flex items-end gap-2 rounded-2xl border border-slate-300 dark:border-emerald-500/50 bg-white dark:bg-[#111C2D] p-2 focus-within:border-blue-600 dark:focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-blue-500/20 dark:focus-within:ring-emerald-500/20 transition-all shadow-2xs">
                 <textarea
                   id="chat-input"
                   value={input}
@@ -261,24 +261,25 @@ export default function TeacherAiTutorPage() {
                       e.currentTarget.form?.requestSubmit();
                     }
                   }}
+                  spellCheck={false}
                   placeholder="Nhập yêu cầu, câu hỏi học thuật hoặc nội dung muốn Gia sư AI hỗ trợ..."
                   rows={1}
                   maxLength={4000}
-                  className="flex-1 resize-none bg-transparent px-2 py-1.5 text-sm text-slate-900 outline-none placeholder:text-slate-400"
+                  className="flex-1 resize-none bg-transparent px-2 py-1.5 text-sm !text-slate-900 dark:!text-white caret-blue-600 dark:caret-amber-400 placeholder:text-slate-400 dark:placeholder:text-slate-400 outline-none"
                   style={{ maxHeight: '140px', overflowY: 'auto' }}
                 />
                 <button
                   type="submit"
                   disabled={loading || !input.trim()}
                   aria-label="Gửi tin nhắn"
-                  className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#17372e] text-white shadow-2xs transition hover:bg-[#122c25] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="grid size-9 shrink-0 place-items-center rounded-xl bg-blue-600 dark:bg-emerald-600 text-white shadow-2xs transition hover:bg-blue-700 dark:hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Send className="size-4" />
                 </button>
               </div>
-              <p className="mt-2 text-center text-[11px] text-slate-400">
-                Nhấn <kbd className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[10px] text-slate-600">Enter</kbd> để gửi ·{' '}
-                <kbd className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[10px] text-slate-600">Shift + Enter</kbd> để xuống dòng
+              <p className="mt-2 text-center text-[11px] text-slate-500 dark:text-slate-400">
+                Nhấn <kbd className="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-300 dark:border-slate-700 font-mono text-xs font-semibold">Enter</kbd> để gửi ·{' '}
+                <kbd className="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-300 dark:border-slate-700 font-mono text-xs font-semibold">Shift + Enter</kbd> để xuống dòng
               </p>
             </form>
           </footer>

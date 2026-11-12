@@ -149,6 +149,28 @@
     color: #F8FAFC;
   }
 
+  /* Quy tắc khóa màu sắc toàn cục cho mọi Ô Nhập Liệu (Input, Textarea, Select) */
+  input,
+  textarea,
+  select {
+    color: #0F172A;
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: #64748B;
+  }
+
+  .dark input,
+  .dark textarea,
+  .dark select {
+    color: #F8FAFC !important;
+    caret-color: #60A5FA;
+  }
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: #94A3B8 !important;
+  }
+
   /* KaTeX math formula styling in light & dark mode */
   .katex {
     color: inherit;
