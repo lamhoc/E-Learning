@@ -354,10 +354,10 @@ export function UploadDocumentModal({
                   onClick={() => fileInputRef.current?.click()}
                   className={`relative flex min-h-[170px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition-all ${
                     isDragging
-                      ? 'border-[#246348] bg-[#eef6f1]'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/40'
                       : selectedFile
-                      ? 'border-emerald-300 bg-emerald-50/50'
-                      : 'border-muted-foreground/25 hover:border-muted-foreground/50 hover:bg-muted/30'
+                      ? 'bg-emerald-50/80 dark:bg-emerald-950/30 border-2 border-dashed border-emerald-500 dark:border-emerald-500/60 hover:bg-emerald-100/70 dark:hover:bg-emerald-950/50 rounded-2xl p-6 transition-all cursor-pointer'
+                      : 'bg-slate-50 dark:bg-[#162235] border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 rounded-2xl p-6 transition-all cursor-pointer'
                   }`}
                 >
                   <input
@@ -371,28 +371,28 @@ export function UploadDocumentModal({
 
                   {selectedFile ? (
                     <div className="flex flex-col items-center gap-2">
-                      <span className="grid size-12 place-items-center rounded-xl bg-emerald-100 text-emerald-800">
+                      <span className="grid size-12 place-items-center rounded-xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300">
                         <FileText className="size-6" />
                       </span>
-                      <p className="text-sm font-semibold text-slate-800 max-w-sm truncate">
+                      <p className="text-base font-bold text-slate-900 dark:text-white max-w-sm truncate">
                         {selectedFile.name}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs font-medium text-slate-600 dark:text-emerald-300 mt-1">
                         {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB · Bấm vào đây để đổi file khác
                       </p>
-                      <Badge variant="outline" className="mt-1 border-emerald-300 bg-emerald-50 text-emerald-800 text-xs">
+                      <Badge variant="outline" className="mt-1.5 border-emerald-400 dark:border-emerald-600 bg-emerald-100/80 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 text-xs font-semibold">
                         Đã sẵn sàng bóc tách
                       </Badge>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center gap-2">
-                      <span className="grid size-12 place-items-center rounded-xl bg-slate-100 text-slate-500">
+                      <span className="grid size-12 place-items-center rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                         <UploadCloud className="size-6" />
                       </span>
-                      <p className="text-sm font-medium text-slate-700">
-                        Kéo thả file vào đây hoặc <span className="text-[#246348] underline">chọn từ máy tính</span>
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                        Kéo thả file vào đây hoặc <span className="text-blue-600 dark:text-blue-400 underline">chọn từ máy tính</span>
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
                         Hỗ trợ Microsoft Word (.docx) và PDF (.pdf) dung lượng tối đa 15MB
                       </p>
                     </div>
@@ -401,15 +401,15 @@ export function UploadDocumentModal({
               </div>
 
               {/* Hướng dẫn quy tắc nhận diện màu đỏ */}
-              <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/60 p-4 text-xs leading-relaxed text-emerald-950">
-                <div className="flex items-center gap-2 font-semibold text-emerald-900">
-                  <Sparkles className="size-4 text-emerald-700" />
+              <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/70 dark:bg-emerald-950/20 p-4 text-xs leading-relaxed text-slate-700 dark:text-slate-300">
+                <div className="flex items-center gap-2 font-semibold text-emerald-900 dark:text-emerald-300">
+                  <Sparkles className="size-4 text-emerald-700 dark:text-emerald-400" />
                   Quy tắc bóc tách thông minh:
                 </div>
-                <ul className="mt-2 list-disc pl-4 space-y-1 text-slate-600">
+                <ul className="mt-2 list-disc pl-4 space-y-1 text-slate-700 dark:text-slate-300">
                   <li>
                     <strong>Nhận diện đáp án màu đỏ:</strong> Trong file Word (.docx), các phương án được giáo viên{' '}
-                    <span className="text-red-600 font-bold">bôi màu đỏ</span> sẽ được hệ thống tự động gán làm đáp án đúng ✅.
+                    <span className="text-red-600 dark:text-red-400 font-bold">bôi màu đỏ</span> sẽ được hệ thống tự động gán làm đáp án đúng ✅.
                   </li>
                   <li>
                     <strong>Đánh số câu hỏi:</strong> Đề thi nên được đánh số thứ tự tuần tự (Ví dụ: &quot;Câu 1:&quot;, &quot;Câu 2:&quot;, hoặc &quot;1.&quot;).
@@ -561,7 +561,7 @@ export function UploadDocumentModal({
                           </Badge>
 
                           {q.is_red_detected ? (
-                            <Badge className="bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-semibold">
+                            <Badge className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/60 text-[10px] font-semibold">
                               ✅ Đáp án đỏ tự động nhận diện
                             </Badge>
                           ) : q.question_type === 'multiple_choice' ? (
@@ -694,7 +694,7 @@ export function UploadDocumentModal({
                                     title="Click để chọn làm đáp án đúng"
                                     className={`flex cursor-pointer items-start gap-2 rounded-lg border p-2.5 transition ${
                                       isCorrect
-                                        ? 'border-emerald-500 bg-emerald-50/80 text-emerald-950 font-medium ring-1 ring-emerald-400'
+                                        ? 'border-emerald-500 dark:border-emerald-600 bg-emerald-50/90 dark:bg-emerald-950/40 text-emerald-950 dark:text-emerald-200 font-medium ring-1 ring-emerald-400 dark:ring-emerald-600'
                                         : 'border-border/80 bg-background hover:bg-muted/40 text-foreground'
                                     }`}
                                   >

@@ -4,6 +4,7 @@ import {
   extractDocxTextWithRedColor,
   extractPdfTextSafe,
   parseDocumentWithGroq,
+  parseQuestionsLocallyFromText,
   type ParsedQuestionItem,
 } from '@/lib/document-parser';
 
@@ -105,12 +106,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Gọi Groq AI để bóc tách thành danh sách câu hỏi
-    const questions: ParsedQuestionItem[] = await parseDocumentWithGroq({
-      rawText: extractedText,
-      subjectName,
-      hasRedDetection,
-    });
+    // Thử bóc tách trước bằng parser nội bộ (nhận diện màu đỏ và câu hỏi)
+    const localQuestions = parseQuestionsLocallyFromText(extractedText);
+
+    let questions: ParsedQuestionItem[] = [];
+    try {
+      // Gọi Groq AI để chuẩn hóa KaTeX và cấu trúc
+      questions = await parseDocumentWithGroq({
+        rawText: extractedText,
+        subjectName,
+        hasRedDetection,
+      });
+    } catch (aiErr) {
+      console.warn('[API Upload] Gọi AI thất bại, sử dụng kết quả bóc tách nội bộ:', aiErr);
+      questions = localQuestions;
+    }
+
+    // Nếu AI trả về rỗng nhưng local có câu hỏi, ưu tiên dùng local
+    if (questions.length === 0 && localQuestions.length > 0) {
+      questions = localQuestions;
+    }
 
     if (questions.length === 0) {
       return NextResponse.json(

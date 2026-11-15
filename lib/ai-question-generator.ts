@@ -1,6 +1,6 @@
 import 'server-only';
 
-import Groq from 'groq-sdk';
+import { callAiChatCompletion } from '@/lib/ai-provider';
 
 export type AIDifficulty = 'easy' | 'medium' | 'hard' | 'expert';
 
@@ -502,9 +502,6 @@ export async function generateQuestionsAI(
     throw new Error('Chưa cấu hình GROQ_API_KEY trên server.');
   }
 
-  const groq = new Groq({ apiKey });
-  const model = process.env.GROQ_MODEL || PRIMARY_MODEL;
-
   const isMC = req.questionType === 'multiple_choice';
   const difficultyDesc = DIFFICULTY_MAP[req.difficulty] ?? req.difficulty;
 
@@ -557,8 +554,7 @@ YÊU CẦU ĐẶC BIỆT:
     // LỚP 1 (Strict JSON Mode): Gọi Groq với response_format: { type: "json_object" }
     // =========================================================================
     try {
-      const response = await groq.chat.completions.create({
-        model,
+      const { content: rawContent } = await callAiChatCompletion({
         temperature: 0.4,
         max_tokens: MAX_COMPLETION_TOKENS,
         messages: [
@@ -568,7 +564,6 @@ YÊU CẦU ĐẶC BIỆT:
         response_format: { type: 'json_object' },
       });
 
-      const rawContent = response.choices[0]?.message?.content?.trim() || '';
       const parsed = sanitizeAndParseAiJson(rawContent);
       list = extractQuestionList(parsed);
     } catch (layer1Error) {
@@ -586,9 +581,7 @@ YÊU CẦU ĐẶC BIỆT:
       // Gọi lại mà KHÔNG dùng response_format để tránh lỗi 400 json_validate_failed của Groq
       // =========================================================================
       try {
-        const fallbackModel = isJsonValidateFailed ? FALLBACK_MODEL : model;
-        const response2 = await groq.chat.completions.create({
-          model: fallbackModel,
+        const { content: rawContent2 } = await callAiChatCompletion({
           temperature: 0.3,
           max_tokens: MAX_COMPLETION_TOKENS,
           messages: [
@@ -597,7 +590,6 @@ YÊU CẦU ĐẶC BIỆT:
           ],
         });
 
-        const rawContent2 = response2.choices[0]?.message?.content?.trim() || '';
         const parsed2 = sanitizeAndParseAiJson(rawContent2);
         list = extractQuestionList(parsed2);
       } catch (layer2Error) {

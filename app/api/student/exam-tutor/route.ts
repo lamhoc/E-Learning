@@ -1,6 +1,6 @@
-import Groq from 'groq-sdk';
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { callAiChatStream } from '@/lib/ai-provider';
 import {
   authorizeReleasedAttempt,
   ExamTutorError,
@@ -15,7 +15,6 @@ type TutorMessage = {
 
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_HISTORY_MESSAGES = 24;
-const TUTOR_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 
 function jsonError(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
@@ -189,16 +188,14 @@ export async function POST(request: Request) {
 
     let completion;
     try {
-      const groq = new Groq({ apiKey });
-      completion = await groq.chat.completions.create({
-        model: TUTOR_MODEL,
+      const streamRes = await callAiChatStream({
         temperature: 0.3,
         max_tokens: 4096,
         messages,
-        stream: true,
       });
+      completion = streamRes.stream;
     } catch (error) {
-      console.error('Failed to start Groq exam tutor stream:', error);
+      console.error('Failed to start AI exam tutor stream:', error);
       throw new ExamTutorError('Không thể kết nối gia sư AI. Vui lòng thử lại.', 502);
     }
 

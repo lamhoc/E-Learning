@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import Groq from 'groq-sdk';
 import { createClient } from '@/lib/supabase/server';
+import { callAiChatCompletion } from '@/lib/ai-provider';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -12,9 +12,6 @@ type ChatMessage = {
 
 const MAX_MESSAGES = 25;
 const MAX_MESSAGE_LENGTH = 4000;
-
-const PRIMARY_MODEL = 'llama-3.3-70b-versatile';
-const FALLBACK_MODEL = 'llama-3.1-8b-instant';
 
 /**
  * Bộ tạo phản hồi học thuật thông minh (Smart Academic Fallback)
@@ -287,46 +284,22 @@ export async function POST(request: Request) {
     })),
   ];
 
-  const apiKey = process.env.GROQ_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY;
 
-  // 3. Cơ chế Cascade Multi-Model Groq
+  // 3. Gọi AI qua ai-provider trung tâm (Hỗ trợ Dynamic Discovery & Cascade Fallback)
   if (apiKey) {
-    // === LỚP 1: Model chính llama-3.3-70b-versatile ===
     try {
-      const groq = new Groq({ apiKey });
-      const model = process.env.GROQ_MODEL || PRIMARY_MODEL;
-
-      const completion = await groq.chat.completions.create({
-        model,
+      const { content: reply } = await callAiChatCompletion({
+        messages: groqMessages,
         temperature: 0.4,
         max_tokens: 4096,
-        messages: groqMessages,
       });
 
-      const reply = completion.choices[0]?.message?.content?.trim();
       if (reply) {
         return NextResponse.json({ reply });
       }
-    } catch (layer1Err) {
-      console.warn('[Chat-AI] Groq Lớp 1 thất bại, chuyển sang Lớp 2 (Fallback Model)...', layer1Err);
-
-      // === LỚP 2: Model phụ llama-3.1-8b-instant ===
-      try {
-        const groq = new Groq({ apiKey });
-        const completion2 = await groq.chat.completions.create({
-          model: FALLBACK_MODEL,
-          temperature: 0.3,
-          max_tokens: 4096,
-          messages: groqMessages,
-        });
-
-        const reply2 = completion2.choices[0]?.message?.content?.trim();
-        if (reply2) {
-          return NextResponse.json({ reply: reply2 });
-        }
-      } catch (layer2Err) {
-        console.warn('[Chat-AI] Groq Lớp 2 thất bại, chuyển sang Lớp 3 (Smart Academic Fallback)...', layer2Err);
-      }
+    } catch (aiErr) {
+      console.warn('[Chat-AI] AI Provider thất bại, chuyển sang Smart Academic Fallback:', aiErr);
     }
   }
 
