@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { isAutoGradeEssay, checkEssayAnswerMatch } from '@/lib/exam-auto-grade';
 
 export type StartAttemptResult = {
   status: 'success' | 'error';
@@ -211,18 +212,61 @@ export async function submitExamAttemptAction(
 
   const adminClient = createAdminClient();
 
-  // 1. Verify Attempt
-  const { data: attempt, error: attError } = await adminClient
+  // 1. Verify Attempt & Fetch Exam Config (với Zero-Crash Fallback cho auto_grade_essay)
+  let attemptRecord: {
+    id: string;
+    status: string;
+    student_id: string;
+    exam: unknown;
+  } | null = null;
+
+  const firstAttemptQuery = await adminClient
     .from('exam_attempts')
-    .select('id, status, student_id, exam:exams(title)')
+    .select('id, status, student_id, exam:exams(id, title, instructions, require_camera, auto_grade_essay)')
     .eq('id', attemptId)
     .eq('exam_id', examId)
     .eq('student_id', user.id)
     .maybeSingle();
 
-  if (attError || !attempt || attempt.status !== 'in_progress') {
+  if (firstAttemptQuery.error || !firstAttemptQuery.data) {
+    const fallbackAttemptQuery = await adminClient
+      .from('exam_attempts')
+      .select('id, status, student_id, exam:exams(id, title, instructions, require_camera)')
+      .eq('id', attemptId)
+      .eq('exam_id', examId)
+      .eq('student_id', user.id)
+      .maybeSingle();
+
+    if (fallbackAttemptQuery.error || !fallbackAttemptQuery.data) {
+      return { status: 'error', message: 'Lượt thi đã được nộp hoặc không thể nộp bài.' };
+    }
+    attemptRecord = fallbackAttemptQuery.data;
+  } else {
+    attemptRecord = firstAttemptQuery.data;
+  }
+
+  if (attemptRecord.status !== 'in_progress') {
     return { status: 'error', message: 'Lượt thi đã được nộp hoặc không thể nộp bài.' };
   }
+
+  const rawExam = attemptRecord.exam as
+    | {
+        id?: string;
+        title?: string;
+        instructions?: string | null;
+        require_camera?: boolean | null;
+        auto_grade_essay?: boolean | null;
+      }
+    | {
+        id?: string;
+        title?: string;
+        instructions?: string | null;
+        require_camera?: boolean | null;
+        auto_grade_essay?: boolean | null;
+      }[]
+    | null;
+  const examObj = Array.isArray(rawExam) ? rawExam[0] : rawExam;
+  const autoGradeEssay = isAutoGradeEssay(examObj);
 
   // 2. Fetch Questions of Exam
   const { data: questions } = await adminClient
@@ -234,16 +278,22 @@ export async function submitExamAttemptAction(
   const mcQuestions = questionList.filter((q) => q.question_type === 'multiple_choice');
   const essayQuestions = questionList.filter((q) => q.question_type === 'essay');
 
-  // 3. Fetch Answer Keys for Multiple Choice Auto-Grading
+  // 3. Fetch Answer Keys for Auto-Grading (MC & Essay)
   const { data: answerKeys } = await adminClient
     .from('exam_answer_keys')
-    .select('exam_question_id, correct_option_key');
+    .select('exam_question_id, correct_option_key, model_answer, grading_rubric');
 
-  const keyMap: Record<string, string> = {};
+  const mcKeyMap: Record<string, string> = {};
+  const essayKeyMap: Record<string, { model_answer?: string | null; grading_rubric?: string | null }> = {};
+
   (answerKeys ?? []).forEach((ak) => {
     if (ak.correct_option_key) {
-      keyMap[ak.exam_question_id] = ak.correct_option_key;
+      mcKeyMap[ak.exam_question_id] = ak.correct_option_key;
     }
+    essayKeyMap[ak.exam_question_id] = {
+      model_answer: ak.model_answer,
+      grading_rubric: ak.grading_rubric,
+    };
   });
 
   // 4. Fetch Student Answers
@@ -262,11 +312,17 @@ export async function submitExamAttemptAction(
 
   // 5. Grade Multiple Choice Questions
   let totalMCScore = 0;
-  const gradesToInsert = [];
+  const gradesToInsert: {
+    attempt_id: string;
+    exam_question_id: string;
+    awarded_points: number;
+    feedback: string;
+    graded_at: string;
+  }[] = [];
 
   for (const q of mcQuestions) {
     const studentAns = answerMap[q.id]?.selected_option;
-    const correctKey = keyMap[q.id];
+    const correctKey = mcKeyMap[q.id];
     const isCorrect = Boolean(studentAns && correctKey && studentAns === correctKey);
     const awarded = isCorrect ? Number(q.points) : 0;
     totalMCScore += awarded;
@@ -280,15 +336,40 @@ export async function submitExamAttemptAction(
     });
   }
 
+  // 6. Grade Essay Questions if Auto-Grade is enabled
+  let totalEssayScore = 0;
+  if (autoGradeEssay && essayQuestions.length > 0) {
+    for (const q of essayQuestions) {
+      const studentAnsText = answerMap[q.id]?.answer_text;
+      const expectedObj = essayKeyMap[q.id];
+      const expectedText = expectedObj?.model_answer || expectedObj?.grading_rubric || '';
+      const isMatch = checkEssayAnswerMatch(studentAnsText, expectedText);
+      const awarded = isMatch ? Number(q.points) : 0;
+      totalEssayScore += awarded;
+
+      gradesToInsert.push({
+        attempt_id: attemptId,
+        exam_question_id: q.id,
+        awarded_points: awarded,
+        feedback: isMatch
+          ? 'Chính xác (Khớp với đáp án mẫu).'
+          : 'Chưa chính xác (Không khớp với đáp án mẫu).',
+        graded_at: new Date().toISOString(),
+      });
+    }
+  }
+
   if (gradesToInsert.length > 0) {
     await adminClient.from('student_answer_grades').upsert(gradesToInsert, {
       onConflict: 'attempt_id,exam_question_id',
     });
   }
 
-  // 6. Finalize Attempt Status
-  const hasEssay = essayQuestions.length > 0;
-  const finalStatus = hasEssay ? 'pending_grading' : 'completed';
+  // 7. Finalize Attempt Status & Compute Final Score
+  const hasUnscoredEssay = essayQuestions.length > 0 && !autoGradeEssay;
+  const isFullyGraded = !hasUnscoredEssay;
+  const finalStatus = isFullyGraded ? 'completed' : 'pending_grading';
+  const finalTotalScore = totalMCScore + totalEssayScore;
 
   const { error: updateAttemptErr } = await adminClient
     .from('exam_attempts')
@@ -303,12 +384,12 @@ export async function submitExamAttemptAction(
     return { status: 'error', message: 'Không thể cập nhật trạng thái nộp bài.' };
   }
 
-  // If 100% Multiple Choice, release final result immediately
-  if (!hasEssay) {
+  // If fully graded (100% Multiple Choice OR Auto-Graded Essays), release result immediately
+  if (isFullyGraded) {
     await adminClient.from('attempt_results').upsert(
       {
         attempt_id: attemptId,
-        total_score: totalMCScore,
+        total_score: finalTotalScore,
         released_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },
@@ -316,16 +397,15 @@ export async function submitExamAttemptAction(
     );
   }
 
-  // 7. Insert Notification for Student
-  const rawExam = attempt.exam as { title?: string } | { title?: string }[] | null;
-  const examTitle = (Array.isArray(rawExam) ? rawExam[0]?.title : rawExam?.title) || 'Đề thi';
+  // 8. Insert Notification for Student
+  const examTitle = examObj?.title || 'Đề thi';
   try {
     await adminClient.from('notifications').insert({
       user_id: user.id,
       title: 'Đã nộp bài thi thành công',
-      message: hasEssay
-        ? `Bạn đã hoàn thành bài thi "${examTitle}". Điểm trắc nghiệm tạm tính: ${totalMCScore}. Bài tự luận đang chờ giảng viên chấm.`
-        : `Bạn đã hoàn thành bài thi "${examTitle}". Điểm số đạt được: ${totalMCScore} điểm.`,
+      message: isFullyGraded
+        ? `Bạn đã hoàn thành bài thi "${examTitle}". Điểm số đạt được: ${finalTotalScore} điểm${autoGradeEssay && essayQuestions.length > 0 ? ' (Đã tự động đối chiếu điểm trắc nghiệm & tự luận)' : ''}.`
+        : `Bạn đã hoàn thành bài thi "${examTitle}". Điểm trắc nghiệm tạm tính: ${totalMCScore}. Bài tự luận đang chờ giảng viên chấm.`,
       data: { exam_id: examId, attempt_id: attemptId },
     });
   } catch (notifErr) {
@@ -334,14 +414,15 @@ export async function submitExamAttemptAction(
 
   revalidatePath(`/student/exams/${examId}`);
   revalidatePath('/student/dashboard');
+  revalidatePath('/teacher/grading');
 
   return {
     status: 'success',
-    message: hasEssay
-      ? 'Đã nộp bài thành công! Bài thi tự luận đang chờ giảng viên chấm.'
-      : `Đã nộp bài thành công! Điểm của bạn: ${totalMCScore} điểm.`,
-    totalScore: totalMCScore,
-    isFullyGraded: !hasEssay,
+    message: isFullyGraded
+      ? `Đã nộp bài thành công! Điểm của bạn: ${finalTotalScore} điểm.`
+      : 'Đã nộp bài thành công! Bài thi tự luận đang chờ giảng viên chấm.',
+    totalScore: isFullyGraded ? finalTotalScore : totalMCScore,
+    isFullyGraded,
   };
 }
 

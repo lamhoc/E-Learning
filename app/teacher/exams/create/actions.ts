@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { appendCameraInstructionTag } from '@/lib/exam-camera';
+import { appendExamInstructionTags } from '@/lib/exam-auto-grade';
 
 export type CreateExamPayload = {
   subjectId: string;
@@ -16,6 +16,7 @@ export type CreateExamPayload = {
   classIds: string[];
   publishImmediately: boolean;
   requireCamera?: boolean;
+  autoGradeEssay?: boolean;
   selectedQuestions: {
     questionId: string;
     points: number;
@@ -97,14 +98,18 @@ export async function createExamAction(payload: CreateExamPayload): Promise<Crea
 
   const adminClient = createAdminClient();
   const requireCamera = Boolean(payload.requireCamera);
-  const taggedInstructions = appendCameraInstructionTag(instructions, requireCamera);
+  const autoGradeEssay = Boolean(payload.autoGradeEssay);
+  const taggedInstructions = appendExamInstructionTags(instructions, {
+    requireCamera,
+    autoGradeEssay,
+  });
 
   try {
     // 2. Insert into public.exams with Zero-Crash Fallback
     let newExam: { id: string } | null = null;
     let examInsertError: unknown = null;
 
-    // Lần thử 1: Ghi trực tiếp cột require_camera kèm tag hướng dẫn
+    // Lần thử 1: Ghi trực tiếp cả 2 cột require_camera và auto_grade_essay
     const firstAttempt = await adminClient
       .from('exams')
       .insert({
@@ -118,14 +123,19 @@ export async function createExamAction(payload: CreateExamPayload): Promise<Crea
         available_until: availableUntil || null,
         status: 'draft',
         require_camera: requireCamera,
+        auto_grade_essay: autoGradeEssay,
       })
       .select('id')
       .single();
 
     if (firstAttempt.error) {
-      console.warn('Lần thử 1 ghi require_camera thất bại (có thể DB chưa chạy migration). Thử lại chế độ fallback:', firstAttempt.error.message);
-      // Lần thử 2: Bỏ cột require_camera để không crash, tag [CAMERA_REQUIRED:true/false] đã có trong instructions
-      const fallbackAttempt = await adminClient
+      console.warn(
+        'Lần thử 1 ghi require_camera và auto_grade_essay thất bại (có thể DB chưa chạy migration). Thử lần 2 chỉ ghi require_camera:',
+        firstAttempt.error.message,
+      );
+
+      // Lần thử 2: Thử ghi với require_camera (nếu auto_grade_essay chưa có trong schema)
+      const secondAttempt = await adminClient
         .from('exams')
         .insert({
           subject_id: subjectId,
@@ -137,12 +147,38 @@ export async function createExamAction(payload: CreateExamPayload): Promise<Crea
           available_from: availableFrom || null,
           available_until: availableUntil || null,
           status: 'draft',
+          require_camera: requireCamera,
         })
         .select('id')
         .single();
 
-      newExam = fallbackAttempt.data;
-      examInsertError = fallbackAttempt.error;
+      if (secondAttempt.error) {
+        console.warn(
+          'Lần thử 2 thất bại. Thử lần 3 chế độ fallback cơ bản (tag cờ đã nhúng trong instructions):',
+          secondAttempt.error.message,
+        );
+        // Lần thử 3: Bỏ cả 2 cột, chỉ ghi các trường cơ bản. Cả 2 tag đã nằm an toàn trong instructions
+        const thirdAttempt = await adminClient
+          .from('exams')
+          .insert({
+            subject_id: subjectId,
+            created_by: user.id,
+            title: title.trim(),
+            instructions: taggedInstructions,
+            duration_minutes: durationMinutes,
+            max_attempts: maxAttempts,
+            available_from: availableFrom || null,
+            available_until: availableUntil || null,
+            status: 'draft',
+          })
+          .select('id')
+          .single();
+
+        newExam = thirdAttempt.data;
+        examInsertError = thirdAttempt.error;
+      } else {
+        newExam = secondAttempt.data;
+      }
     } else {
       newExam = firstAttempt.data;
     }

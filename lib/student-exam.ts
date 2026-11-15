@@ -1,5 +1,5 @@
 import { sanitizeVietnameseText } from '@/lib/utils';
-import { isCameraRequired, cleanExamInstructions } from '@/lib/exam-camera';
+import { isCameraRequired, cleanExamInstructions, isAutoGradeEssay } from '@/lib/exam-auto-grade';
 import 'server-only';
 
 import { redirect } from 'next/navigation';
@@ -30,6 +30,7 @@ export type StudentExamDetail = {
   available_until: string | null;
   status: 'draft' | 'published' | 'closed' | 'archived';
   require_camera?: boolean;
+  auto_grade_essay?: boolean;
   subject: {
     id: string;
     name: string;
@@ -105,6 +106,7 @@ export async function getStudentExamPageData(examId: string): Promise<StudentExa
 
   const subjectRecord = Array.isArray(rawExam.subject) ? rawExam.subject[0] : rawExam.subject;
   const isReqCam = isCameraRequired(rawExam);
+  const isAutoGrade = isAutoGradeEssay(rawExam);
 
   const exam: StudentExamDetail = {
     id: rawExam.id,
@@ -117,6 +119,7 @@ export async function getStudentExamPageData(examId: string): Promise<StudentExa
     status: rawExam.status,
     subject: subjectRecord ?? null,
     require_camera: isReqCam,
+    auto_grade_essay: isAutoGrade,
   };
 
   // 2. Fetch User Profile

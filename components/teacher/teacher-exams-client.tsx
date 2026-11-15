@@ -16,6 +16,7 @@ import {
   PlusCircle,
   Search,
   Users,
+  Zap,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,7 @@ export type ExamItem = {
   totalAttempts: number;
   pendingAttempts: number;
   requireCamera?: boolean;
+  autoGradeEssay?: boolean;
 };
 
 type Props = {
@@ -309,6 +311,16 @@ export function TeacherExamsClient({ exams }: Props) {
                     ) : (
                       <Badge variant="outline" className="border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-[10px]">
                         Không yêu cầu Camera
+                      </Badge>
+                    )}
+                    {exam.autoGradeEssay ? (
+                      <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10px] font-semibold gap-1">
+                        <Zap className="size-3" />
+                        <span>⚡ Tự chấm tự luận</span>
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-[10px]">
+                        <span>✍️ GV chấm tự luận</span>
                       </Badge>
                     )}
                   </div>

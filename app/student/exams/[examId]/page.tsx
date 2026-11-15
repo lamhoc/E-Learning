@@ -15,12 +15,13 @@ import {
   ShieldAlert,
   Sparkles,
   Trophy,
+  Zap,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getStudentExamPageData } from '@/lib/student-exam';
-import { isCameraRequired } from '@/lib/exam-camera';
+import { isCameraRequired, isAutoGradeEssay, cleanExamInstructions } from '@/lib/exam-auto-grade';
 import { ExamTakingClient } from '@/components/student/exam-taking-client';
 import { StartExamButton } from '@/components/student/start-exam-button';
 import { ExamTutorDrawer } from '@/components/student/exam-tutor-drawer';
@@ -90,6 +91,17 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
                   Không yêu cầu Camera
                 </Badge>
               )}
+
+              {isAutoGradeEssay(exam) ? (
+                <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-xs font-semibold gap-1">
+                  <Zap className="size-3" />
+                  <span>⚡ Tự chấm tự luận</span>
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-xs">
+                  <span>✍️ GV chấm tự luận</span>
+                </Badge>
+              )}
             </div>
 
             {isOpenNow ? (
@@ -107,9 +119,9 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
             {exam.title}
           </h1>
 
-          {exam.instructions && (
+          {cleanExamInstructions(exam.instructions) && (
             <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-              {exam.instructions}
+              {cleanExamInstructions(exam.instructions)}
             </p>
           )}
 

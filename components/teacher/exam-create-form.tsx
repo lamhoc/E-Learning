@@ -69,6 +69,7 @@ export function ExamCreateForm({
   const [availableFrom, setAvailableFrom] = useState<string>('');
   const [availableUntil, setAvailableUntil] = useState<string>('');
   const [requireCamera, setRequireCamera] = useState<boolean>(false);
+  const [autoGradeEssay, setAutoGradeEssay] = useState<boolean>(false);
 
   // 2. Question Bank Selection States
   const [selectedQuestions, setSelectedQuestions] = useState<SelectedQuestionItem[]>([]);
@@ -207,6 +208,7 @@ export function ExamCreateForm({
       classIds: selectedClassIds,
       publishImmediately,
       requireCamera,
+      autoGradeEssay,
       selectedQuestions: selectedQuestions.map((q, idx) => ({
         questionId: q.questionId,
         points: q.points,
@@ -567,6 +569,66 @@ export function ExamCreateForm({
                     </button>
                   </div>
                 </div>
+
+                {/* Auto-Grade Essay Toggle Switch */}
+                <div className="mt-3 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-[#162235] p-4 transition-colors">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-2.5">
+                      <span
+                        className={`grid size-8 shrink-0 place-items-center rounded-lg transition-colors ${
+                          autoGradeEssay
+                            ? 'bg-blue-100 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400'
+                            : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                        }`}
+                      >
+                        <CheckCircle2 className="size-4" />
+                      </span>
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Label
+                            htmlFor="auto-grade-essay-toggle"
+                            className="text-sm font-semibold text-slate-900 dark:text-white cursor-pointer"
+                          >
+                            Tự động chấm bài Tự luận (Đối chiếu đáp án)
+                          </Label>
+                          {autoGradeEssay ? (
+                            <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10px] font-semibold">
+                              Tự động chấm điểm
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px]"
+                            >
+                              Giảng viên chấm thủ công
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                          Khi bật, hệ thống sẽ tự động đối chiếu câu trả lời tự luận của học sinh với đáp án mẫu: nếu khớp sẽ được trọn điểm câu đó, nếu không khớp sẽ tính 0 điểm. Khi tắt, giảng viên sẽ chấm điểm thủ công.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Toggle Switch */}
+                    <button
+                      type="button"
+                      id="auto-grade-essay-toggle"
+                      role="switch"
+                      aria-checked={autoGradeEssay}
+                      onClick={() => setAutoGradeEssay((prev) => !prev)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${
+                        autoGradeEssay ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block size-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                          autoGradeEssay ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -616,6 +678,26 @@ export function ExamCreateForm({
                     {requireCamera
                       ? 'Khung hình webcam hiển thị góc màn hình thi; quét độ sáng định kỳ 60s phát hiện camera bị che khuất và báo cáo khi chấm bài.'
                       : 'Thí sinh làm bài thi bình thường, không yêu cầu cấp quyền webcam hay kiểm tra máy ảnh.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <span
+                  className={`font-bold mt-0.5 ${
+                    autoGradeEssay ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'
+                  }`}
+                >
+                  {autoGradeEssay ? '✓' : '○'}
+                </span>
+                <div>
+                  <strong className="text-slate-900 dark:text-white">
+                    {autoGradeEssay ? 'Tự động chấm Tự luận (Đối chiếu đáp án mẫu):' : 'Chấm điểm Tự luận (Giảng viên chấm thủ công):'}
+                  </strong>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    {autoGradeEssay
+                      ? 'Tự động đối chiếu câu trả lời tự luận của thí sinh với đáp án mẫu/rubric ngay khi nộp bài; khớp thì tính trọn điểm, không khớp tính 0 điểm.'
+                      : 'Hệ thống giữ bài thi ở trạng thái Chờ chấm; giảng viên sẽ kiểm tra câu trả lời và chấm điểm thủ công trong mục Chấm bài thi.'}
                   </p>
                 </div>
               </div>

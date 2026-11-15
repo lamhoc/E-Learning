@@ -5,7 +5,7 @@ import { sanitizeVietnameseText } from '@/lib/utils';
 import { TeacherSidebar } from '@/components/teacher/teacher-sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { TeacherExamsClient, type ExamItem } from '@/components/teacher/teacher-exams-client';
-import { isCameraRequired } from '@/lib/exam-camera';
+import { isCameraRequired, isAutoGradeEssay } from '@/lib/exam-auto-grade';
 
 export const metadata = {
   title: 'Quản lý Đề thi | Cổng Giảng viên LHU',
@@ -22,13 +22,13 @@ export default async function TeacherExamsPage() {
     .eq('id', user.id)
     .maybeSingle();
 
-  // Query Exams với zero-crash fallback cho trường require_camera
+  // Query Exams với zero-crash fallback cho trường require_camera và auto_grade_essay
   let rawExamsData: any[] = [];
   const firstExamsResult = await supabase
     .from('exams')
     .select(`
       id, title, status, duration_minutes, instructions, created_at, available_from, available_until,
-      require_camera,
+      require_camera, auto_grade_essay,
       subject:subjects(name),
       exam_questions(id),
       exam_classes(class:classes(name, class_code)),
@@ -42,6 +42,7 @@ export default async function TeacherExamsPage() {
       .from('exams')
       .select(`
         id, title, status, duration_minutes, instructions, created_at, available_from, available_until,
+        require_camera,
         subject:subjects(name),
         exam_questions(id),
         exam_classes(class:classes(name, class_code)),
@@ -50,7 +51,23 @@ export default async function TeacherExamsPage() {
       .eq('created_by', user.id)
       .order('created_at', { ascending: false });
 
-    rawExamsData = fallbackExamsResult.data ?? [];
+    if (fallbackExamsResult.error || !fallbackExamsResult.data) {
+      const basicExamsResult = await supabase
+        .from('exams')
+        .select(`
+          id, title, status, duration_minutes, instructions, created_at, available_from, available_until,
+          subject:subjects(name),
+          exam_questions(id),
+          exam_classes(class:classes(name, class_code)),
+          exam_attempts(id, status)
+        `)
+        .eq('created_by', user.id)
+        .order('created_at', { ascending: false });
+
+      rawExamsData = basicExamsResult.data ?? [];
+    } else {
+      rawExamsData = fallbackExamsResult.data ?? [];
+    }
   } else {
     rawExamsData = firstExamsResult.data ?? [];
   }
@@ -64,6 +81,7 @@ export default async function TeacherExamsPage() {
     duration_minutes: number;
     instructions: string | null;
     require_camera?: boolean;
+    auto_grade_essay?: boolean;
     created_at: string;
     available_from: string | null;
     available_until: string | null;
@@ -87,6 +105,7 @@ export default async function TeacherExamsPage() {
     const totalAttempts = exam.exam_attempts?.length || 0;
     const pendingAttempts = exam.exam_attempts?.filter((a) => a.status === 'pending_grading').length || 0;
     const requireCamera = isCameraRequired(exam);
+    const autoGradeEssay = isAutoGradeEssay(exam);
 
     return {
       id: exam.id,
@@ -102,6 +121,7 @@ export default async function TeacherExamsPage() {
       totalAttempts,
       pendingAttempts,
       requireCamera,
+      autoGradeEssay,
     };
   });
 
