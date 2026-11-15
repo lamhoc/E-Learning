@@ -560,15 +560,25 @@ export function UploadDocumentModal({
                             {q.question_type === 'multiple_choice' ? 'Trắc nghiệm' : 'Tự luận'}
                           </Badge>
 
-                          {q.is_red_detected ? (
-                            <Badge className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/60 text-[10px] font-semibold">
-                              ✅ Đáp án đỏ tự động nhận diện
+                          {q.question_type === 'multiple_choice' ? (
+                            q.is_red_detected ? (
+                              <Badge className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/60 text-[10px] font-semibold">
+                                ✅ Đáp án đỏ tự động nhận diện
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-slate-500 text-[10px]">
+                                Tự động suy luận
+                              </Badge>
+                            )
+                          ) : q.model_answer ? (
+                            <Badge className="bg-purple-100 dark:bg-purple-950/70 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-700/60 text-[10px] font-semibold">
+                              ✅ Đã tách đáp án tự luận
                             </Badge>
-                          ) : q.question_type === 'multiple_choice' ? (
+                          ) : (
                             <Badge variant="outline" className="text-slate-500 text-[10px]">
-                              Tự động suy luận
+                              Chưa có đáp án mẫu
                             </Badge>
-                          ) : null}
+                          )}
                         </div>
 
                         <div className="flex items-center gap-1">
@@ -595,72 +605,106 @@ export function UploadDocumentModal({
                       {isEditing && editForm ? (
                         <div className="mt-3 space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-3.5 text-xs">
                           <div>
-                            <Label className="text-[11px] font-semibold">Nội dung câu hỏi</Label>
+                            <Label className="text-[11px] font-semibold text-foreground">
+                              {editForm.question_type === 'essay' ? 'Nội dung đề bài tự luận' : 'Nội dung câu hỏi'}
+                            </Label>
                             <textarea
                               value={editForm.question_text}
                               onChange={(e) =>
                                 setEditForm({ ...editForm, question_text: e.target.value })
                               }
-                              rows={2}
-                              className="mt-1 w-full rounded-md border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                              rows={editForm.question_type === 'essay' ? 4 : 2}
+                              className="mt-1 w-full rounded-md border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
                             />
                           </div>
 
-                          {editForm.question_type === 'multiple_choice' && (
-                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                              {(['A', 'B', 'C', 'D'] as const).map((key) => {
-                                const propKey = `option_${key.toLowerCase()}` as keyof ParsedQuestionItem;
-                                return (
-                                  <div key={key} className="space-y-1">
-                                    <Label className="text-[10px] font-bold">Phương án {key}</Label>
-                                    <Input
-                                      value={String(editForm[propKey] || '')}
-                                      onChange={(e) =>
-                                        setEditForm({ ...editForm, [propKey]: e.target.value })
-                                      }
-                                      className="h-8 text-xs"
-                                    />
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-
-                          {editForm.question_type === 'multiple_choice' && (
-                            <div>
-                              <Label className="text-[11px] font-semibold">Đáp án đúng</Label>
-                              <div className="mt-1 flex gap-2">
-                                {(['A', 'B', 'C', 'D'] as const).map((key) => (
-                                  <button
-                                    key={key}
-                                    type="button"
-                                    onClick={() =>
-                                      setEditForm({ ...editForm, correct_option: key, is_red_detected: false })
-                                    }
-                                    className={`size-7 rounded-md text-xs font-bold transition ${
-                                      editForm.correct_option === key
-                                        ? 'bg-primary text-white'
-                                        : 'border border-input bg-background hover:bg-muted'
-                                    }`}
-                                  >
-                                    {key}
-                                  </button>
-                                ))}
+                          {editForm.question_type === 'multiple_choice' ? (
+                            <>
+                              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                {(['A', 'B', 'C', 'D'] as const).map((key) => {
+                                  const propKey = `option_${key.toLowerCase()}` as keyof ParsedQuestionItem;
+                                  return (
+                                    <div key={key} className="space-y-1">
+                                      <Label className="text-[10px] font-bold">Phương án {key}</Label>
+                                      <Input
+                                        value={String(editForm[propKey] || '')}
+                                        onChange={(e) =>
+                                          setEditForm({ ...editForm, [propKey]: e.target.value })
+                                        }
+                                        className="h-8 text-xs"
+                                      />
+                                    </div>
+                                  );
+                                })}
                               </div>
-                            </div>
-                          )}
 
-                          <div>
-                            <Label className="text-[11px] font-semibold">Lời giải thích (tùy chọn)</Label>
-                            <Input
-                              value={editForm.explanation || ''}
-                              onChange={(e) =>
-                                setEditForm({ ...editForm, explanation: e.target.value })
-                              }
-                              placeholder="Lời giải thích chi tiết..."
-                              className="h-8 text-xs"
-                            />
-                          </div>
+                              <div>
+                                <Label className="text-[11px] font-semibold">Đáp án đúng</Label>
+                                <div className="mt-1 flex gap-2">
+                                  {(['A', 'B', 'C', 'D'] as const).map((key) => (
+                                    <button
+                                      key={key}
+                                      type="button"
+                                      onClick={() =>
+                                        setEditForm({ ...editForm, correct_option: key, is_red_detected: false })
+                                      }
+                                      className={`size-7 rounded-md text-xs font-bold transition ${
+                                        editForm.correct_option === key
+                                          ? 'bg-primary text-white'
+                                          : 'border border-input bg-background hover:bg-muted'
+                                      }`}
+                                    >
+                                      {key}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div>
+                                <Label className="text-[11px] font-semibold">Lời giải thích chi tiết (tùy chọn)</Label>
+                                <Input
+                                  value={editForm.explanation || ''}
+                                  onChange={(e) =>
+                                    setEditForm({ ...editForm, explanation: e.target.value })
+                                  }
+                                  placeholder="Lời giải thích chi tiết..."
+                                  className="h-8 text-xs"
+                                />
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div>
+                                <Label className="text-[11px] font-semibold text-purple-900 dark:text-purple-300">
+                                  Đáp án tham khảo / Lời giải chi tiết
+                                </Label>
+                                <textarea
+                                  value={editForm.model_answer || ''}
+                                  onChange={(e) =>
+                                    setEditForm({ ...editForm, model_answer: e.target.value })
+                                  }
+                                  rows={4}
+                                  placeholder="Nhập lời giải chi tiết cho từng ý..."
+                                  className="mt-1 w-full rounded-md border border-purple-300 dark:border-purple-800 bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-purple-500 leading-relaxed font-mono"
+                                />
+                              </div>
+
+                              <div>
+                                <Label className="text-[11px] font-semibold text-purple-900 dark:text-purple-300">
+                                  Thang điểm / Hướng dẫn chấm (Rubric)
+                                </Label>
+                                <textarea
+                                  value={editForm.grading_rubric || ''}
+                                  onChange={(e) =>
+                                    setEditForm({ ...editForm, grading_rubric: e.target.value })
+                                  }
+                                  rows={3}
+                                  placeholder="• Ý a) 0.5 điểm&#10;• Ý b) 0.5 điểm"
+                                  className="mt-1 w-full rounded-md border border-purple-300 dark:border-purple-800 bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-purple-500 leading-relaxed font-mono"
+                                />
+                              </div>
+                            </>
+                          )}
 
                           <div className="flex justify-end gap-2 pt-1">
                             <Button size="sm" variant="ghost" onClick={handleCancelEdit}>
@@ -673,8 +717,8 @@ export function UploadDocumentModal({
                         </div>
                       ) : (
                         <div className="mt-2.5 space-y-2 text-xs">
-                          {/* Câu hỏi KaTeX */}
-                          <div className="text-foreground leading-relaxed">
+                          {/* Câu hỏi KaTeX (Đề bài sạch sẽ) */}
+                          <div className="text-foreground leading-relaxed whitespace-pre-wrap">
                             <MathText content={q.question_text} />
                           </div>
 
@@ -719,11 +763,39 @@ export function UploadDocumentModal({
                             </div>
                           )}
 
-                          {/* Lời giải thích */}
-                          {q.explanation && (
-                            <div className="mt-2 rounded-lg bg-muted/40 p-2.5 text-[11px] text-muted-foreground">
-                              <span className="font-semibold text-foreground">Lời giải: </span>
-                              <MathText content={q.explanation} />
+                          {/* Lời giải thích cho câu trắc nghiệm */}
+                          {q.question_type === 'multiple_choice' && q.explanation && (
+                            <div className="mt-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 p-3 text-[11px] text-slate-700 dark:text-slate-300">
+                              <span className="font-semibold text-slate-900 dark:text-white">💡 Giải thích chi tiết: </span>
+                              <div className="mt-1 leading-relaxed">
+                                <MathText content={q.explanation} />
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Khung Tím hiển thị Đáp án tham khảo & Rubric cho câu tự luận */}
+                          {q.question_type === 'essay' && (q.model_answer || q.grading_rubric) && (
+                            <div className="mt-3 rounded-xl border border-purple-300/80 dark:border-purple-500/30 bg-purple-50/80 dark:bg-purple-950/40 p-4 space-y-2.5 text-xs">
+                              {q.model_answer && (
+                                <div>
+                                  <span className="font-bold text-purple-900 dark:text-purple-200">
+                                    Đáp án tham khảo:
+                                  </span>
+                                  <div className="mt-1 text-slate-800 dark:text-purple-100/90 whitespace-pre-wrap leading-relaxed">
+                                    <MathText content={q.model_answer} />
+                                  </div>
+                                </div>
+                              )}
+                              {q.grading_rubric && (
+                                <div className="pt-2 border-t border-purple-200/80 dark:border-purple-800/50">
+                                  <span className="font-bold text-purple-900 dark:text-purple-200">
+                                    Thang điểm / Hướng dẫn chấm:
+                                  </span>
+                                  <div className="mt-1 text-slate-700 dark:text-purple-200/80 whitespace-pre-wrap">
+                                    <MathText content={q.grading_rubric} />
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>

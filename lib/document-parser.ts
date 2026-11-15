@@ -47,7 +47,7 @@ function isColorRed(colorVal: string | null | undefined): boolean {
     const b = parseInt(val.substring(4, 6), 16);
 
     // Các màu đỏ phổ biến trong Word:
-    // C00000 (Dark Red trong bảng chuẩn của Word), FF0000 (Red), ED1C24 (Word default red), DC2626, EE0000
+    // C00000, DC0000, FF0000, ED1C24, DC2626, EE0000, E11D48
     if (r >= 150 && g <= 100 && b <= 100) return true;
     if (r >= 130 && r > g * 1.6 && r > b * 1.6) return true;
   }
@@ -166,10 +166,136 @@ export async function extractPdfTextSafe(buffer: Buffer): Promise<{ text: string
 }
 
 /**
+ * THUẬT TOÁN BÓC TÁCH CÂU HỎI TỰ LUẬN (3 TẦNG THÔNG MINH):
+ * Tầng 1: Tách theo tag [RED_ANSWER] từ XML Word.
+ * Tầng 2: Tách theo các nhãn từ khóa (Đáp án:, Lời giải:, Hướng dẫn giải:, Thang điểm:, Rubric:).
+ * Tầng 3: Tách inline mệnh đề hỏi & mệnh đề giải cho từng ý a), b), c).
+ */
+export function parseEssayQuestionLocally(section: string): {
+  questionText: string;
+  modelAnswer?: string;
+  gradingRubric?: string;
+  isRedDetected: boolean;
+} {
+  let isRedDetected = false;
+  const questionLines: string[] = [];
+  const answerLines: string[] = [];
+
+  // 0. Cắt bỏ footer đề thi như "— HẾT —" hoặc "--- HẾT ---"
+  const cleanSection = section.replace(/(?:\n\s*|\s{2,})[-—–]+\s*HẾT\s*[-—–]+[\s\S]*/i, '').trim();
+
+  // TẦNG 1: XỬ LÝ THEO TAG [RED_ANSWER] TỪ XML WORD
+  if (cleanSection.includes('[RED_ANSWER]')) {
+    isRedDetected = true;
+    const lines = cleanSection.split('\n');
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (!line) continue;
+
+      // Nếu dòng nằm HOÀN TOÀN trong [RED_ANSWER]
+      if (line.startsWith('[RED_ANSWER]') && line.endsWith('[/RED_ANSWER]')) {
+        const cleanA = line.replace(/\[\/?RED_ANSWER\]/g, '').trim();
+        if (cleanA && cleanA.replace(/[.,;:\s]/g, '').length > 0) {
+          answerLines.push(cleanA);
+        }
+        continue;
+      }
+
+      // Nếu dòng có chứa [RED_ANSWER] (ví dụ: "a) Tìm tọa độ đỉnh... [RED_ANSWER]Ta có a = 1...[/RED_ANSWER]")
+      if (line.includes('[RED_ANSWER]')) {
+        // Tìm ý con nếu có ở đầu dòng: ví dụ "a)", "b)", "c)", "1)", "2)"
+        const subItemMatch = /^([a-zA-Z\d]+[.)])\s*/.exec(line);
+        const subPrefix = subItemMatch ? subItemMatch[1] : '';
+
+        // Tách phần đề bài (ngoài tag [RED_ANSWER])
+        const redRegex = /\[RED_ANSWER\]([\s\S]*?)\[\/RED_ANSWER\]/g;
+        let qPart = line.replace(redRegex, '').trim();
+        // Dọn sạch dấu chấm phẩy thừa ở cuối đề bài
+        qPart = qPart.replace(/[.,;:]+$/, '.').trim();
+
+        if (qPart) questionLines.push(qPart);
+
+        let match: RegExpExecArray | null;
+        while ((match = redRegex.exec(line)) !== null) {
+          let aText = match[1].trim();
+          // Bỏ qua nếu aText chỉ toàn dấu chấm, phẩy hoặc rác
+          if (!aText || aText.replace(/[.,;:\s]/g, '').length === 0) continue;
+
+          if (subPrefix && !aText.startsWith(subPrefix)) {
+            aText = `${subPrefix} ${aText}`;
+          }
+          answerLines.push(aText);
+        }
+        continue;
+      }
+
+      // Dòng chữ đen thuần túy (không có [RED_ANSWER])
+      questionLines.push(line);
+    }
+  } else {
+    // TẦNG 2: XỬ LÝ THEO CÁC TỪ KHÓA ĐÁP ÁN / LỜI GIẢI
+    const answerSplitRegex = /(?:^|\n)\s*(?:Đáp án|Lời giải|Hướng dẫn giải|Thang điểm|Rubric|Bài giải|Giải|Trả lời)[:\s-]+([\s\S]*)/i;
+    const splitMatch = answerSplitRegex.exec(cleanSection);
+
+    if (splitMatch) {
+      const qPart = cleanSection.slice(0, splitMatch.index).trim();
+      const aPart = splitMatch[1].trim();
+      questionLines.push(qPart);
+      answerLines.push(aPart);
+    } else {
+      // TẦNG 3: TÁCH INLINE MỆNH ĐỀ HỎI VÀ MỆNH ĐỀ GIẢI THEO TỪNG Ý a), b), c)
+      const lines = cleanSection.split('\n');
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        // Nhận diện dòng có dạng: "a) Tìm tọa độ đỉnh... Ta có..." hoặc "b) Giải phương trình... Vì..."
+        const inlineSolveRegex = /^([a-zA-Z\d]+[.)]\s*[^.?!]+[.?!])\s+(Ta có|Vì|Do đó|Khi đó|Áp dụng|Gọi|Phương trình có|Vậy|Suy ra|Đặt|Xét)[\s\S]*/i;
+        const inlineMatch = inlineSolveRegex.exec(trimmed);
+
+        if (inlineMatch) {
+          const qText = inlineMatch[1].trim();
+          const subPrefix = inlineMatch[0].match(/^[a-zA-Z\d]+[.)]/)?.[0] || '';
+          const aText = trimmed.slice(qText.length).trim();
+
+          questionLines.push(qText);
+          answerLines.push(subPrefix ? `${subPrefix} ${aText}` : aText);
+        } else {
+          questionLines.push(trimmed);
+        }
+      }
+    }
+  }
+
+  const clean = (str: string) => str.replace(/\[\/?RED_ANSWER\]/g, '').trim();
+  const finalQ = clean(questionLines.join('\n'));
+  const finalA = answerLines.length > 0 ? clean(answerLines.join('\n\n')) : undefined;
+
+  // Tự động tạo gợi ý Thang điểm / Rubric theo từng ý nếu có lời giải
+  let rubric: string | undefined = undefined;
+  if (finalA) {
+    const subItems = [...new Set(finalA.match(/^[a-zA-Z\d]+[.)]/gm) || [])];
+    if (subItems.length > 1) {
+      rubric = subItems.map((item) => `• Ý ${item} Điểm tối đa nếu hoàn thành đúng các bước lời giải.`).join('\n');
+    } else {
+      rubric = 'Điểm tối đa nếu hoàn thành đầy đủ các bước lập luận và kết quả chính xác.';
+    }
+  }
+
+  return {
+    questionText: finalQ,
+    modelAnswer: finalA,
+    gradingRubric: rubric,
+    isRedDetected,
+  };
+}
+
+/**
  * BỘ BÓC TÁCH NỘI BỘ (Local Regex & XML Parser):
  * Hoạt động độc lập 100% không phụ thuộc vào kết nối mạng hay dịch vụ AI ngoài.
- * Đảm bảo trích xuất chính xác câu hỏi trắc nghiệm (nhận diện chữ đỏ [RED_ANSWER])
- * và câu hỏi tự luận kèm đáp án mẫu/rubric.
+ * Đảm bảo trích xuất chính xác câu hỏi trắc nghiệm (nhận diện chữ đỏ [RED_ANSWER], dọn sạch phương án D)
+ * và câu hỏi tự luận kèm đáp án mẫu/rubric tách biệt.
  */
 export function parseQuestionsLocallyFromText(rawText: string): ParsedQuestionItem[] {
   if (!rawText || rawText.trim().length === 0) return [];
@@ -180,7 +306,6 @@ export function parseQuestionsLocallyFromText(rawText: string): ParsedQuestionIt
   const normalizedText = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
   // Tìm các điểm bắt đầu của từng câu hỏi: "Câu 1", "Câu 2", "Bài 1", "Bài 2", hoặc "1.", "2."
-  // Dùng regex tìm vị trí các marker
   const questionMarkerRegex = /(?:^|\n)\s*(?:(?:PHẦN|Phần)\s+[I|V|X\d]+[:.\s-]+)?(?:(Câu|Bài|CÂU|BÀI)\s+(\d+)[:.)\s-]|(\d+)[\.:]\s+)/gi;
 
   const matches: { index: number; label: string; number: number }[] = [];
@@ -195,7 +320,6 @@ export function parseQuestionsLocallyFromText(rawText: string): ParsedQuestionIt
     });
   }
 
-  // Nếu không tìm thấy marker "Câu 1, Câu 2", thử tách theo các đoạn có phương án A. B. C. D.
   const rawSections: string[] = [];
   if (matches.length > 0) {
     for (let i = 0; i < matches.length; i++) {
@@ -216,7 +340,6 @@ export function parseQuestionsLocallyFromText(rawText: string): ParsedQuestionIt
     const section = rawSections[idx];
 
     // Kiểm tra xem đoạn này có chứa 4 phương án A, B, C, D không
-    // Marker phương án có thể có hoặc không có tag [RED_ANSWER] bao quanh
     const optMarkerA = /(?:^|\s|\n)(?:\[RED_ANSWER\])?A[.)]\s*(?:\[\/RED_ANSWER\])?/i;
     const optMarkerB = /(?:^|\s|\n)(?:\[RED_ANSWER\])?B[.)]\s*(?:\[\/RED_ANSWER\])?/i;
     const optMarkerC = /(?:^|\s|\n)(?:\[RED_ANSWER\])?C[.)]\s*(?:\[\/RED_ANSWER\])?/i;
@@ -235,7 +358,7 @@ export function parseQuestionsLocallyFromText(rawText: string): ParsedQuestionIt
     );
 
     if (isMultipleChoice && matchA && matchB && matchC && matchD) {
-      // TRẮC NGHIỆM:
+      // 1. TRẮC NGHIỆM:
       const rawQuestionText = section.slice(0, matchA.index).trim();
       const rawOptA = section.slice(matchA.index + matchA[0].length, matchB.index).trim();
       const rawOptB = section.slice(matchB.index + matchB[0].length, matchC.index).trim();
@@ -244,17 +367,31 @@ export function parseQuestionsLocallyFromText(rawText: string): ParsedQuestionIt
       // Phần sau D có thể chứa thêm Lời giải / Đáp án / Hướng dẫn
       let rawOptD = section.slice(matchD.index + matchD[0].length).trim();
       let explanation: string | undefined = undefined;
+      let explicitCorrect: 'A' | 'B' | 'C' | 'D' | undefined = undefined;
 
-      // Cắt bỏ tiêu đề phân phần (nếu có rơi vào cuối phương án D của câu cuối phần trắc nghiệm)
+      // Cắt bỏ tiêu đề phân phần (nếu rơi vào cuối phương án D của câu cuối phần trắc nghiệm)
       const partHeaderMatch = /(?:\n\s*|\s{2,})(?:PHẦN|Phần|TỰ LUẬN|Tự luận)[\s\S]*/i.exec(rawOptD);
       if (partHeaderMatch) {
         rawOptD = rawOptD.slice(0, partHeaderMatch.index).trim();
       }
 
-      const explainMatch = /(?:Lời giải|Hướng dẫn|Giải thích|Đáp án chi tiết)[:\s-]+([\s\S]*)/i.exec(rawOptD);
+      // Xử lý tách chuỗi "Đáp án: [A-D]. Lời giải..." hoặc "Lời giải:..." nằm trong hoặc sau D
+      const explainSplitRegex = /(?:\n\s*|\s{2,}|\s+)(?:\[RED_ANSWER\]\s*)?(?:Đáp án|ĐÁP ÁN|Chọn|CHỌN|Lời giải|LỜI GIẢI|Hướng dẫn giải|HƯỚNG DẪN GIẢI|Hướng dẫn|HƯỚNG DẪN|Giải thích|GIẢI THÍCH|Đáp án chi tiết)[:\s-]+([\s\S]*)/i;
+      const explainMatch = explainSplitRegex.exec(rawOptD);
+
       if (explainMatch) {
-        explanation = explainMatch[1].replace(/\[\/?RED_ANSWER\]/g, '').trim();
+        const afterKeyword = explainMatch[1].trim();
+        // Cắt bỏ hoàn toàn phần đáp án / giải thích ra khỏi phương án D
         rawOptD = rawOptD.slice(0, explainMatch.index).trim();
+
+        // Kiểm tra xem có chữ cái A-D ngay sau Đáp án: không (ví dụ "C. Các kết quả chẵn...")
+        const ansKeyMatch = /^([A-D])[.:\s-]+([\s\S]*)/i.exec(afterKeyword);
+        if (ansKeyMatch) {
+          explicitCorrect = ansKeyMatch[1].toUpperCase() as 'A' | 'B' | 'C' | 'D';
+          explanation = ansKeyMatch[2].replace(/\[\/?RED_ANSWER\]/g, '').trim();
+        } else {
+          explanation = afterKeyword.replace(/\[\/?RED_ANSWER\]/g, '').trim();
+        }
       }
 
       // Xác định đáp án đúng dựa vào [RED_ANSWER]
@@ -273,12 +410,12 @@ export function parseQuestionsLocallyFromText(rawText: string): ParsedQuestionIt
       } else if (rawOptD.includes('[RED_ANSWER]') || matchD[0].includes('[RED_ANSWER]')) {
         correctOption = 'D';
         isRedDetected = true;
+      } else if (explicitCorrect) {
+        correctOption = explicitCorrect;
+        isRedDetected = true;
       } else {
-        // Kiểm tra dấu * hoặc [x] hoặc Đáp án: [A-D]
-        const explicitAnsMatch = /(?:Đáp án|Chọn)[:\s]*([A-D])/i.exec(section);
-        if (explicitAnsMatch) {
-          correctOption = explicitAnsMatch[1].toUpperCase() as 'A' | 'B' | 'C' | 'D';
-        } else if (rawOptA.startsWith('*') || rawOptA.startsWith('[x]')) {
+        // Kiểm tra dấu * hoặc [x]
+        if (rawOptA.startsWith('*') || rawOptA.startsWith('[x]')) {
           correctOption = 'A';
         } else if (rawOptB.startsWith('*') || rawOptB.startsWith('[x]')) {
           correctOption = 'B';
@@ -305,37 +442,109 @@ export function parseQuestionsLocallyFromText(rawText: string): ParsedQuestionIt
         explanation: explanation || undefined,
       });
     } else {
-      // TỰ LUẬN:
-      // Kiểm tra xem đoạn có chứa câu hỏi tự luận không
-      // Tách phần đề bài và phần lời giải mẫu/rubric
-      const answerSplitRegex = /(?:Đáp án|Lời giải|Hướng dẫn giải|Thang điểm|Rubric)[:\s-]+([\s\S]*)/i;
-      const splitMatch = answerSplitRegex.exec(section);
+      // 2. TỰ LUẬN: Áp dụng thuật toán 3 tầng bóc tách
+      const essayRes = parseEssayQuestionLocally(section);
 
-      let questionPart = section;
-      let modelAnswerPart: string | undefined = undefined;
-
-      if (splitMatch) {
-        questionPart = section.slice(0, splitMatch.index).trim();
-        modelAnswerPart = splitMatch[1].trim();
-      }
-
-      const cleanQ = questionPart.replace(/\[\/?RED_ANSWER\]/g, '').trim();
-      const cleanA = modelAnswerPart ? modelAnswerPart.replace(/\[\/?RED_ANSWER\]/g, '').trim() : undefined;
-
-      if (cleanQ.length > 5) {
+      if (essayRes.questionText.length > 5) {
         questions.push({
           tempId: `local_essay_${Date.now()}_${idx}_${Math.random().toString(36).substring(2, 6)}`,
           question_type: 'essay',
-          question_text: cleanQ,
-          model_answer: cleanA,
-          grading_rubric: cleanA ? 'Điểm tối đa nếu hoàn thành đúng các bước lời giải.' : undefined,
-          is_red_detected: false,
+          question_text: essayRes.questionText,
+          model_answer: essayRes.modelAnswer,
+          grading_rubric: essayRes.gradingRubric,
+          is_red_detected: essayRes.isRedDetected,
         });
       }
     }
   }
 
   return questions;
+}
+
+/**
+ * Hàm hậu xử lý chuẩn hóa danh sách câu hỏi:
+ * Đảm bảo dù lấy từ AI hay từ parser local, dữ liệu luôn sạch 100%:
+ * - Phương án D không dính "Đáp án: ...".
+ * - Câu tự luận tách rời đề bài và đáp án tham khảo.
+ */
+export function cleanAndStandardizeQuestions(questions: ParsedQuestionItem[]): ParsedQuestionItem[] {
+  return questions.map((q) => {
+    if (q.question_type === 'multiple_choice') {
+      let optD = q.option_d || '';
+      let explanation = q.explanation;
+      let correctOpt = q.correct_option || 'A';
+      let isRed = q.is_red_detected;
+
+      // Cắt bỏ nếu phương án D còn dính dòng Đáp án: / Lời giải:
+      const explainSplitRegex = /(?:\n\s*|\s{2,}|\s+)(?:\[RED_ANSWER\]\s*)?(?:Đáp án|ĐÁP ÁN|Chọn|CHỌN|Lời giải|LỜI GIẢI|Hướng dẫn giải|HƯỚNG DẪN GIẢI|Hướng dẫn|HƯỚNG DẪN|Giải thích|GIẢI THÍCH|Đáp án chi tiết)[:\s-]+([\s\S]*)/i;
+      const match = explainSplitRegex.exec(optD);
+
+      if (match) {
+        const afterText = match[1].trim();
+        optD = optD.slice(0, match.index).trim();
+
+        const ansKeyMatch = /^([A-D])[.:\s-]+([\s\S]*)/i.exec(afterText);
+        if (ansKeyMatch) {
+          correctOpt = ansKeyMatch[1].toUpperCase() as 'A' | 'B' | 'C' | 'D';
+          explanation = ansKeyMatch[2].replace(/\[\/?RED_ANSWER\]/g, '').trim();
+          isRed = true;
+        } else if (!explanation) {
+          explanation = afterText.replace(/\[\/?RED_ANSWER\]/g, '').trim();
+        }
+      }
+
+      // Làm sạch [RED_ANSWER]
+      const clean = (s?: string) => (s ? s.replace(/\[\/?RED_ANSWER\]/g, '').trim() : undefined);
+
+      return {
+        ...q,
+        question_text: clean(q.question_text) || '',
+        option_a: clean(q.option_a),
+        option_b: clean(q.option_b),
+        option_c: clean(q.option_c),
+        option_d: clean(optD),
+        correct_option: correctOpt,
+        is_red_detected: isRed,
+        explanation: clean(explanation),
+      };
+    } else {
+      // Câu tự luận
+      let qText = q.question_text;
+      let mAnswer = q.model_answer;
+      let rubric = q.grading_rubric;
+      let isRed = q.is_red_detected;
+
+      // Nếu question_text còn dính [RED_ANSWER] hoặc chưa có model_answer, chạy bóc tách tự luận
+      if (qText.includes('[RED_ANSWER]') || !mAnswer) {
+        const rawFullText = mAnswer ? `${qText}\n${mAnswer}` : qText;
+        const essayRes = parseEssayQuestionLocally(rawFullText);
+        qText = essayRes.questionText;
+        mAnswer = essayRes.modelAnswer || mAnswer;
+        rubric = essayRes.gradingRubric || rubric;
+        isRed = essayRes.isRedDetected || isRed;
+      }
+
+      // Tự động tạo rubric nếu chưa có
+      if (mAnswer && !rubric) {
+        const subItems = [...new Set(mAnswer.match(/^[a-zA-Z\d]+[.)]/gm) || [])];
+        if (subItems.length > 1) {
+          rubric = subItems.map((item) => `• Ý ${item} Điểm tối đa nếu hoàn thành đúng các bước lời giải.`).join('\n');
+        } else {
+          rubric = 'Điểm tối đa nếu hoàn thành đầy đủ các bước lập luận và kết quả chính xác.';
+        }
+      }
+
+      const clean = (s?: string) => (s ? s.replace(/\[\/?RED_ANSWER\]/g, '').trim() : undefined);
+
+      return {
+        ...q,
+        question_text: clean(qText) || '',
+        model_answer: clean(mAnswer),
+        grading_rubric: clean(rubric),
+        is_red_detected: isRed || Boolean(mAnswer),
+      };
+    }
+  });
 }
 
 /**
@@ -350,28 +559,31 @@ export async function parseDocumentWithGroq(params: {
   const { rawText, subjectName, hasRedDetection } = params;
 
   // 1. Luôn chạy bộ bóc tách nội bộ trước để có sẵn dữ liệu dự phòng hoàn hảo
-  const localQuestions = parseQuestionsLocallyFromText(rawText);
+  const localQuestions = cleanAndStandardizeQuestions(parseQuestionsLocallyFromText(rawText));
 
   const systemPrompt = `Bạn là trợ lý khảo thí chuyên nghiệp bóc tách đề thi từ tài liệu (Word/PDF) cho hệ thống giáo dục Việt Nam.
 Nhiệm vụ của bạn là đọc toàn bộ văn bản đề thi và chuyển đổi thành danh sách các câu hỏi có cấu trúc JSON chính xác.
 
 QUY TẮC BÓC TÁCH BẮT BUỘC:
 1. Nhận diện các câu hỏi: Thường bắt đầu bằng "Câu 1:", "Câu 2:", "1.", "Bài 1:" hoặc tiêu đề tương tự.
-2. Với câu hỏi trắc nghiệm:
-   - Tách rõ 4 phương án: A, B, C, D (hoặc A., B., C., D.).
-   - Loại bỏ các ký tự thừa như "[RED_ANSWER]" và "[/RED_ANSWER]" ra khỏi nội dung câu hỏi và nội dung phương án.
-3. ĐẶC BIỆT VỀ ĐÁP ÁN ĐÚNG (CRITICAL):
-   - Nếu trong văn bản có tag "[RED_ANSWER]...[/RED_ANSWER]" xuất hiện tại một phương án nào (hoặc tại chữ cái A/B/C/D), đó CHÍNH XÁC là đáp án đúng do giáo viên bôi chữ màu đỏ.
-     -> Bắt buộc gán "correct_option" là phương án đó ("A", "B", "C", hoặc "D") và đặt "is_red_detected": true.
-   - Nếu trong câu hỏi KHÔNG có tag "[RED_ANSWER]", hãy tìm các dấu hiệu nhận diện đáp án khác (chữ in đậm, gạch chân, dấu *, hoặc bảng đáp án ở cuối đề).
-     Nếu xác định được, gán "correct_option" tương ứng và đặt "is_red_detected": false.
-     Nếu vẫn không xác định được, hãy chọn phương án đúng nhất theo kiến thức chuyên môn và đặt "is_red_detected": false.
-4. Với câu hỏi tự luận (không có phương án A, B, C, D):
+2. VỚI CÂU HỎI TRẮC NGHIỆM:
+   - Tách rõ 4 phương án: option_a, option_b, option_c, option_d.
+   - LÀM SẠCH PHƯƠNG ÁN D: Tuyệt đối không để dính dòng "Đáp án: [A-D]..." hoặc lời giải vào trong phương án D!
+     + Nếu sau phương án D có dòng "Đáp án: [A-D]. Lời giải...", hãy cắt phần đó ra khỏi option_d.
+     + Gán chữ cái sau "Đáp án:" vào "correct_option" ("A", "B", "C", hoặc "D").
+     + Đưa phần lời giải/giải thích phía sau vào trường "explanation".
+   - VỀ ĐÁP ÁN ĐÚNG CỦA CHỮ MÀU ĐỎ:
+     Nếu trong phương án nào (hoặc tại dòng Đáp án) có tag "[RED_ANSWER]...[/RED_ANSWER]", đó CHÍNH XÁC là đáp án đúng do giáo viên bôi màu đỏ -> Gán "correct_option" tương ứng và đặt "is_red_detected": true.
+3. VỚI CÂU HỎI TỰ LUẬN:
    - Đặt "question_type": "essay".
-   - "model_answer": Lời giải chi tiết hoặc đáp án gợi ý tìm thấy trong tài liệu.
-5. Công thức toán học/khoa học:
-   - Hãy giữ nguyên hoặc chuẩn hóa công thức sang cú pháp KaTeX inline: $...$ (ví dụ: $x^2 - 4x + 3 = 0$, $\\frac{a}{b}$, $\\sqrt{x}$).
-6. Cấu trúc JSON trả về:
+   - TÁCH BIỆT ĐỀ BÀI VÀ ĐÁP ÁN THAM KHẢO:
+     + "question_text": CHỈ chứa đề bài thuần túy (gồm dẫn dắt và các ý a, b, c). Tuyệt đối KHÔNG chứa lời giải.
+     + "model_answer": Chứa toàn bộ lời giải chi tiết của từng ý (bao gồm các đoạn chữ màu đỏ [RED_ANSWER] hoặc sau từ Lời giải/Đáp án).
+     + "grading_rubric": Thang điểm hoặc hướng dẫn chấm theo từng ý a), b), c).
+     + "is_red_detected": Đặt true nếu tìm thấy lời giải chữ đỏ.
+4. Công thức toán học/khoa học:
+   - Giữ nguyên hoặc chuẩn hóa công thức sang cú pháp KaTeX inline: $...$ (ví dụ: $x^2 - 4x + 3 = 0$, $\\frac{a}{b}$, $\\sqrt{x}$).
+5. Cấu trúc JSON trả về:
    - Trả về DUY NHẤT một mảng JSON các object theo schema dưới đây trong khối \`\`\`json ... \`\`\`:
    [
      {
@@ -380,15 +592,22 @@ QUY TẮC BÓC TÁCH BẮT BUỘC:
        "option_a": "Nội dung phương án A",
        "option_b": "Nội dung phương án B",
        "option_c": "Nội dung phương án C",
-       "option_d": "Nội dung phương án D",
+       "option_d": "Nội dung phương án D (sạch sẽ, không dính lời giải)",
        "correct_option": "A",
        "is_red_detected": true,
-       "explanation": "Lời giải thích ngắn gọn nếu có trong tài liệu"
+       "explanation": "Lời giải thích nếu có trong tài liệu"
+     },
+     {
+       "question_type": "essay",
+       "question_text": "Đề bài tự luận...",
+       "model_answer": "Đáp án tham khảo / Lời giải chi tiết...",
+       "grading_rubric": "• Ý a) 0.5đ\n• Ý b) 0.5đ",
+       "is_red_detected": true
      }
    ]`;
 
   const userPrompt = `Dưới đây là nội dung tài liệu trích xuất từ file đề thi môn: ${subjectName || 'Chung'}.
-${hasRedDetection ? 'LƯU Ý QUAN TRỌNG: Tài liệu này có chứa các tag [RED_ANSWER] đánh dấu chữ màu đỏ của giáo viên. Hãy ưu tiên tuyệt đối các tag này để xác định đáp án đúng.' : ''}
+${hasRedDetection ? 'LƯU Ý QUAN TRỌNG: Tài liệu này có chứa các tag [RED_ANSWER] đánh dấu chữ màu đỏ của giáo viên. Hãy ưu tiên tuyệt đối các tag này để xác định đáp án đúng và lời giải tự luận.' : ''}
 
 === NỘI DUNG TÀI LIỆU ===
 ${rawText.slice(0, 50000)}
@@ -426,7 +645,7 @@ Hãy bóc tách tất cả các câu hỏi và trả về mảng JSON chuẩn:`;
       throw new Error('Dữ liệu AI trả về không phải là mảng danh sách câu hỏi.');
     }
 
-    const questions: ParsedQuestionItem[] = parsedArray.map((item, index) => {
+    const aiQuestions: ParsedQuestionItem[] = parsedArray.map((item, index) => {
       const qType = item.question_type === 'essay' ? 'essay' : 'multiple_choice';
       const cleanQText = String(item.question_text || '')
         .replace(/\[\/?RED_ANSWER\]/g, '')
@@ -454,20 +673,20 @@ Hãy bóc tách tất cả các câu hỏi và trả về mảng JSON chuẩn:`;
         is_red_detected: Boolean(item.is_red_detected),
         explanation: item.explanation ? String(item.explanation).replace(/\[\/?RED_ANSWER\]/g, '').trim() : undefined,
         model_answer: item.model_answer ? String(item.model_answer).replace(/\[\/?RED_ANSWER\]/g, '').trim() : undefined,
+        grading_rubric: item.grading_rubric ? String(item.grading_rubric).trim() : undefined,
       };
     });
 
-    return questions;
+    // Chạy qua bộ hậu xử lý để bảo đảm 100% dữ liệu đạt chuẩn
+    return cleanAndStandardizeQuestions(aiQuestions);
   } catch (error) {
     console.warn('[Document-Parser] AI parsing gặp lỗi hoặc không khả dụng. Kích hoạt bộ bóc tách XML/Regex nội bộ:', error);
 
-    // Nếu bộ bóc tách nội bộ đã có dữ liệu, trả về ngay lập tức để không bao giờ quăng lỗi đỏ lên giao diện!
     if (localQuestions.length > 0) {
       console.log(`[Document-Parser] Đã bóc tách thành công ${localQuestions.length} câu hỏi bằng bộ phân tích nội bộ.`);
       return localQuestions;
     }
 
-    // Nếu cả 2 đều không có câu hỏi nào, lúc này mới báo lỗi định dạng file
     throw new Error(
       'Không nhận diện được cấu trúc câu hỏi nào từ file tài liệu này. Vui lòng kiểm tra lại cách đánh số câu hỏi trong file.'
     );

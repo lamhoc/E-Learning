@@ -265,3 +265,28 @@
       - Tự động chuyển tab hiển thị sang `Đã phát hành` (`published`) kèm thông báo rõ ràng: `"Đã xuất bản đề thi thành công! Đề thi đã được chuyển sang mục Đã phát hành."`.
     + Kiểm tra `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 static/dynamic routes).
     + Local commit an toàn `574b4b7` (không push tự ý) và cập nhật commit hash.
+
+- [ ] **Phase 53: Nâng cấp Bộ Đọc File Upload (DOCX/PDF) Nhận diện & Tách biệt Đáp án Tự luận + Lời giải Trắc nghiệm**:
+  - [ ] **Mục tiêu 1 (Sửa lỗi dính Lời giải/Đáp án vào Phương án D của Câu Trắc nghiệm)**:
+    + Nâng cấp `lib/document-parser.ts`:
+      - Quét và cắt bỏ hoàn toàn các chuỗi `Đáp án: [A-D]. ...`, `Lời giải: ...`, `Giải thích: ...` ra khỏi nội dung phương án `D` (hoặc các phương án).
+      - Gán chính xác `correct_option` từ chữ cái đáp án nếu có nhãn `Đáp án: [A-D]`.
+      - Đưa toàn bộ phần giải thích phía sau vào trường `explanation` (`💡 Giải thích chi tiết`).
+  - [ ] **Mục tiêu 2 (Thuật toán 3 Tầng Nhận diện & Tách Đáp án cho Câu Tự luận)**:
+    + Tầng 1: Tách theo tag `[RED_ANSWER]` trong XML Word: Đề bài (`question_text`) chỉ giữ chữ đen/mặc định; Lời giải (`model_answer`) gom toàn bộ các đoạn chữ đỏ theo từng ý `a)`, `b)`, `c)`.
+    + Tầng 2: Tách theo từ khóa nhãn: `Đáp án:`, `Lời giải:`, `Hướng dẫn giải:`, `Thang điểm:`, `Rubric:`, `Trả lời:`...
+    + Tầng 3: Nhận diện inline khi câu trả lời viết liền sau câu hỏi `a)`, `b)`, `c)`: Phân tách ranh giới mệnh đề hỏi (`Tìm...`, `Giải...`, `Tính...`) và mệnh đề giải (`Ta có...`, `Vì...`, `Do đó...`, `Vậy...`).
+    + Tự động tạo gợi ý `grading_rubric` theo từng ý `a)`, `b)`, `c)` và đánh dấu `is_red_detected: true` cho tự luận.
+    + Nâng cấp Prompt Groq AI trong `parseDocumentWithGroq` để đồng bộ chỉ thị bóc tách câu tự luận và làm sạch phương án D.
+  - [ ] **Mục tiêu 3 (Đồng bộ Giao diện Preview & Chỉnh sửa trong Modal `upload-document-modal.tsx`)**:
+    + Câu trắc nghiệm: Ô D sạch sẽ, hiển thị khung `💡 Giải thích chi tiết:` bên dưới nếu có.
+    + Câu tự luận:
+      - Badge tím: `✅ Đã tách đáp án tự luận`.
+      - Đề bài sạch sẽ hiển thị qua `<MathText />`.
+      - Khung Tím chuẩn Ngân hàng câu hỏi hiển thị **`Đáp án tham khảo:`** và **`Thang điểm / Hướng dẫn chấm:`**.
+      - Cho phép chỉnh sửa riêng biệt 3 ô: Đề bài, Đáp án tham khảo, và Rubric trong form chỉnh sửa inline.
+  - [ ] **Mục tiêu 4 (Kiểm thử Thực tế với file Test DOCX & Xác minh Build)**:
+    + Chạy kiểm tra với file `Toan_10_5_trac_nghiem_2_tu_luan_dap_an_do.docx`.
+    + Đảm bảo 5 câu trắc nghiệm sạch ô D, 2 câu tự luận tách trọn vẹn đề bài và khung tím đáp án tham khảo.
+    + Kiểm tra `npx tsc --noEmit` & `npm run build` đạt 0 lỗi.
+    + Tạo local commit an toàn và cập nhật commit hash.

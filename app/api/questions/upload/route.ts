@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import {
+  cleanAndStandardizeQuestions,
   extractDocxTextWithRedColor,
   extractPdfTextSafe,
   parseDocumentWithGroq,
@@ -126,6 +127,9 @@ export async function POST(req: NextRequest) {
     if (questions.length === 0 && localQuestions.length > 0) {
       questions = localQuestions;
     }
+
+    // Luôn chuẩn hóa và làm sạch qua bộ lọc
+    questions = cleanAndStandardizeQuestions(questions);
 
     if (questions.length === 0) {
       return NextResponse.json(
