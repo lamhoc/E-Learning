@@ -6,8 +6,16 @@ import { ExamCreateForm } from '@/components/teacher/exam-create-form';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ThemeToggle } from '@/components/theme-toggle';
 
-export default async function TeacherExamCreatePage() {
-  const data = await getTeacherExamCreateData();
+type PageProps = {
+  searchParams: Promise<{
+    editId?: string;
+  }>;
+};
+
+export default async function TeacherExamCreatePage(props: PageProps) {
+  const searchParams = await props.searchParams;
+  const editId = searchParams?.editId;
+  const data = await getTeacherExamCreateData(editId);
 
   const today = new Intl.DateTimeFormat('vi-VN', {
     weekday: 'long',
@@ -43,6 +51,7 @@ export default async function TeacherExamCreatePage() {
               assignedSubjects={data.assignedSubjects}
               classes={data.classes}
               questions={data.questions}
+              initialExam={data.initialExam}
             />
           </Suspense>
         </div>
@@ -50,4 +59,3 @@ export default async function TeacherExamCreatePage() {
     </main>
   );
 }
-

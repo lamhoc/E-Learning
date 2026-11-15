@@ -228,3 +228,41 @@
     - Sửa dropzone trong `components/teacher/upload-document-modal.tsx`: Khung chọn file, tên file, dung lượng, và hướng dẫn chuẩn tương phản Light/Dark Mode theo yêu cầu.
     - Kiểm tra `npx tsc --noEmit` & `npm run build` đạt 0 lỗi.
     - Local commit an toàn (không push tự ý) và cập nhật commit hash.
+
+- [ ] **Phase 52: Bổ sung tính năng Chỉnh sửa & Xuất bản Đề thi Nháp (Tự động chuyển khỏi mục Bản nháp khi Xuất bản)**:
+  - [ ] **Mục tiêu 1 (Thao tác trên Thẻ Đề thi Nháp & Trang Chi tiết `/teacher/exams` & `/teacher/exams/[examId]`)**:
+    + Nâng cấp `components/teacher/teacher-exams-client.tsx`:
+      - Khi `exam.status === 'draft'`: Hiển thị 3 nút thao tác trực diện:
+        * Nút `✏️ Chỉnh sửa bản nháp` (`/teacher/exams/create?editId=${exam.id}`). Style: `bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/40 font-semibold`.
+        * Nút `🚀 Xuất bản ngay` (`bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-sm`).
+        * Nút `🗑️ Xóa nháp` (icon Trash2 tinh tế, có hộp thoại confirm).
+      - Giữ nút `Phổ điểm & Chi tiết` nếu đề đã đóng/phát hành hoặc bổ sung tinh gọn.
+    + Nâng cấp trang chi tiết `app/teacher/exams/[examId]/page.tsx` và client:
+      - Khi `status === 'draft'`, hiển thị cụm nút `✏️ Chỉnh sửa bản nháp` và `🚀 Xuất bản ngay` ở Header Card.
+  - [ ] **Mục tiêu 2 (Nạp Dữ liệu Bản Nháp vào Form Chỉnh sửa `app/teacher/exams/create`)**:
+    + Nâng cấp `lib/teacher-exam-create.ts` và `app/teacher/exams/create/page.tsx`:
+      - Nhận query param `editId`.
+      - Khi có `editId`, truy vấn thông tin đề thi nháp từ DB: `title`, `instructions`, `duration_minutes`, `max_attempts`, `available_from`, `available_until`, `require_camera`, `auto_grade_essay`, `subject_id`, danh sách `class_id` từ `exam_classes`, và danh sách câu hỏi gốc từ `exam_questions`.
+      - Đổi tiêu đề trang thành `"Chỉnh sửa đề thi nháp"`.
+    + Nâng cấp `components/teacher/exam-create-form.tsx`:
+      - Nhận prop `initialExam` chứa toàn bộ dữ liệu cấu hình bản nháp.
+      - Pre-fill vào tất cả các trường input, toggle, và nạp danh sách câu hỏi đã chọn kèm điểm số.
+  - [ ] **Mục tiêu 3 (Server Actions UPDATE Bản Nháp & Xuất bản Trực tiếp không tạo trùng `actions.ts`)**:
+    + Xây dựng `updateExamAction(payload: UpdateExamPayload)`:
+      - BẮT BUỘC thực hiện `UPDATE` trên chính `id = editId`, tuyệt đối KHÔNG `INSERT` bản ghi mới.
+      - Cập nhật thông số đề thi (`title`, `instructions`, `duration_minutes`, `max_attempts`, `available_from`, `available_until`, `require_camera`, `auto_grade_essay`).
+      - Đồng bộ lại `exam_classes` (xóa liên kết cũ, thêm liên kết mới).
+      - Đồng bộ lại `exam_questions` và `exam_answer_keys` (xóa câu hỏi cũ của đề, tạo lại snapshot mới).
+      - Nếu `publishImmediately === true`, gọi `publish_exam` RPC (hoặc update `status = 'published'`, `published_at = now()`).
+    + Xây dựng `publishExistingDraftExamAction(examId: string)`:
+      - Cho phép bấm "Xuất bản ngay" trực tiếp từ thẻ đề thi hoặc trang chi tiết.
+    + Xây dựng `deleteDraftExamAction(examId: string)`:
+      - Xóa an toàn bản nháp khỏi hệ thống khi giảng viên yêu cầu.
+    + Gọi đầy đủ `revalidatePath`: `/teacher/exams`, `/teacher/exams/[examId]`, `/teacher/dashboard`, `/student/exams`, `/student/dashboard`.
+  - [ ] **Mục tiêu 4 (Cập nhật State Tức thì trên Client, Chuyển Tab & Kiểm thử Nghiệm thu)**:
+    + Xử lý State Client tại `teacher-exams-client.tsx`:
+      - Khi xuất bản thành công: Cập nhật status của đề sang `published`, tự động giảm `stats.draft` đi 1, tăng `stats.published` lên 1, đề biến mất khỏi tab `Bản nháp`.
+      - Tự động chuyển tab hiển thị sang `Đã phát hành` (`published`) kèm thông báo rõ ràng: `"Đã xuất bản đề thi thành công! Đề thi đã được chuyển sang mục Đã phát hành."`.
+    + Kiểm tra `npx tsc --noEmit` & `npm run build` đạt 0 lỗi.
+    + Kiểm thử thực tế với bản nháp hiện có trong hệ thống.
+    + Local commit an toàn (không push tự ý) và cập nhật commit hash.

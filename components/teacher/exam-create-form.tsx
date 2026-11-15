@@ -34,14 +34,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MathText } from '@/components/ui/math-text';
-import { createExamAction } from '@/app/teacher/exams/create/actions';
+import { createExamAction, updateExamAction } from '@/app/teacher/exams/create/actions';
 import type { BankQuestion, SubjectSummary } from '@/lib/question-bank';
-import type { TeacherClassSummary } from '@/lib/teacher-exam-create';
+import type { DraftExamInitialData, TeacherClassSummary } from '@/lib/teacher-exam-create';
 
 type ExamCreateFormProps = {
   assignedSubjects: SubjectSummary[];
   classes: TeacherClassSummary[];
   questions: BankQuestion[];
+  initialExam?: DraftExamInitialData | null;
 };
 
 type SelectedQuestionItem = {
@@ -49,30 +50,66 @@ type SelectedQuestionItem = {
   points: number;
 };
 
+function formatForDateTimeLocal(isoString: string | null | undefined): string {
+  if (!isoString) return '';
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return '';
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    const MM = pad(d.getMonth() + 1);
+    const dd = pad(d.getDate());
+    const hh = pad(d.getHours());
+    const mm = pad(d.getMinutes());
+    return `${yyyy}-${MM}-${dd}T${hh}:${mm}`;
+  } catch {
+    return '';
+  }
+}
+
 export function ExamCreateForm({
   assignedSubjects,
   classes,
   questions,
+  initialExam,
 }: ExamCreateFormProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
 
-  // 1. Basic Form States
+  const isEditMode = Boolean(initialExam?.id);
+
+  // 1. Basic Form States (Pre-fill nếu đang ở chế độ Chỉnh sửa bản nháp)
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>(
-    assignedSubjects[0]?.id ?? '',
+    initialExam?.subject_id || assignedSubjects[0]?.id || '',
   );
-  const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
-  const [title, setTitle] = useState('');
-  const [instructions, setInstructions] = useState('');
-  const [durationMinutes, setDurationMinutes] = useState<number>(45);
-  const [maxAttempts, setMaxAttempts] = useState<number>(1);
-  const [availableFrom, setAvailableFrom] = useState<string>('');
-  const [availableUntil, setAvailableUntil] = useState<string>('');
-  const [requireCamera, setRequireCamera] = useState<boolean>(false);
-  const [autoGradeEssay, setAutoGradeEssay] = useState<boolean>(false);
+  const [selectedClassIds, setSelectedClassIds] = useState<string[]>(
+    initialExam?.selectedClassIds || [],
+  );
+  const [title, setTitle] = useState(initialExam?.title || '');
+  const [instructions, setInstructions] = useState(initialExam?.instructions || '');
+  const [durationMinutes, setDurationMinutes] = useState<number>(
+    initialExam?.duration_minutes ?? 45,
+  );
+  const [maxAttempts, setMaxAttempts] = useState<number>(
+    initialExam?.max_attempts ?? 1,
+  );
+  const [availableFrom, setAvailableFrom] = useState<string>(
+    formatForDateTimeLocal(initialExam?.available_from),
+  );
+  const [availableUntil, setAvailableUntil] = useState<string>(
+    formatForDateTimeLocal(initialExam?.available_until),
+  );
+  const [requireCamera, setRequireCamera] = useState<boolean>(
+    initialExam?.require_camera ?? false,
+  );
+  const [autoGradeEssay, setAutoGradeEssay] = useState<boolean>(
+    initialExam?.auto_grade_essay ?? false,
+  );
 
   // 2. Question Bank Selection States
-  const [selectedQuestions, setSelectedQuestions] = useState<SelectedQuestionItem[]>([]);
+  const [selectedQuestions, setSelectedQuestions] = useState<SelectedQuestionItem[]>(
+    initialExam?.selectedQuestions || [],
+  );
   const [questionSearch, setQuestionSearch] = useState('');
   const [questionTypeFilter, setQuestionTypeFilter] = useState<'all' | 'multiple_choice' | 'essay'>('all');
 
@@ -216,7 +253,10 @@ export function ExamCreateForm({
       })),
     };
 
-    const res = await createExamAction(payload);
+    const res = isEditMode && initialExam?.id
+      ? await updateExamAction({ ...payload, examId: initialExam.id })
+      : await createExamAction(payload);
+
     setIsSubmitting(false);
 
     if (res.status === 'error') {
@@ -225,7 +265,8 @@ export function ExamCreateForm({
       setSuccessMessage(res.message);
       setTimeout(() => {
         startTransition(() => {
-          router.push('/teacher/exams');
+          const targetTab = publishImmediately ? 'published' : 'draft';
+          router.push(`/teacher/exams?tab=${targetTab}`);
           router.refresh();
         });
       }, 1200);
@@ -243,16 +284,23 @@ export function ExamCreateForm({
           >
             <ArrowLeft className="size-3.5" /> Quay lại danh sách đề thi
           </Link>
-          <div className="flex items-center gap-2">
-            <span className="grid size-8 place-items-center rounded-lg bg-[#e5f0e9] text-[#246348]">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="grid size-8 place-items-center rounded-lg bg-[#e5f0e9] dark:bg-emerald-950/60 text-[#246348] dark:text-emerald-400">
               <FileText className="size-4" />
             </span>
             <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-2xl">
-              Tạo đề thi mới
+              {isEditMode ? 'Chỉnh sửa đề thi nháp' : 'Tạo đề thi mới'}
             </h1>
+            {isEditMode && (
+              <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40 text-xs font-semibold">
+                Đang sửa bản nháp
+              </Badge>
+            )}
           </div>
-          <p className="mt-1 text-xs text-slate-500">
-            Đóng gói câu hỏi từ ngân hàng thành đề thi hoàn chỉnh kèm phân công lớp và quy chế thi.
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {isEditMode
+              ? 'Cập nhật trực tiếp cấu hình bản nháp, phân công lớp và danh sách câu hỏi.'
+              : 'Đóng gói câu hỏi từ ngân hàng thành đề thi hoàn chỉnh kèm phân công lớp và quy chế thi.'}
           </p>
         </div>
 
@@ -270,19 +318,19 @@ export function ExamCreateForm({
             ) : (
               <FileText className="size-3.5 mr-1.5 text-slate-500" />
             )}
-            Lưu bản nháp
+            {isEditMode ? 'Lưu thay đổi nháp' : 'Lưu bản nháp'}
           </Button>
 
           <Button
             type="button"
             disabled={isSubmitting}
             onClick={() => handleSubmit(true)}
-            className="h-10 gap-1.5 bg-primary text-xs font-bold text-white hover:bg-primary/90 shadow-xs"
+            className="h-10 gap-1.5 bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white shadow-xs"
           >
             {isSubmitting ? (
-              <LoaderCircle className="size-4 animate-spin text-[#FACC15]" />
+              <LoaderCircle className="size-4 animate-spin text-white" />
             ) : (
-              <Send className="size-4 text-[#FACC15]" />
+              <Send className="size-4 text-white" />
             )}
             <span>Xuất bản ngay</span>
           </Button>

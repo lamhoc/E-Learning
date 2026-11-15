@@ -1,20 +1,25 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
+  AlertCircle,
   BarChart3,
   BookOpen,
   Calendar,
   Camera,
+  CheckCircle2,
   Clock,
   ExternalLink,
   FileCheck,
   FileQuestion,
   HelpCircle,
+  LoaderCircle,
   PenTool,
   PlusCircle,
   Search,
+  Trash2,
   Users,
   Zap,
 } from 'lucide-react';
@@ -22,6 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { deleteDraftExamAction, publishExistingDraftExamAction } from '@/app/teacher/exams/create/actions';
 
 export type ExamItem = {
   id: string;
@@ -45,11 +51,53 @@ type Props = {
 };
 
 export function TeacherExamsClient({ exams }: Props) {
-  const [filterStatus, setFilterStatus] = useState<'all' | 'published' | 'draft' | 'closed'>('all');
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Đọc tab từ searchParams nếu có
+  const initialTab = (searchParams.get('tab') as 'all' | 'published' | 'draft' | 'closed') || 'all';
+
+  const [examList, setExamList] = useState<ExamItem[]>(exams);
+  const [filterStatus, setFilterStatus] = useState<'all' | 'published' | 'draft' | 'closed'>(initialTab);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Trạng thái xử lý xuất bản nhanh & xóa nháp
+  const [publishingId, setPublishingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Sync lại khi prop exams thay đổi
+  useEffect(() => {
+    setExamList(exams);
+  }, [exams]);
+
+  // Cập nhật tab khi searchParams thay đổi
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && ['all', 'published', 'draft', 'closed'].includes(tab)) {
+      setFilterStatus(tab as 'all' | 'published' | 'draft' | 'closed');
+    }
+  }, [searchParams]);
+
+  // Tự động tắt feedback sau 4.5s
+  useEffect(() => {
+    if (!feedback) return;
+    const timer = setTimeout(() => {
+      setFeedback(null);
+    }, 4500);
+    return () => clearTimeout(timer);
+  }, [feedback]);
+
+  const stats = useMemo(() => {
+    const total = examList.length;
+    const published = examList.filter((e) => e.status === 'published').length;
+    const draft = examList.filter((e) => e.status === 'draft').length;
+    const closed = examList.filter((e) => e.status === 'closed' || e.status === 'archived').length;
+    return { total, published, draft, closed };
+  }, [examList]);
+
   const filteredExams = useMemo(() => {
-    return exams.filter((exam) => {
+    return examList.filter((exam) => {
       const matchStatus = filterStatus === 'all' || exam.status === filterStatus;
       const matchSearch =
         !searchQuery.trim() ||
@@ -57,15 +105,63 @@ export function TeacherExamsClient({ exams }: Props) {
         exam.subjectName.toLowerCase().includes(searchQuery.toLowerCase());
       return matchStatus && matchSearch;
     });
-  }, [exams, filterStatus, searchQuery]);
+  }, [examList, filterStatus, searchQuery]);
 
-  const stats = useMemo(() => {
-    const total = exams.length;
-    const published = exams.filter((e) => e.status === 'published').length;
-    const draft = exams.filter((e) => e.status === 'draft').length;
-    const closed = exams.filter((e) => e.status === 'closed' || e.status === 'archived').length;
-    return { total, published, draft, closed };
-  }, [exams]);
+  // Xử lý xuất bản nhanh trực tiếp trên thẻ đề thi nháp
+  const handleQuickPublish = async (exam: ExamItem) => {
+    setPublishingId(exam.id);
+    setFeedback(null);
+
+    const res = await publishExistingDraftExamAction(exam.id);
+    setPublishingId(null);
+
+    if (res.status === 'error') {
+      setFeedback({ type: 'error', message: res.message });
+    } else {
+      // 1. Cập nhật state local ngay tức thì: chuyển trạng thái sang published
+      setExamList((prev) =>
+        prev.map((item) => (item.id === exam.id ? { ...item, status: 'published' } : item)),
+      );
+
+      // 2. Chuyển tab sang 'published' để người dùng thấy đề thi vừa xuất bản
+      setFilterStatus('published');
+      router.replace('/teacher/exams?tab=published', { scroll: false });
+
+      // 3. Thông báo thành công
+      setFeedback({
+        type: 'success',
+        message: `Đã xuất bản đề thi "${exam.title}" thành công! Đề thi đã được chuyển sang mục Đã phát hành.`,
+      });
+    }
+  };
+
+  // Xử lý xóa bản nháp
+  const handleDeleteDraft = async (exam: ExamItem) => {
+    if (
+      !window.confirm(
+        `Bạn có chắc chắn muốn xóa bản nháp đề thi "${exam.title}" không? Thao tác này không thể hoàn tác.`,
+      )
+    ) {
+      return;
+    }
+
+    setDeletingId(exam.id);
+    setFeedback(null);
+
+    const res = await deleteDraftExamAction(exam.id);
+    setDeletingId(null);
+
+    if (res.status === 'error') {
+      setFeedback({ type: 'error', message: res.message });
+    } else {
+      // Loại bỏ đề thi khỏi danh sách local
+      setExamList((prev) => prev.filter((item) => item.id !== exam.id));
+      setFeedback({
+        type: 'success',
+        message: res.message,
+      });
+    }
+  };
 
   function getStatusBadge(status: ExamItem['status']) {
     switch (status) {
@@ -101,6 +197,34 @@ export function TeacherExamsClient({ exams }: Props) {
 
   return (
     <div className="space-y-6">
+      {/* Toast Feedback Banner */}
+      {feedback && (
+        <div
+          role="alert"
+          className={`flex items-center justify-between gap-3 rounded-xl p-4 text-xs font-semibold shadow-sm animate-in fade-in zoom-in-95 ${
+            feedback.type === 'success'
+              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800'
+              : 'bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-200 border border-rose-200 dark:border-rose-800'
+          }`}
+        >
+          <div className="flex items-center gap-2.5">
+            {feedback.type === 'success' ? (
+              <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            ) : (
+              <AlertCircle className="size-4 shrink-0 text-rose-600 dark:text-rose-400" />
+            )}
+            <span>{feedback.message}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFeedback(null)}
+            className="text-xs opacity-70 hover:opacity-100 transition"
+          >
+            Đóng
+          </button>
+        </div>
+      )}
+
       {/* Metric Cards */}
       <div className="grid gap-4 sm:grid-cols-4">
         <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
@@ -166,11 +290,14 @@ export function TeacherExamsClient({ exams }: Props) {
 
       {/* Filter Tabs & Search */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        {/* Pills Tabs với màu xanh Active chuẩn */}
+        {/* Pills Tabs */}
         <div className="inline-flex items-center gap-1.5 rounded-full bg-slate-200/80 dark:bg-[#111C2D] p-1.5 border border-slate-300/80 dark:border-slate-800">
           <button
             type="button"
-            onClick={() => setFilterStatus('all')}
+            onClick={() => {
+              setFilterStatus('all');
+              router.replace('/teacher/exams?tab=all', { scroll: false });
+            }}
             className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all duration-200 ${
               filterStatus === 'all'
                 ? '!bg-blue-600 !text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400/40'
@@ -191,7 +318,10 @@ export function TeacherExamsClient({ exams }: Props) {
 
           <button
             type="button"
-            onClick={() => setFilterStatus('published')}
+            onClick={() => {
+              setFilterStatus('published');
+              router.replace('/teacher/exams?tab=published', { scroll: false });
+            }}
             className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all duration-200 ${
               filterStatus === 'published'
                 ? '!bg-blue-600 !text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400/40'
@@ -212,7 +342,10 @@ export function TeacherExamsClient({ exams }: Props) {
 
           <button
             type="button"
-            onClick={() => setFilterStatus('draft')}
+            onClick={() => {
+              setFilterStatus('draft');
+              router.replace('/teacher/exams?tab=draft', { scroll: false });
+            }}
             className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all duration-200 ${
               filterStatus === 'draft'
                 ? '!bg-blue-600 !text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400/40'
@@ -233,7 +366,10 @@ export function TeacherExamsClient({ exams }: Props) {
 
           <button
             type="button"
-            onClick={() => setFilterStatus('closed')}
+            onClick={() => {
+              setFilterStatus('closed');
+              router.replace('/teacher/exams?tab=closed', { scroll: false });
+            }}
             className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all duration-200 ${
               filterStatus === 'closed'
                 ? '!bg-blue-600 !text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400/40'
@@ -368,25 +504,80 @@ export function TeacherExamsClient({ exams }: Props) {
                   </div>
                 </div>
 
-                <div className="mt-4 flex items-center gap-2">
-                  <Link
-                    href={`/teacher/exams/${exam.id}`}
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition"
-                  >
-                    <BarChart3 className="size-3.5" />
-                    <span>Phổ điểm & Chi tiết</span>
-                  </Link>
+                {/* Khu vực nút thao tác: Tùy biến linh hoạt cho Bản nháp vs Đã phát hành */}
+                {exam.status === 'draft' ? (
+                  <div className="mt-4 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/teacher/exams/create?editId=${exam.id}`}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/40 px-3 py-2 text-xs font-semibold transition"
+                        title="Mở lại form chỉnh sửa cấu hình đề thi"
+                      >
+                        <span>✏️ Chỉnh sửa bản nháp</span>
+                      </Link>
 
-                  {exam.pendingAttempts > 0 && (
+                      <Button
+                        type="button"
+                        disabled={publishingId === exam.id || deletingId === exam.id}
+                        onClick={() => handleQuickPublish(exam)}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 text-xs font-semibold shadow-xs transition"
+                        title="Xuất bản ngay để học sinh có thể vào thi"
+                      >
+                        {publishingId === exam.id ? (
+                          <LoaderCircle className="size-3.5 animate-spin" />
+                        ) : (
+                          <span>🚀 Xuất bản ngay</span>
+                        )}
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        disabled={publishingId === exam.id || deletingId === exam.id}
+                        onClick={() => handleDeleteDraft(exam)}
+                        className="h-9 w-9 shrink-0 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                        title="Xóa bản nháp này"
+                      >
+                        {deletingId === exam.id ? (
+                          <LoaderCircle className="size-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="size-3.5" />
+                        )}
+                      </Button>
+                    </div>
+
+                    <div className="flex justify-end">
+                      <Link
+                        href={`/teacher/exams/${exam.id}`}
+                        className="text-[11px] text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 inline-flex items-center gap-1 transition"
+                      >
+                        <BarChart3 className="size-3" />
+                        <span>Xem chi tiết & phổ điểm</span>
+                      </Link>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-4 flex items-center gap-2">
                     <Link
-                      href="/teacher/grading"
-                      className="inline-flex items-center justify-center rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/60 px-3 py-2 text-xs font-semibold text-amber-800 dark:text-amber-300 hover:bg-amber-100 transition"
-                      title="Chấm bài thi tự luận"
+                      href={`/teacher/exams/${exam.id}`}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition"
                     >
-                      <PenTool className="size-3.5" />
+                      <BarChart3 className="size-3.5" />
+                      <span>Phổ điểm & Chi tiết</span>
                     </Link>
-                  )}
-                </div>
+
+                    {exam.pendingAttempts > 0 && (
+                      <Link
+                        href="/teacher/grading"
+                        className="inline-flex items-center justify-center rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/60 px-3 py-2 text-xs font-semibold text-amber-800 dark:text-amber-300 hover:bg-amber-100 transition"
+                        title="Chấm bài thi tự luận"
+                      >
+                        <PenTool className="size-3.5" />
+                      </Link>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}

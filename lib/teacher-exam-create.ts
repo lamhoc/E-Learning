@@ -4,6 +4,7 @@ import 'server-only';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import type { BankQuestion, SubjectSummary } from '@/lib/question-bank';
+import { cleanExamInstructions, isAutoGradeEssay, isCameraRequired } from '@/lib/exam-auto-grade';
 
 export type TeacherClassSummary = {
   id: string;
@@ -13,14 +14,34 @@ export type TeacherClassSummary = {
   academic_year: string;
 };
 
+export type DraftExamInitialData = {
+  id: string;
+  subject_id: string;
+  title: string;
+  instructions: string;
+  duration_minutes: number;
+  max_attempts: number;
+  available_from: string | null;
+  available_until: string | null;
+  require_camera: boolean;
+  auto_grade_essay: boolean;
+  status: 'draft' | 'published' | 'closed' | 'archived';
+  selectedClassIds: string[];
+  selectedQuestions: {
+    questionId: string;
+    points: number;
+  }[];
+};
+
 export type TeacherExamCreateData = {
   teacherName: string;
   assignedSubjects: SubjectSummary[];
   classes: TeacherClassSummary[];
   questions: BankQuestion[];
+  initialExam?: DraftExamInitialData | null;
 };
 
-export async function getTeacherExamCreateData(): Promise<TeacherExamCreateData> {
+export async function getTeacherExamCreateData(editId?: string): Promise<TeacherExamCreateData> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -51,6 +72,69 @@ export async function getTeacherExamCreateData(): Promise<TeacherExamCreateData>
 
   const teacherName = sanitizeVietnameseText(profile?.full_name) || user.email || 'Giảng viên';
 
+  // 1.5. Nếu có editId, fetch thông tin bản nháp cần nạp
+  let initialExam: DraftExamInitialData | null = null;
+  let draftSubjectId: string | null = null;
+
+  if (editId) {
+    const { data: examData, error: examErr } = await supabase
+      .from('exams')
+      .select(`
+        id, subject_id, title, instructions, duration_minutes, max_attempts,
+        available_from, available_until, status, created_by,
+        require_camera, auto_grade_essay,
+        exam_classes(class_id),
+        exam_questions(id, source_question_id, points, position)
+      `)
+      .eq('id', editId)
+      .maybeSingle();
+
+    if (examData && !examErr) {
+      const isOwner = examData.created_by === user.id;
+      const isAdmin = userRole === 'admin';
+      if (isOwner || isAdmin) {
+        draftSubjectId = examData.subject_id;
+        const rawClasses = (examData.exam_classes ?? []) as { class_id: string }[];
+        const selectedClassIds = rawClasses.map((c) => c.class_id).filter(Boolean);
+
+        const rawQuestions = (examData.exam_questions ?? []) as {
+          id: string;
+          source_question_id: string | null;
+          points: number;
+          position: number;
+        }[];
+
+        const sortedQuestions = [...rawQuestions].sort((a, b) => a.position - b.position);
+        const selectedQuestions = sortedQuestions
+          .filter((q) => Boolean(q.source_question_id))
+          .map((q) => ({
+            questionId: String(q.source_question_id),
+            points: Number(q.points) || 1,
+          }));
+
+        const requireCamera = isCameraRequired(examData);
+        const autoGradeEssay = isAutoGradeEssay(examData);
+        const instructionsClean = cleanExamInstructions(examData.instructions) || '';
+
+        initialExam = {
+          id: examData.id,
+          subject_id: examData.subject_id,
+          title: examData.title,
+          instructions: instructionsClean,
+          duration_minutes: examData.duration_minutes || 45,
+          max_attempts: examData.max_attempts || 1,
+          available_from: examData.available_from,
+          available_until: examData.available_until,
+          require_camera: requireCamera,
+          auto_grade_essay: autoGradeEssay,
+          status: examData.status,
+          selectedClassIds,
+          selectedQuestions,
+        };
+      }
+    }
+  }
+
   // 2. Fetch Assigned Subjects
   let assignedSubjects: SubjectSummary[] = [];
   let subjectIds: string[] = [];
@@ -76,6 +160,19 @@ export async function getTeacherExamCreateData(): Promise<TeacherExamCreateData>
 
     assignedSubjects = subs;
     subjectIds = subs.map((s) => s.id);
+
+    // Nếu sửa bản nháp của một môn chưa có trong assignments, tự động nạp thêm môn đó
+    if (draftSubjectId && !subjectIds.includes(draftSubjectId)) {
+      const { data: draftSub } = await supabase
+        .from('subjects')
+        .select('id, name, code')
+        .eq('id', draftSubjectId)
+        .maybeSingle();
+      if (draftSub) {
+        assignedSubjects.unshift(draftSub);
+        subjectIds.unshift(draftSub.id);
+      }
+    }
   }
 
   // 3. Fetch Classes
@@ -144,6 +241,6 @@ export async function getTeacherExamCreateData(): Promise<TeacherExamCreateData>
     assignedSubjects,
     classes,
     questions,
+    initialExam,
   };
 }
-

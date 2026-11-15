@@ -10,6 +10,7 @@ import {
 import { getTeacherExamAnalytics } from '@/lib/teacher-exam-analytics';
 import { TeacherSidebar } from '@/components/teacher/teacher-sidebar';
 import { ExamAnalyticsClient } from '@/components/teacher/exam-analytics-client';
+import { ExamDraftActions } from '@/components/teacher/exam-draft-actions';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
@@ -100,7 +101,13 @@ export default async function TeacherExamAnalyticsPage({
         {/* Page Content */}
         <div className="mx-auto max-w-[1440px] space-y-6 px-5 py-6 sm:px-8 lg:px-10">
           {/* Exam Header Overview Card */}
-          <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-5 sm:p-6 shadow-xs">
+          <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-5 sm:p-6 shadow-xs space-y-4">
+            <ExamDraftActions
+              examId={data.exam.id}
+              examTitle={data.exam.title}
+              isDraft={data.exam.status === 'draft'}
+            />
+
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
