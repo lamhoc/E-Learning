@@ -204,3 +204,27 @@
     - Thẻ đề thi Sinh viên (`app/student/exams/page.tsx`, `lib/student-dashboard.ts`): Hiển thị badge `⚡ Tự chấm tự luận` hoặc `✍️ GV chấm tự luận`.
     - Kiểm tra `npx tsc --noEmit` & `npm run build` đạt 0 lỗi.
     - Local commit an toàn (không push tự ý) và cập nhật commit hash.
+
+- [x] **Phase 51 (Commit `64a7ab7`)**: Sửa triệt để lỗi `404 model_not_found` khi Upload đề thi DOCX/PDF & Đồng bộ cơ chế chọn Model AI toàn hệ thống:
+  - [x] **Mục tiêu 1 (Bộ bóc tách DOCX XML & Regex Nội bộ `parseQuestionsLocallyFromText`)**:
+    - Xây dựng hàm bóc tách văn bản nội bộ thuần JavaScript/Regex trong `lib/document-parser.ts`:
+      + Tách các câu hỏi Trắc nghiệm (`Câu 1`, `Câu 2`...) kèm 4 phương án A-B-C-D (hỗ trợ cả các phương án cùng hàng hoặc xuống dòng).
+      + Phát hiện đáp án bôi đỏ `[RED_ANSWER]` (hoặc gạch chân, `*`, `[x]`, `Đáp án: [A-D]`), tự động gán `correct_option` và `is_red_detected: true`.
+      + Tách các câu hỏi Tự luận (`Bài 1`, `Tự luận`...) kèm lời giải mẫu (`model_answer`) hoặc thang điểm rubric.
+      + Bảo tồn trọn vẹn công thức Toán KaTeX `$ ... $` / `$$ ... $$`.
+    - Nâng cấp `app/api/questions/upload/route.ts`: Ưu tiên bóc tách nội bộ, bọc khối gọi AI trong `try / catch` an toàn. Nếu AI lỗi (`404`, `400`, `429`, `500`), lập tức dùng kết quả bóc tách nội bộ, tuyệt đối không quăng lỗi đỏ làm hỏng quá trình upload.
+  - [x] **Mục tiêu 2 (Module AI Trung tâm & Dynamic Model Discovery `lib/ai-provider.ts`)**:
+    - Xây dựng module `lib/ai-provider.ts` quản lý kết nối Groq/OpenAI:
+      + Tự động xác định Base URL (`https://api.groq.com/openai/v1` nếu key là `gsk_...`).
+      + Danh sách model cascade: `process.env.GROQ_MODEL` -> `llama-3.1-8b-instant` -> `meta-llama/llama-4-scout-17b-16e-instruct` -> `qwen/qwen3-32b` -> `llama-3.3-70b-versatile` -> `gemma2-9b-it`.
+      + Cơ chế Tự động Dò tìm Model: Nếu gặp `404 model_not_found`, tự động gọi `GET /models` để lấy danh sách các model chat thực tế mà tài khoản có quyền truy cập và retry ngay lập tức.
+      + Lưu cache model hoạt động (`activeWorkingModel`) để các request kế tiếp chạy nhanh nhất.
+  - [x] **Mục tiêu 3 (Áp dụng Module AI Trung tâm cho Toàn Bộ Tính Năng AI)**:
+    - Đồng bộ `lib/document-parser.ts` (upload file đề thi).
+    - Đồng bộ `lib/ai-question-generator.ts` (sinh câu hỏi trắc nghiệm & tự luận AI).
+    - Đồng bộ `app/api/chat-ai/route.ts` & `app/api/chat/route.ts` (Gia sư AI).
+    - Đồng bộ `app/api/student/exam-tutor/route.ts` (Gia sư AI chữa đề thi).
+  - [x] **Mục tiêu 4 (Sửa Màu sắc Khung Upload File trong Dark Mode & Kiểm thử)**:
+    - Sửa dropzone trong `components/teacher/upload-document-modal.tsx`: Khung chọn file, tên file, dung lượng, và hướng dẫn chuẩn tương phản Light/Dark Mode theo yêu cầu.
+    - Kiểm tra `npx tsc --noEmit` & `npm run build` đạt 0 lỗi.
+    - Local commit an toàn (không push tự ý) và cập nhật commit hash.
