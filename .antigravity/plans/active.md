@@ -166,3 +166,20 @@
     - `npm run build` thành công 100% (38/38 routes).
     - Tạo local commit và ghi mã hash cạnh Phase 48 trong active.md.
     - Tạo local commit và ghi mã hash cạnh Phase 48 trong active.md.
+
+- [x] **Phase 49 (Commit `65c4c5e`)**: Sửa triệt để lỗi trùng lặp câu hỏi & đáp án khi sinh câu hỏi AI (`/teacher/ai-generator` & `/teacher/questions`):
+  - [x] **Mục tiêu 1 (Sửa Bộ Parse JSON LaTeX `sanitizeAndParseAiJson`)**:
+    - Nâng cấp bộ xử lý JSON: Tiền xử lý mọi ký tự `\` đơn đứng trước các lệnh LaTeX (`\frac`, `\text`, `\beta`, `\right`, `\neq`, `\sqrt`, `\int`...) thành `\\` hợp lệ trước khi parse.
+    - Đảm bảo kết quả thật từ mô hình Groq (`llama-3.3-70b-versatile`) luôn parse thành công 100%, không bị văng lỗi cú pháp giả để nhảy nhầm vào fallback.
+  - [x] **Mục tiêu 2 (Đa dạng hóa câu hỏi & Phân bổ đều đáp án A-B-C-D)**:
+    - Nâng cấp System Prompt & User Prompt: Yêu cầu AI chia chủ đề thành N khía cạnh/dạng bài tập khác nhau hoàn toàn.
+    - Thêm cơ chế Shuffle phương án A-B-C-D ngẫu nhiên và tự động cập nhật lại `correct_option` tương ứng để phân bổ đều 4 vị trí A, B, C, D.
+    - Viết hàm `cleanGeneratedQuestion`: Tự động cắt bỏ các tiền tố thừa lặp trên giao diện (`Câu X:`, `Phương án A:`, `Lời giải chi tiết:`).
+  - [x] **Mục tiêu 3 (Nâng cấp Ngân hàng Kịch bản Dự phòng Đa dạng - Dynamic Parameterized Fallback)**:
+    - Xóa bỏ hoàn toàn câu hỏi fallback tĩnh lặp đi lặp lại.
+    - Xây dựng 10 kịch bản câu hỏi độc lập với các dạng toán, hàm số, phương án và đáp án luân phiên khác nhau 100%.
+    - Bổ sung `Deduplication Guard`: Kiểm tra chống trùng lặp, đảm bảo không có bất kỳ 2 câu hỏi nào giống nhau trong kết quả trả về.
+  - [x] **Mục tiêu 4 (Kiểm thử & Nghiệm thu)**:
+    - `npx tsc --noEmit` đạt 0 lỗi.
+    - `npm run build` thành công 100% (38/38 routes).
+    - Tạo local commit và cập nhật mã hash vào kế hoạch.
