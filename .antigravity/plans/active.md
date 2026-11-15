@@ -183,3 +183,24 @@
     - `npx tsc --noEmit` đạt 0 lỗi.
     - `npm run build` thành công 100% (38/38 routes).
     - Tạo local commit và cập nhật mã hash vào kế hoạch.
+
+- [x] **Phase 50 (Commit `13bfc7c`)**: Thêm tính năng Bật/Tắt "Tự chấm tự luận (Đối chiếu đáp án mẫu)" trong Tạo đề thi và luồng Chấm bài thi:
+  - [x] **Mục tiêu 1 (Giao diện Công tắc Bật/Tắt tại `/teacher/exams/create`)**:
+    - Thiết kế card Switch/Toggle "Tự động chấm bài Tự luận (Đối chiếu đáp án)" ngay bên dưới công tắc camera tại `components/teacher/exam-create-form.tsx`.
+    - Chuẩn hóa Light/Dark Mode, icon `CheckCircle2`, mô tả chi tiết, badge trạng thái `Tự động chấm điểm` (khi bật) hoặc `Giảng viên chấm thủ công` (khi tắt).
+    - Cập nhật card tóm tắt "3. Cơ chế Khảo thí & Giám sát AI" phản ánh trạng thái tự chấm tự luận.
+  - [x] **Mục tiêu 2 (Database Migration & Zero-Crash Fallback Helper `lib/exam-auto-grade.ts`)**:
+    - Tạo file migration `supabase/migrations/20261115_add_auto_grade_essay_to_exams.sql` bổ sung cột `auto_grade_essay BOOLEAN NOT NULL DEFAULT false`.
+    - Tạo tiện ích `lib/exam-auto-grade.ts` hỗ trợ: `isAutoGradeEssay(exam)`, `cleanExamInstructions(instructions)`, `appendExamInstructionTags(instructions, flags)`.
+    - Nâng cấp `app/teacher/exams/create/actions.ts`: Nhận `autoGradeEssay`, nhúng tag `[AUTO_GRADE_ESSAY:true/false]` vào instructions, thực hiện insert đa tầng có fallback nếu DB chưa kịp chạy migration.
+  - [x] **Mục tiêu 3 (Hàm So khớp Chuỗi & Tự Động Chấm Tự Luận khi Nộp bài thi)**:
+    - Viết hàm `normalizeAnswerText` và `checkEssayAnswerMatch`: Chuẩn hóa Unicode NFC, lowercase, bỏ khoảng trắng thừa, bỏ dấu câu cuối dòng, tách và đối chiếu danh sách đáp án tương đương (`|`, `;`, `\n`).
+    - Nâng cấp `submitExamAttemptAction` (`app/student/exams/[examId]/actions.ts`):
+      + Khi `autoGradeEssay === true`: Tự động đối chiếu câu trả lời của thí sinh với `model_answer`/`grading_rubric` của câu tự luận. Khớp = trọn điểm (`max_points`) kèm nhận xét chuẩn, Không khớp = 0 điểm.
+      + Cộng tổng điểm `total_score = mcq_score + essay_score`, hoàn tất chấm thi ngay lập tức (`status: 'completed'`), ghi kết quả vào `attempt_results` và chuyển thẳng vào tab "Đã chấm xong" tại `/teacher/grading`.
+      + Khi `autoGradeEssay === false`: Giữ nguyên luồng chấm thủ công chuyển trạng thái `pending_grading` chờ giảng viên.
+  - [x] **Mục tiêu 4 (Đồng bộ Badge trên Thẻ Đề thi Giảng viên & Sinh viên và Kiểm thử)**:
+    - Thẻ đề thi Giảng viên (`components/teacher/teacher-exams-client.tsx`, `app/teacher/exams/page.tsx`): Hiển thị badge `⚡ Tự chấm tự luận` hoặc `✍️ GV chấm tự luận`.
+    - Thẻ đề thi Sinh viên (`app/student/exams/page.tsx`, `lib/student-dashboard.ts`): Hiển thị badge `⚡ Tự chấm tự luận` hoặc `✍️ GV chấm tự luận`.
+    - Kiểm tra `npx tsc --noEmit` & `npm run build` đạt 0 lỗi.
+    - Local commit an toàn (không push tự ý) và cập nhật commit hash.
