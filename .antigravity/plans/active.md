@@ -290,3 +290,23 @@
     + Đảm bảo 5 câu trắc nghiệm sạch ô D, 2 câu tự luận tách trọn vẹn đề bài và khung tím đáp án tham khảo.
     + Kiểm tra `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 static/dynamic routes).
     + Local commit an toàn `2e79979` (không push tự ý) và cập nhật commit hash.
+
+- [x] **Phase 54 (Commit `e7a0502`)**: Đồng bộ Động "Gợi ý Nhanh" Theo Môn Học Đang Chọn Tại Trang Sinh Câu Hỏi AI & Gia Sư AI:
+  - [x] **Mục tiêu 1 (Module Tiện Ích Trung Tâm `lib/subject-topic-suggestions.ts`)**:
+    + Xây dựng hàm `getSubjectTopicSuggestions(subject?: { code?: string; name?: string; description?: string } | null): string[]`.
+    + Chuẩn hóa nhận diện 7 nhóm môn học (Toán học, Lập trình/KTPM, CTDL & Giải thuật, Cơ sở dữ liệu, Mạng MT & HĐH, Khoa học tự nhiên & Ngoại ngữ/Đại cương, Fallback thông minh từ tên và mô tả môn học).
+    + Cung cấp hàm kiểm tra `isPresetTopicSuggestion` để phát hiện chuyển đổi chủ đề tương thích mượt mà.
+  - [x] **Mục tiêu 2 (Trang Sinh Câu Hỏi AI Độc Lập `components/teacher/ai-generator-standalone.tsx`)**:
+    + Chuyển cụm `PROMPT_SUGGESTIONS` tĩnh thành gợi ý động liên kết trực tiếp với môn học đang chọn.
+    + Khi giảng viên đổi môn trên dropdown: Tự động đổi danh sách gợi ý và tự động nạp gợi ý đầu tiên của môn mới nếu chủ đề cũ là gợi ý có sẵn hoặc đang để trống.
+    + Thể hiện trạng thái Active trực quan rõ nét (`!bg-blue-600/20 !text-blue-700 dark:!text-blue-300 !border-blue-500 font-semibold ring-1 ring-blue-500/40`).
+  - [x] **Mục tiêu 3 (Modal Sinh Câu Hỏi AI `components/teacher/ai-generator-modal.tsx`)**:
+    + Bổ sung cụm pill Gợi ý nhanh động vào dưới ô nhập Chủ đề của modal.
+    + Đồng bộ hành vi bấm chọn và highlight đồng nhất với trang AI Generator độc lập.
+  - [x] **Mục tiêu 4 (Trang Gia Sư AI Giảng Viên & Sinh Viên `/teacher/ai-tutor` & `/student/ai-tutor`)**:
+    + Nâng cấp danh sách câu hỏi mẫu / gợi ý hỗ trợ học tập đồng bộ theo môn học của giảng viên (phân công) và sinh viên (lớp đã ghi danh).
+    + Cho phép bấm chuyển đổi nhanh giữa các môn học để cập nhật tức thì danh sách câu hỏi gợi ý.
+  - [x] **Mục tiêu 5 (Kiểm Thử Type Check, Build Sản Phẩm & Commit An Toàn)**:
+    + Chạy `npx tsc --noEmit` và `npm run build` đạt 0 lỗi (36/36 static/dynamic routes).
+    + Tạo Local Commit an toàn `e7a0502` theo quy định `AGENTS.md` (không tự ý push).
+    + Ghi mã commit hash vào `.antigravity/plans/active.md`.
