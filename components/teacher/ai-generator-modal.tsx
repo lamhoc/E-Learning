@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   ArrowLeft,
@@ -27,6 +27,10 @@ import {
 } from '@/app/teacher/questions/ai-actions';
 import type { SubjectSummary } from '@/lib/question-bank';
 import type { AIDifficulty, GeneratedQuestionDraft } from '@/lib/ai-question-generator';
+import {
+  getSubjectTopicSuggestions,
+  isPresetTopicSuggestion,
+} from '@/lib/subject-topic-suggestions';
 
 type AIGeneratorModalProps = {
   isOpen: boolean;
@@ -57,6 +61,37 @@ export function AIGeneratorModal({
   const [difficulty, setDifficulty] = useState<AIDifficulty>('medium');
   const [count, setCount] = useState<number>(3);
   const [additionalNote, setAdditionalNote] = useState('');
+
+  // Tìm môn học đang được chọn và sinh danh sách gợi ý chủ đề động
+  const currentSubject = useMemo(
+    () => subjects.find((s) => s.id === selectedSubjectId) ?? subjects[0],
+    [subjects, selectedSubjectId]
+  );
+
+  const topicSuggestions = useMemo(
+    () => getSubjectTopicSuggestions(currentSubject),
+    [currentSubject]
+  );
+
+  // Tự động gán gợi ý đầu tiên khi mở Modal nếu chưa có chủ đề
+  useEffect(() => {
+    if (isOpen && !topic && topicSuggestions.length > 0) {
+      setTopic(topicSuggestions[0]);
+    }
+  }, [isOpen, topicSuggestions]);
+
+  // Xử lý khi thay đổi môn học mục tiêu: cập nhật gợi ý và tự động chuyển chủ đề phù hợp
+  const handleSubjectChange = (newSubjectId: string) => {
+    setSelectedSubjectId(newSubjectId);
+    const targetSub = subjects.find((s) => s.id === newSubjectId);
+    const newSuggestions = getSubjectTopicSuggestions(targetSub);
+
+    if (!topic.trim() || isPresetTopicSuggestion(topic)) {
+      if (newSuggestions.length > 0) {
+        setTopic(newSuggestions[0]);
+      }
+    }
+  };
 
   // Generation & Review State
   const [isGenerating, setIsGenerating] = useState(false);
@@ -189,8 +224,6 @@ export function AIGeneratorModal({
     }
   };
 
-  const currentSubject = subjects.find((s) => s.id === selectedSubjectId);
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4 backdrop-blur-xs animate-in fade-in">
       <div className="relative flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
@@ -248,7 +281,7 @@ export function AIGeneratorModal({
                   <select
                     id="ai-subject"
                     value={selectedSubjectId}
-                    onChange={(e) => setSelectedSubjectId(e.target.value)}
+                    onChange={(e) => handleSubjectChange(e.target.value)}
                     required
                     className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
                   >
@@ -287,7 +320,44 @@ export function AIGeneratorModal({
                   placeholder="Ví dụ: Ma trận vuông cấp 2, định thức và ma trận khả nghịch..."
                   className="h-10"
                 />
-                <p className="text-[11px] text-muted-foreground">
+                
+                {/* Gợi ý chủ đề nhanh đồng bộ theo môn học */}
+                <div className="pt-1">
+                  <div className="flex items-center justify-between pb-1">
+                    <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                      Gợi ý nhanh theo môn{' '}
+                      <span className="text-blue-600 dark:text-blue-400 font-bold">
+                        {currentSubject?.name || 'mục tiêu'}
+                      </span>
+                      :
+                    </p>
+                    <span className="text-[10px] text-muted-foreground">
+                      Nhấp để áp dụng ngay
+                    </span>
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {topicSuggestions.map((sug) => {
+                      const isActive = topic.trim() === sug.trim();
+                      return (
+                        <button
+                          key={sug}
+                          type="button"
+                          onClick={() => setTopic(sug)}
+                          className={`rounded-full px-2.5 py-1 text-[11px] transition-all cursor-pointer ${
+                            isActive
+                              ? 'bg-blue-600/20 text-blue-700 dark:text-blue-300 border border-blue-500 font-semibold ring-1 ring-blue-500/40 shadow-xs'
+                              : 'bg-slate-100 hover:bg-blue-50 text-slate-700 dark:bg-[#162235] dark:hover:bg-[#1E2F48] dark:text-slate-200 border border-slate-300 dark:border-slate-700'
+                          }`}
+                        >
+                          {isActive && <span className="mr-1 text-blue-600 dark:text-blue-400 font-bold">✓</span>}
+                          {sug}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-muted-foreground pt-0.5">
                   Gợi ý: Càng nêu rõ bài học hoặc dạng bài, AI sẽ tạo câu hỏi càng bám sát chương trình.
                 </p>
               </div>

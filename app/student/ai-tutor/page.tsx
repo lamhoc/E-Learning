@@ -3,7 +3,7 @@
 import { ThemeToggle } from '@/components/theme-toggle';
 import { BrandLogo } from '@/components/ui/brand-logo';
 
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -20,17 +20,25 @@ import { NotificationBell } from '@/components/layout/notification-bell';
 import { buttonVariants } from '@/components/ui/button';
 import { MathText } from '@/components/ui/math-text';
 import { createClient } from '@/lib/supabase/client';
+import { getSubjectTopicSuggestions } from '@/lib/subject-topic-suggestions';
 
 type ChatMessage = {
   role: 'user' | 'assistant';
   content: string;
 };
 
-const SUGGESTIONS = [
-  'Giải thích giúp tôi về cơ sở dữ liệu quan hệ và khóa ngoại',
-  'Hướng dẫn thuật toán tìm kiếm nhị phân (Binary Search) bằng C++',
-  'Tạo 5 câu hỏi ôn tập trắc nghiệm về cấu trúc dữ liệu cây (Tree)',
-  'Giải phương trình vi phân y\u2019 = y với điều kiện đầu y(0)=1',
+type SubjectItem = {
+  id: string;
+  code: string;
+  name: string;
+};
+
+const DEFAULT_SUBJECTS: SubjectItem[] = [
+  { id: 'math', code: 'TOAN', name: 'Toán học' },
+  { id: 'prog', code: 'CNTT', name: 'Lập trình OOP' },
+  { id: 'dsa', code: 'DSA', name: 'CTDL & Giải thuật' },
+  { id: 'db', code: 'CSDL', name: 'Cơ sở dữ liệu' },
+  { id: 'net', code: 'MANG', name: 'Mạng & Hệ điều hành' },
 ];
 
 const INITIAL_MESSAGE: ChatMessage = {
@@ -44,28 +52,73 @@ export default function StudentAiTutorPage() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [studentName, setStudentName] = useState('Sinh viên');
+  const [subjects, setSubjects] = useState<SubjectItem[]>(DEFAULT_SUBJECTS);
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>(DEFAULT_SUBJECTS[0].id);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Lấy thông tin sinh viên đang đăng nhập để hiển thị trên Sidebar
+  // Lấy thông tin sinh viên và các môn học đang theo học
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (user) {
-        supabase
+        // Lấy tên sinh viên
+        const { data: profile } = await supabase
           .from('profiles')
           .select('full_name')
           .eq('id', user.id)
-          .maybeSingle()
-          .then(({ data }) => {
-            if (data?.full_name) {
-              setStudentName(data.full_name);
-            } else if (user.email) {
-              setStudentName(user.email);
+          .maybeSingle();
+
+        if (profile?.full_name) {
+          setStudentName(profile.full_name);
+        } else if (user.email) {
+          setStudentName(user.email);
+        }
+
+        // Lấy danh sách môn học qua các lớp sinh viên tham gia
+        try {
+          const { data: enrollments } = await supabase
+            .from('class_enrollments')
+            .select('class:classes(subject:subjects(id, code, name))')
+            .eq('student_id', user.id);
+
+          if (enrollments && enrollments.length > 0) {
+            const subs: SubjectItem[] = [];
+            const seen = new Set<string>();
+            for (const e of enrollments as any[]) {
+              const sub = e?.class?.subject;
+              if (sub?.id && sub?.name && !seen.has(sub.id)) {
+                seen.add(sub.id);
+                subs.push(sub);
+              }
             }
-          });
+            if (subs.length > 0) {
+              setSubjects(subs);
+              setSelectedSubjectId(subs[0].id);
+            }
+          }
+        } catch {
+          // Dùng DEFAULT_SUBJECTS nếu gặp lỗi hoặc chưa đăng ký lớp
+        }
       }
     });
   }, []);
+
+  // Tính toán môn học đang chọn và danh sách gợi ý động cho sinh viên
+  const currentSubject = useMemo(
+    () => subjects.find((s) => s.id === selectedSubjectId) ?? subjects[0],
+    [subjects, selectedSubjectId]
+  );
+
+  const dynamicSuggestions = useMemo(() => {
+    const rawTopics = getSubjectTopicSuggestions(currentSubject);
+    const subName = currentSubject?.name || 'môn học';
+    return [
+      `Giải thích giúp tôi bản chất và ví dụ thực tế về: ${rawTopics[0] || subName}`,
+      `Cho tôi 3 câu hỏi trắc nghiệm tự luyện có giải thích về: ${rawTopics[1] || subName}`,
+      `Hướng dẫn từng bước cách giải bài tập liên quan đến: ${rawTopics[2] || subName}`,
+      `Tóm tắt các công thức / kiến thức cốt lõi cần nhớ về: ${rawTopics[3] || subName}`,
+    ];
+  }, [currentSubject]);
 
   // Tự động cuộn xuống tin nhắn mới nhất
   useEffect(() => {
@@ -224,17 +277,43 @@ export default function StudentAiTutorPage() {
               {/* Gợi ý câu hỏi khi mới mở cuộc hội thoại */}
               {isFirstMessage && !loading && (
                 <div className="mt-4 rounded-xl border border-emerald-200/80 dark:border-emerald-800 bg-emerald-50/40 dark:bg-emerald-950/30 p-4">
-                  <p className="mb-2.5 text-xs font-semibold text-emerald-950 dark:text-emerald-200 flex items-center gap-1.5">
-                    <Sparkles className="size-3.5 text-emerald-700 dark:text-emerald-400" />
-                    <span>Gợi ý câu hỏi ôn tập dành cho bạn:</span>
-                  </p>
+                  <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs font-semibold text-emerald-950 dark:text-emerald-200 flex items-center gap-1.5">
+                      <Sparkles className="size-3.5 text-emerald-700 dark:text-emerald-400" />
+                      <span>Gợi ý câu hỏi ôn tập theo môn:</span>
+                    </p>
+                    {/* Danh sách môn học để chọn gợi ý */}
+                    <div className="flex flex-wrap items-center gap-1">
+                      {subjects.map((sub) => {
+                        const isActive = sub.id === currentSubject?.id;
+                        return (
+                          <button
+                            key={sub.id}
+                            type="button"
+                            onClick={() => setSelectedSubjectId(sub.id)}
+                            className={`rounded-full px-2.5 py-0.5 text-[11px] transition-all cursor-pointer ${
+                              isActive
+                                ? 'bg-blue-600 text-white font-semibold shadow-xs ring-1 ring-blue-500'
+                                : 'bg-white dark:bg-[#111C2D] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700'
+                            }`}
+                          >
+                            {sub.code ? `${sub.code} · ` : ''}{sub.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   <div className="grid gap-2 sm:grid-cols-2">
-                    {SUGGESTIONS.map((s) => (
+                    {dynamicSuggestions.map((s) => (
                       <button
                         key={s}
                         type="button"
-                        onClick={() => setInput(s)}
-                        className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 hover:bg-blue-50 dark:bg-[#162235] dark:hover:bg-[#1E2F48] p-2.5 text-left text-xs font-medium text-slate-800 dark:text-slate-100 shadow-2xs transition hover:border-emerald-400 dark:hover:border-emerald-500"
+                        onClick={() => {
+                          setInput(s);
+                          document.getElementById('chat-input')?.focus();
+                        }}
+                        className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white/80 hover:bg-blue-50 dark:bg-[#162235] dark:hover:bg-[#1E2F48] p-2.5 text-left text-xs font-medium text-slate-800 dark:text-slate-100 shadow-2xs transition hover:border-emerald-400 dark:hover:border-emerald-500 cursor-pointer"
                       >
                         {s}
                       </button>

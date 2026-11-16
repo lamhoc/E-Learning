@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   AlertCircle,
@@ -28,6 +28,10 @@ import {
 } from '@/app/teacher/questions/ai-actions';
 import type { SubjectSummary } from '@/lib/question-bank';
 import type { AIDifficulty, GeneratedQuestionDraft } from '@/lib/ai-question-generator';
+import {
+  getSubjectTopicSuggestions,
+  isPresetTopicSuggestion,
+} from '@/lib/subject-topic-suggestions';
 
 type Props = {
   subjects: SubjectSummary[];
@@ -41,14 +45,6 @@ const LOADING_STAGES = [
   'Đang kiểm tra tính nhất quán và hoàn thiện dữ liệu câu hỏi...',
 ];
 
-const PROMPT_SUGGESTIONS = [
-  'Đạo hàm và khảo sát hàm số',
-  'Lập trình Hướng đối tượng OOP trong C#',
-  'Mô hình mạng OSI và giao thức TCP/IP',
-  'Cơ sở dữ liệu quan hệ và chuẩn hóa dữ liệu 3NF',
-  'Cấu trúc dữ liệu Cây nhị phân tìm kiếm (BST)',
-];
-
 export function AIGeneratorStandalone({ subjects, teacherName }: Props) {
   const [step, setStep] = useState<'config' | 'review'>('config');
 
@@ -59,6 +55,38 @@ export function AIGeneratorStandalone({ subjects, teacherName }: Props) {
   const [difficulty, setDifficulty] = useState<AIDifficulty>('medium');
   const [count, setCount] = useState<number>(5);
   const [additionalNote, setAdditionalNote] = useState('');
+
+  // Tìm môn học đang được chọn và sinh danh sách gợi ý chủ đề động
+  const currentSubject = useMemo(
+    () => subjects.find((s) => s.id === selectedSubjectId) ?? subjects[0],
+    [subjects, selectedSubjectId]
+  );
+
+  const topicSuggestions = useMemo(
+    () => getSubjectTopicSuggestions(currentSubject),
+    [currentSubject]
+  );
+
+  // Tự động gán gợi ý đầu tiên khi mới vào trang nếu chưa có chủ đề
+  useEffect(() => {
+    if (!topic && topicSuggestions.length > 0) {
+      setTopic(topicSuggestions[0]);
+    }
+  }, [topicSuggestions]);
+
+  // Xử lý khi thay đổi môn học mục tiêu: cập nhật gợi ý và tự động chuyển chủ đề phù hợp
+  const handleSubjectChange = (newSubjectId: string) => {
+    setSelectedSubjectId(newSubjectId);
+    const targetSub = subjects.find((s) => s.id === newSubjectId);
+    const newSuggestions = getSubjectTopicSuggestions(targetSub);
+
+    // Nếu chủ đề đang trống hoặc đang là một trong các gợi ý có sẵn thì tự động chuyển sang gợi ý đầu của môn mới
+    if (!topic.trim() || isPresetTopicSuggestion(topic)) {
+      if (newSuggestions.length > 0) {
+        setTopic(newSuggestions[0]);
+      }
+    }
+  };
 
   // Generation State
   const [isGenerating, setIsGenerating] = useState(false);
@@ -290,7 +318,7 @@ export function AIGeneratorStandalone({ subjects, teacherName }: Props) {
                   <select
                     id="ai-subject"
                     value={selectedSubjectId}
-                    onChange={(e) => setSelectedSubjectId(e.target.value)}
+                    onChange={(e) => handleSubjectChange(e.target.value)}
                     required
                     className="h-10 w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#0B1422] px-3 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
@@ -315,20 +343,39 @@ export function AIGeneratorStandalone({ subjects, teacherName }: Props) {
                     required
                     className="h-10 rounded-xl border-slate-300 dark:border-slate-700 dark:bg-[#0B1422] dark:text-white"
                   />
-                  {/* Gợi ý chủ đề nhanh */}
+                  {/* Gợi ý chủ đề nhanh đồng bộ theo môn học */}
                   <div className="pt-1">
-                    <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Gợi ý nhanh:</p>
-                    <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {PROMPT_SUGGESTIONS.map((sug) => (
-                        <button
-                          key={sug}
-                          type="button"
-                          onClick={() => setTopic(sug)}
-                          className="rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 px-2.5 py-1 text-[11px] text-slate-700 dark:text-slate-300 hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400 transition"
-                        >
-                          {sug}
-                        </button>
-                      ))}
+                    <div className="flex items-center justify-between pb-1">
+                      <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                        Gợi ý nhanh theo môn{' '}
+                        <span className="text-blue-600 dark:text-blue-400 font-bold">
+                          {currentSubject?.name || 'mục tiêu'}
+                        </span>
+                        :
+                      </p>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                        Nhấp để áp dụng ngay
+                      </span>
+                    </div>
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      {topicSuggestions.map((sug) => {
+                        const isActive = topic.trim() === sug.trim();
+                        return (
+                          <button
+                            key={sug}
+                            type="button"
+                            onClick={() => setTopic(sug)}
+                            className={`rounded-full px-2.5 py-1 text-[11px] transition-all cursor-pointer ${
+                              isActive
+                                ? 'bg-blue-600/20 text-blue-700 dark:text-blue-300 border border-blue-500 font-semibold ring-1 ring-blue-500/40 shadow-xs'
+                                : 'bg-slate-100 hover:bg-blue-50 text-slate-700 dark:bg-[#162235] dark:hover:bg-[#1E2F48] dark:text-slate-200 border border-slate-300 dark:border-slate-700'
+                            }`}
+                          >
+                            {isActive && <span className="mr-1 text-blue-600 dark:text-blue-400 font-bold">✓</span>}
+                            {sug}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
