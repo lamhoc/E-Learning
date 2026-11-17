@@ -19,10 +19,21 @@ const DEFAULT_CANDIDATE_MODELS: string[] = [
   'llama-3.1-8b-instant',
   'meta-llama/llama-4-scout-17b-16e-instruct',
   'qwen/qwen3-32b',
-  'llama-3.3-70b-versatile',
   'gemma2-9b-it',
+  'llama-3.3-70b-versatile',
   'mixtral-8x7b-32768',
 ];
+
+/**
+ * Loại bỏ thẻ suy nghĩ <think>...</think> (từ các mô hình như Qwen, DeepSeek...)
+ */
+export function stripThinkingTags(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/^[\s\r\n]+/, '')
+    .trim();
+}
 
 // Cache model đang hoạt động tốt trên môi trường hiện tại
 let cachedWorkingModel: string | null = null;
@@ -162,7 +173,8 @@ export async function callAiChatCompletion(options: AiCompletionOptions): Promis
         ...(options.response_format ? { response_format: options.response_format } : {}),
       });
 
-      const text = response.choices?.[0]?.message?.content?.trim() ?? '';
+      const rawText = response.choices?.[0]?.message?.content?.trim() ?? '';
+      const text = stripThinkingTags(rawText);
       if (text) {
         // Ghi nhận model hoạt động tốt
         cachedWorkingModel = currentModel;

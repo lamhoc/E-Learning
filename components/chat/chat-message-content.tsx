@@ -1,0 +1,352 @@
+'use client';
+
+import React, { useMemo } from 'react';
+import katex from 'katex';
+
+type ChatMessageContentProps = {
+  content?: string | null;
+  className?: string;
+};
+
+type InlineToken =
+  | { type: 'math-block'; value: string }
+  | { type: 'math-inline'; value: string }
+  | { type: 'code-inline'; value: string }
+  | { type: 'bold'; value: string }
+  | { type: 'italic'; value: string }
+  | { type: 'text'; value: string };
+
+/**
+ * Tokenize một dòng văn bản thành các token định dạng (Toán KaTeX, In đậm, Code, In nghiêng, Text)
+ */
+function tokenizeInline(text: string): InlineToken[] {
+  const tokens: InlineToken[] = [];
+  if (!text) return tokens;
+
+  // Regex nhận diện lần lượt từ trái sang phải:
+  // 1. $$...$$ (Block math)
+  // 2. $...$ (Inline math)
+  // 3. `...` (Inline code)
+  // 4. **...** (Bold)
+  // 5. *...* (Italic)
+  const regex = /\$\$([\s\S]+?)\$\$|\$([^\$\n]+?)\$|`([^`\n]+?)`|\*\*([^\*\n]+?)\*\*|\*([^\*\n]+?)\*/g;
+
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      tokens.push({
+        type: 'text',
+        value: text.slice(lastIndex, match.index),
+      });
+    }
+
+    if (match[1] !== undefined) {
+      tokens.push({ type: 'math-block', value: match[1] });
+    } else if (match[2] !== undefined) {
+      tokens.push({ type: 'math-inline', value: match[2] });
+    } else if (match[3] !== undefined) {
+      tokens.push({ type: 'code-inline', value: match[3] });
+    } else if (match[4] !== undefined) {
+      tokens.push({ type: 'bold', value: match[4] });
+    } else if (match[5] !== undefined) {
+      tokens.push({ type: 'italic', value: match[5] });
+    }
+
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    tokens.push({
+      type: 'text',
+      value: text.slice(lastIndex),
+    });
+  }
+
+  return tokens;
+}
+
+/**
+ * Render an toàn các token inline (có hỗ trợ đệ quy cho math/code bên trong bold)
+ */
+function renderInlineTokens(tokens: InlineToken[]): React.ReactNode {
+  return tokens.map((token, index) => {
+    switch (token.type) {
+      case 'math-block': {
+        try {
+          const html = katex.renderToString(token.value, {
+            displayMode: true,
+            throwOnError: false,
+          });
+          return (
+            <span
+              key={index}
+              className="my-2 block overflow-x-auto text-center"
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
+          );
+        } catch {
+          return (
+            <span key={index} className="font-mono text-xs text-rose-500">
+              $${token.value}$$
+            </span>
+          );
+        }
+      }
+
+      case 'math-inline': {
+        try {
+          const html = katex.renderToString(token.value, {
+            displayMode: false,
+            throwOnError: false,
+          });
+          return (
+            <span
+              key={index}
+              className="inline-block px-0.5 align-middle"
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
+          );
+        } catch {
+          return (
+            <span key={index} className="font-mono text-xs text-rose-500">
+              ${token.value}$
+            </span>
+          );
+        }
+      }
+
+      case 'code-inline': {
+        return (
+          <code
+            key={index}
+            className="rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 text-xs font-mono text-emerald-700 dark:text-emerald-300 border border-slate-200 dark:border-slate-700"
+          >
+            {token.value}
+          </code>
+        );
+      }
+
+      case 'bold': {
+        // Bên trong bold có thể chứa công thức toán hoặc code, parse tiếp để hiển thị sạch sẽ
+        const subTokens = tokenizeInline(token.value);
+        return (
+          <strong key={index} className="font-semibold text-slate-900 dark:text-white">
+            {renderInlineTokens(subTokens)}
+          </strong>
+        );
+      }
+
+      case 'italic': {
+        const subTokens = tokenizeInline(token.value);
+        return (
+          <em key={index} className="italic text-slate-700 dark:text-slate-300">
+            {renderInlineTokens(subTokens)}
+          </em>
+        );
+      }
+
+      case 'text':
+      default:
+        return <React.Fragment key={index}>{token.value}</React.Fragment>;
+    }
+  });
+}
+
+type BlockItem =
+  | { type: 'code-block'; language: string; content: string }
+  | { type: 'heading'; level: number; text: string }
+  | { type: 'horizontal-rule' }
+  | { type: 'list-item'; prefix?: string; text: string }
+  | { type: 'paragraph'; text: string };
+
+/**
+ * Phân tích nội dung Markdown nhiều dòng thành danh sách các khối (Blocks)
+ */
+function parseBlocks(rawText: string): BlockItem[] {
+  const blocks: BlockItem[] = [];
+  const lines = rawText.split('\n');
+
+  let inCodeBlock = false;
+  let codeBlockLang = '';
+  let codeBlockLines: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // 1. Kiểm tra bắt đầu/kết thúc Code Block
+    if (trimmed.startsWith('```')) {
+      if (!inCodeBlock) {
+        inCodeBlock = true;
+        codeBlockLang = trimmed.slice(3).trim();
+        codeBlockLines = [];
+        continue;
+      } else {
+        inCodeBlock = false;
+        blocks.push({
+          type: 'code-block',
+          language: codeBlockLang,
+          content: codeBlockLines.join('\n'),
+        });
+        continue;
+      }
+    }
+
+    if (inCodeBlock) {
+      codeBlockLines.push(line);
+      continue;
+    }
+
+    // 2. Dòng kẻ ngang (--- hoặc *** hoặc ___)
+    if (trimmed === '---' || trimmed === '***' || trimmed === '___') {
+      blocks.push({ type: 'horizontal-rule' });
+      continue;
+    }
+
+    // 3. Tiêu đề (Heading #, ##, ###)
+    const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
+    if (headingMatch) {
+      const level = headingMatch[1].length;
+      let title = headingMatch[2].trim();
+      // Loại bỏ cặp dấu ** bao phủ toàn bộ title nếu có (ví dụ: ### **Câu 1...**)
+      if (title.startsWith('**') && title.endsWith('**') && title.length >= 4) {
+        title = title.slice(2, -2).trim();
+      }
+      blocks.push({ type: 'heading', level, text: title });
+      continue;
+    }
+
+    // 4. Danh sách gạch đầu dòng hoặc đánh số (- ..., * ..., 1. ..., 👉 ..., 💡 ...)
+    const listMatch = line.match(/^(\s*)([-*+]|\d+\.|\uD83D\uDC49|\uD83D\uDCA1)\s+(.*)$/);
+    if (listMatch) {
+      blocks.push({
+        type: 'list-item',
+        prefix: listMatch[2],
+        text: listMatch[3],
+      });
+      continue;
+    }
+
+    // 5. Dòng trống
+    if (!trimmed) {
+      continue;
+    }
+
+    // 6. Đoạn văn thường
+    blocks.push({ type: 'paragraph', text: line });
+  }
+
+  // Nếu file kết thúc khi code block chưa đóng
+  if (inCodeBlock && codeBlockLines.length > 0) {
+    blocks.push({
+      type: 'code-block',
+      language: codeBlockLang,
+      content: codeBlockLines.join('\n'),
+    });
+  }
+
+  return blocks;
+}
+
+export const ChatMessageContent = React.memo(
+  function ChatMessageContent({ content, className = '' }: ChatMessageContentProps) {
+    const blocks = useMemo(() => {
+      if (!content) return [];
+      return parseBlocks(content);
+    }, [content]);
+
+    if (!content) return null;
+
+    return (
+      <div className={`space-y-2.5 leading-relaxed text-sm ${className}`}>
+        {blocks.map((block, idx) => {
+          switch (block.type) {
+            case 'horizontal-rule':
+              return (
+                <hr
+                  key={idx}
+                  className="my-3 border-t border-slate-200 dark:border-slate-700/80"
+                />
+              );
+
+            case 'heading': {
+              const tokens = tokenizeInline(block.text);
+              if (block.level === 1 || block.level === 2) {
+                return (
+                  <h3
+                    key={idx}
+                    className="font-bold text-base text-blue-700 dark:text-blue-300 mt-3.5 mb-1.5 flex items-baseline gap-1"
+                  >
+                    {renderInlineTokens(tokens)}
+                  </h3>
+                );
+              }
+              // Level 3 hoặc 4 (ví dụ: ### Câu 1: ...)
+              return (
+                <h4
+                  key={idx}
+                  className="font-bold text-[14px] text-blue-700 dark:text-amber-400 mt-3 mb-1.5 flex items-baseline gap-1.5"
+                >
+                  <span className="size-1.5 rounded-full bg-blue-600 dark:bg-amber-400 shrink-0 self-center" />
+                  <span>{renderInlineTokens(tokens)}</span>
+                </h4>
+              );
+            }
+
+            case 'code-block':
+              return (
+                <div key={idx} className="my-2.5 overflow-hidden rounded-xl border border-slate-800 bg-slate-900 shadow-md">
+                  {block.language && (
+                    <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950/60 px-3 py-1 text-[11px] font-mono text-slate-400">
+                      <span>{block.language}</span>
+                    </div>
+                  )}
+                  <pre className="p-3.5 overflow-x-auto text-xs font-mono text-slate-100 leading-normal">
+                    <code>{block.content}</code>
+                  </pre>
+                </div>
+              );
+
+            case 'list-item': {
+              const tokens = tokenizeInline(block.text);
+              const isOption = /^[A-D]\./i.test(block.text.trim()) || /^\*\*[A-D]\.\*\*/i.test(block.text.trim());
+
+              return (
+                <div
+                  key={idx}
+                  className={`flex items-start gap-2 py-0.5 pl-1 ${
+                    isOption
+                      ? 'rounded-lg bg-slate-50/70 dark:bg-slate-800/40 px-2 py-1 border border-slate-200/50 dark:border-slate-700/40 my-1'
+                      : ''
+                  }`}
+                >
+                  <span className="font-semibold text-blue-600 dark:text-blue-400 shrink-0 select-none">
+                    {block.prefix || '•'}
+                  </span>
+                  <div className="flex-1 text-slate-800 dark:text-slate-100 leading-relaxed">
+                    {renderInlineTokens(tokens)}
+                  </div>
+                </div>
+              );
+            }
+
+            case 'paragraph': {
+              const tokens = tokenizeInline(block.text);
+              return (
+                <p key={idx} className="text-slate-800 dark:text-slate-100 leading-relaxed">
+                  {renderInlineTokens(tokens)}
+                </p>
+              );
+            }
+
+            default:
+              return null;
+          }
+        })}
+      </div>
+    );
+  },
+  (prev, next) => prev.content === next.content && prev.className === next.className
+);

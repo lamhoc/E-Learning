@@ -19,6 +19,7 @@ import { TeacherSidebar } from '@/components/teacher/teacher-sidebar';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { buttonVariants } from '@/components/ui/button';
 import { MathText } from '@/components/ui/math-text';
+import { ChatMessageContent } from '@/components/chat/chat-message-content';
 import { createClient } from '@/lib/supabase/client';
 import { getSubjectTopicSuggestions } from '@/lib/subject-topic-suggestions';
 
@@ -242,10 +243,7 @@ export default function TeacherAiTutorPage() {
                     }`}
                   >
                     {msg.role === 'assistant' ? (
-                      <MathText
-                        content={msg.content}
-                        className="whitespace-pre-wrap leading-relaxed text-sm"
-                      />
+                      <ChatMessageContent content={msg.content} />
                     ) : (
                       <p className="whitespace-pre-wrap">{msg.content}</p>
                     )}
