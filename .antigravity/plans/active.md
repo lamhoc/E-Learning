@@ -335,3 +335,25 @@
     + Test thực tế với câu hỏi `"Tạo 5 câu hỏi ôn tập toán 10"`.
     + Tạo Local Commit an toàn `070edec` theo quy định `AGENTS.md` (không tự ý push).
     + Ghi mã commit hash vào `.antigravity/plans/active.md`.
+
+- [x] **Phase 56 (Commit `1dc1848`)**: Sửa triệt để lỗi Sinh câu hỏi AI bị lệch môn học / chủ đề (Sinh môn Lịch sử nhưng ra câu hỏi Đạo hàm Toán):
+  - [x] **Mục tiêu 1 (Sửa Lời Gọi Groq AI Thực Tế Hoạt Động 100% Cho Mọi Môn Học Trong `lib/ai-question-generator.ts`)**:
+    + Truyền đầy đủ `subjectName`, `subjectCode`, `topic`, `difficulty`, `questionType` và `notes` vào Prompt.
+    + Thêm chỉ thị nghiêm ngặt: BẮT BUỘC 100% câu hỏi, phương án và giải thích phải thuộc đúng môn học `[Tên môn]` và đề tài `[Chủ đề]`.
+    + Phân biệt quy tắc công thức: Chỉ dùng KaTeX `$..$` cho Toán/Lý/Hóa/Công thức; các môn xã hội/lý thuyết (Lịch sử, Địa lý, Ngữ văn, Tiếng Anh, Pháp luật...) dùng văn bản học thuật chuẩn xác, cấm chèn công thức toán.
+    + Không throw Error khi thiếu API key mà tự động kích hoạt bộ sinh thông minh tương thích môn học.
+    + Khắc phục lỗi 400 `json_validate_failed`: Thử tuần tự JSON Mode -> Text Mode + Resilient JSON Parser -> Fallback theo đúng môn học.
+  - [x] **Mục tiêu 2 (Xóa Bỏ Mặc Định Môn Toán Trong Hàm Fallback & Xây Dựng Bộ Sinh Đa Môn Theo Đề Tài `generateDomainAwareFallbackQuestions`)**:
+    + NGHIÊM CẤM trả về câu hỏi Đạo hàm / Toán khi môn học không phải là Toán.
+    + Xây dựng bộ câu hỏi chuẩn xác cho môn Lịch sử (`SU`, `HIST`, `Lịch sử`): Chủ đề "Vai trò của Sử học", "Cách mạng công nghiệp", "Văn minh Đại Việt", "Cách mạng tháng Tám"... kèm 4 phương án A-B-C-D và lời giải thích.
+    + Tích hợp bộ câu hỏi cho các môn Địa lý, Ngữ văn, Tiếng Anh, Sinh học, GDCD/Pháp luật/Kinh tế, CNTT và Toán học.
+    + Xây dựng bộ tổng hợp linh hoạt cho BẤT KỲ môn học và đề tài mới nào: Phân tích trực tiếp `subjectName` và `topic` để sinh ra các câu hỏi xoay quanh 10 khía cạnh học thuật của chính đề tài đó.
+  - [x] **Mục tiêu 3 (Cập Nhật "Gợi Ý Nhanh" Tự Động Theo Đúng Môn Học Đang Chọn Trong `lib/subject-topic-suggestions.ts`)**:
+    + Bổ sung nhận diện chuyên sâu cho nhóm môn Lịch sử (`SU`, `HIST`, `Lịch sử`, `Sử`): 5 chủ đề tiêu biểu chuẩn SGK & ĐH.
+    + Bổ sung nhận diện cho Địa lý (`DIA`), Ngữ văn (`VAN`), Sinh học (`SINH`), GDCD/Pháp luật...
+    + Đảm bảo khi giảng viên chọn `SU · Lịch Sử` trên dropdown tại `/teacher/ai-generator`, danh sách pill gợi ý nhanh đổi ngay sang các chủ đề Sử học.
+  - [x] **Mục tiêu 4 (Kiểm Thử Type Check, Build Sản Phẩm & Commit An Toàn)**:
+    + Chạy `npx tsc --noEmit` và `npm run build` đạt 0 lỗi (36/36 static/dynamic routes).
+    + Test thực tế với môn `SU · Lịch Sử` và chủ đề `Vai trò của Sử học`.
+    + Tạo Local Commit an toàn theo quy định `AGENTS.md` (không tự ý push) với mã hash `1dc1848`.
+    + Ghi mã commit hash vào `.antigravity/plans/active.md`.
