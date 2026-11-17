@@ -382,3 +382,25 @@
     + Test thực tế với các yêu cầu: "Tạo 5 câu hỏi trắc nghiệm liên quan đến lịch sử việt nam", "Soạn đề cương ôn tập môn Cơ sở dữ liệu", giải phương trình bậc hai.
     + Tạo Local Commit an toàn theo quy định `AGENTS.md` (không tự ý push) với mã hash `662bd48`.
     + Ghi mã commit hash vào `.antigravity/plans/active.md`.
+
+- [x] **Phase 58 (Commit `51074eb`)**: Sửa triệt để lỗi ký tự thô (`\(...\)`, `|---|`, LaTeX/Markdown) trên Gia sư AI & Tổng rà soát ký tự toàn hệ thống (Admin, Giảng viên, Sinh viên):
+  - [x] **Mục tiêu 1 (Nâng Cấp `<MathText />` Hỗ Trợ Mọi Cú Pháp LaTeX `components/ui/math-text.tsx`)**:
+    + Viết hàm `normalizeMathInput(text: string)`:
+      - Chuyển `\[...\]` / `\\\[...\\\]` thành `$$...$$`.
+      - Chuyển `\(...\)` / `\\\(...\\\)` thành `$...$`.
+      - Khử escape kép dư thừa: `\\frac` -> `\frac`, `\\sqrt` -> `\sqrt`, `\\circ` -> `\circ`, `\\angle` -> `\angle`, `\\cdot` -> `\cdot`, `\\le` -> `\le`, `\\ge` -> `\ge`.
+      - Tự động nhận diện lệnh LaTeX đơn lẻ ngoài dấu `$` (`\frac{...}{...}`, `\sqrt{...}`, `^\circ`) và bọc vào `$...$`.
+  - [x] **Mục tiêu 2 (Sửa Định Dạng Trả Lời Của Gia Sư AI & Bộ Render Khung Chat `components/chat/chat-message-content.tsx` & `app/api/chat-ai/route.ts`)**:
+    + Cập nhật System Prompt trong `app/api/chat-ai/route.ts`: Nghiêm cấm trả về bảng Markdown `| # | Đề bài | A | B | C | D |`; bắt buộc trình bày khối dọc `**Câu 1:**`, `- **A.**`, `👉 **Đáp án đúng:**`, `💡 **Giải thích:**`; bắt buộc dùng `$ ... $` thay cho `\( ... \)`.
+    + Cập nhật `components/chat/chat-message-content.tsx`:
+      - Chuẩn hóa toàn bộ `\(...\)` thành `$...$` trước khi parse blocks.
+      - Thêm bộ phân tích cú pháp Table Markdown: Gom các dòng `| ... |` và `|---|---|` thành block `table`, render thành bảng HTML bo góc, header nổi bật và render `<MathText />` trong từng ô cell.
+  - [x] **Mục tiêu 3 (Tổng Rà Soát & Xử Lý Ký Tự Toàn Bộ 3 Giao Diện Admin, Giảng Viên, Sinh Viên)**:
+    + Giảng viên: Chuẩn hóa ký tự câu hỏi AI và bóc tách tài liệu (`\(...\)` -> `$...$`, loại bỏ `\u0000`, `\ufffd`, giải mã HTML entities `&amp;`, `&lt;`, `&gt;`, `&quot;`, `&#39;`, `&nbsp;`, Unicode NFC); đảm bảo CSV/Excel xuất ra có UTF-8 BOM (`\uFEFF`).
+    + Sinh viên: Lọc sạch tag nội bộ `[CAMERA_REQUIRED:...]`, `[AUTO_GRADE_ESSAY:...]` khỏi hướng dẫn đề thi; đảm bảo mọi câu hỏi thi và xem lại bài làm đều render qua `<MathText />`.
+    + Quản trị viên: Chuẩn hóa Unicode NFC cho danh sách môn học, giảng viên, sinh viên.
+  - [x] **Mục tiêu 4 (Kiểm Thử Type Check, Build Sản Phẩm & Commit An Toàn)**:
+    + Chạy `npx tsc --noEmit` và `npm run build` đạt 0 lỗi (36/36 routes).
+    + Test thực tế với các chuỗi `\(ABC\)`, `\(30^\circ\)`, bảng markdown `|---|`.
+    + Tạo Local Commit an toàn theo quy định `AGENTS.md` (không tự ý push) với mã hash `51074eb`.
+    + Ghi mã commit hash vào `.antigravity/plans/active.md`.
