@@ -27,9 +27,9 @@ function tokenizeInline(text: string): InlineToken[] {
   // 1. $$...$$ (Block math)
   // 2. $...$ (Inline math)
   // 3. `...` (Inline code)
-  // 4. **...** (Bold)
+  // 4. **...** (Bold - hỗ trợ mọi ký tự bên trong)
   // 5. *...* (Italic)
-  const regex = /\$\$([\s\S]+?)\$\$|\$([^\$\n]+?)\$|`([^`\n]+?)`|\*\*([^\*\n]+?)\*\*|\*([^\*\n]+?)\*/g;
+  const regex = /\$\$([\s\S]+?)\$\$|\$([^\$\n]+?)\$|`([^`\n]+?)`|\*\*([^\n]+?)\*\*|\*([^\n]+?)\*/g;
 
   let lastIndex = 0;
   let match: RegExpExecArray | null;
@@ -58,10 +58,14 @@ function tokenizeInline(text: string): InlineToken[] {
   }
 
   if (lastIndex < text.length) {
-    tokens.push({
-      type: 'text',
-      value: text.slice(lastIndex),
-    });
+    // Làm sạch dấu ** hoặc * mồ côi nếu có ở phần text cuối cùng
+    const remaining = text.slice(lastIndex).replace(/\*\*/g, '');
+    if (remaining) {
+      tokens.push({
+        type: 'text',
+        value: remaining,
+      });
+    }
   }
 
   return tokens;
@@ -199,26 +203,50 @@ function parseBlocks(rawText: string): BlockItem[] {
       continue;
     }
 
-    // 2. Dòng kẻ ngang (--- hoặc *** hoặc ___)
-    if (trimmed === '---' || trimmed === '***' || trimmed === '___') {
+    // 2. Dòng kẻ ngang (--- hoặc *** hoặc ___ hoặc ----)
+    if (/^([-*_])(?:\s*\1){2,}$/.test(trimmed)) {
       blocks.push({ type: 'horizontal-rule' });
       continue;
     }
 
-    // 3. Tiêu đề (Heading #, ##, ###)
+    // 3. Tiêu đề Markdown (Heading #, ##, ###)
     const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
     if (headingMatch) {
       const level = headingMatch[1].length;
       let title = headingMatch[2].trim();
-      // Loại bỏ cặp dấu ** bao phủ toàn bộ title nếu có (ví dụ: ### **Câu 1...**)
-      if (title.startsWith('**') && title.endsWith('**') && title.length >= 4) {
-        title = title.slice(2, -2).trim();
-      }
+      // Làm sạch toàn bộ dấu ** trong tiêu đề để tránh lộ markdown thô vì thẻ heading đã được in đậm
+      title = title.replace(/\*\*/g, '').trim();
       blocks.push({ type: 'heading', level, text: title });
       continue;
     }
 
-    // 4. Danh sách gạch đầu dòng hoặc đánh số (- ..., * ..., 1. ..., 👉 ..., 💡 ...)
+    // 4. Tiêu đề Câu hỏi độc lập (dạng "**Câu 1: ...**" hoặc "Câu 1: ...")
+    const questionHeadingMatch = line.match(/^(\*\*)?(câu|bài|question)\s*(\d+)[:.](\*\*)?\s*(.*)$/i);
+    if (questionHeadingMatch) {
+      const qNum = questionHeadingMatch[3];
+      const rawText = questionHeadingMatch[5].replace(/\*\*/g, '').trim();
+      blocks.push({
+        type: 'heading',
+        level: 4,
+        text: `Câu ${qNum}: ${rawText}`,
+      });
+      continue;
+    }
+
+    // 5. Lựa chọn trắc nghiệm độc lập (A. ..., B. ..., **A.** ..., **B.** ...)
+    const optionMatch = line.match(/^(\s*)(?:[-*+]\s+)?(\*\*)?([A-D])[:.)-](\*\*)?\s+(.*)$/i);
+    if (optionMatch) {
+      const optKey = optionMatch[3].toUpperCase();
+      const optText = optionMatch[5].trim();
+      blocks.push({
+        type: 'list-item',
+        prefix: `${optKey}.`,
+        text: optText,
+      });
+      continue;
+    }
+
+    // 6. Danh sách gạch đầu dòng hoặc đánh số (- ..., * ..., 1. ..., 👉 ..., 💡 ...)
     const listMatch = line.match(/^(\s*)([-*+]|\d+\.|\uD83D\uDC49|\uD83D\uDCA1)\s+(.*)$/);
     if (listMatch) {
       blocks.push({
@@ -229,12 +257,12 @@ function parseBlocks(rawText: string): BlockItem[] {
       continue;
     }
 
-    // 5. Dòng trống
+    // 7. Dòng trống
     if (!trimmed) {
       continue;
     }
 
-    // 6. Đoạn văn thường
+    // 8. Đoạn văn thường
     blocks.push({ type: 'paragraph', text: line });
   }
 
@@ -287,9 +315,9 @@ export const ChatMessageContent = React.memo(
               return (
                 <h4
                   key={idx}
-                  className="font-bold text-[14px] text-blue-700 dark:text-amber-400 mt-3 mb-1.5 flex items-baseline gap-1.5"
+                  className="font-bold text-[14.5px] text-blue-700 dark:text-amber-400 mt-3 mb-1.5 flex items-baseline gap-1.5"
                 >
-                  <span className="size-1.5 rounded-full bg-blue-600 dark:bg-amber-400 shrink-0 self-center" />
+                  <span className="size-2 rounded-full bg-blue-600 dark:bg-amber-400 shrink-0 self-center" />
                   <span>{renderInlineTokens(tokens)}</span>
                 </h4>
               );
@@ -311,18 +339,24 @@ export const ChatMessageContent = React.memo(
 
             case 'list-item': {
               const tokens = tokenizeInline(block.text);
-              const isOption = /^[A-D]\./i.test(block.text.trim()) || /^\*\*[A-D]\.\*\*/i.test(block.text.trim());
+              const isOption = /^[A-D]\./i.test(block.prefix?.trim() || '');
 
               return (
                 <div
                   key={idx}
-                  className={`flex items-start gap-2 py-0.5 pl-1 ${
+                  className={`flex items-start gap-2.5 py-1 px-1.5 ${
                     isOption
-                      ? 'rounded-lg bg-slate-50/70 dark:bg-slate-800/40 px-2 py-1 border border-slate-200/50 dark:border-slate-700/40 my-1'
+                      ? 'rounded-xl bg-slate-50/80 dark:bg-slate-800/40 px-3 py-1.5 border border-slate-200/60 dark:border-slate-700/50 my-1 font-medium transition hover:border-blue-300 dark:hover:border-blue-500/50'
                       : ''
                   }`}
                 >
-                  <span className="font-semibold text-blue-600 dark:text-blue-400 shrink-0 select-none">
+                  <span
+                    className={`shrink-0 select-none ${
+                      isOption
+                        ? 'font-bold text-blue-700 dark:text-amber-400 w-5'
+                        : 'font-semibold text-blue-600 dark:text-blue-400'
+                    }`}
+                  >
                     {block.prefix || '•'}
                   </span>
                   <div className="flex-1 text-slate-800 dark:text-slate-100 leading-relaxed">

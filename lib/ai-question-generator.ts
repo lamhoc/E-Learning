@@ -581,65 +581,60 @@ ${!isMathOrScience ? '2. TUYỆT ĐỐI KHÔNG chèn công thức toán hay ký 
 
     let list: Record<string, unknown>[] = [];
 
-    // Chỉ gọi Groq AI nếu có API Key
-    if (apiKey) {
+    // Gọi AI qua ai-provider trung tâm (3 Lớp: Groq -> Free AI Gateway -> Domain-Aware Fallback)
+    // =========================================================================
+    // LỚP 1 (Strict JSON Mode): Gọi AI với response_format: { type: "json_object" }
+    // =========================================================================
+    try {
+      const { content: rawContent } = await callAiChatCompletion({
+        temperature: 0.4,
+        max_tokens: MAX_COMPLETION_TOKENS,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        response_format: { type: 'json_object' },
+      });
+
+      const parsed = sanitizeAndParseAiJson(rawContent);
+      list = extractQuestionList(parsed);
+    } catch (layer1Error) {
+      const errObj = layer1Error as { error?: { code?: string; message?: string }; code?: string; message?: string };
+      const errCode = errObj?.error?.code ?? errObj?.code;
+      const isJsonValidateFailed = errCode === 'json_validate_failed';
+
+      console.warn(
+        `[AI-Generator] Lớp 1 thất bại (${isJsonValidateFailed ? 'json_validate_failed' : 'other'}). Đang tự động chuyển sang Lớp 2 (Text Mode + Resilient Parser)...`,
+        errObj?.error?.message || errObj?.message || layer1Error,
+      );
+
       // =========================================================================
-      // LỚP 1 (Strict JSON Mode): Gọi Groq với response_format: { type: "json_object" }
+      // LỚP 2 (Auto-Retry Text Mode + Resilient JSON Parser):
+      // Gọi lại mà KHÔNG dùng response_format để tránh lỗi 400 json_validate_failed của Groq
       // =========================================================================
       try {
-        const { content: rawContent } = await callAiChatCompletion({
-          temperature: 0.4,
+        const { content: rawContent2 } = await callAiChatCompletion({
+          temperature: 0.3,
           max_tokens: MAX_COMPLETION_TOKENS,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
           ],
-          response_format: { type: 'json_object' },
         });
 
-        const parsed = sanitizeAndParseAiJson(rawContent);
-        list = extractQuestionList(parsed);
-      } catch (layer1Error) {
-        const errObj = layer1Error as { error?: { code?: string; message?: string }; code?: string; message?: string };
-        const errCode = errObj?.error?.code ?? errObj?.code;
-        const isJsonValidateFailed = errCode === 'json_validate_failed';
-
+        const parsed2 = sanitizeAndParseAiJson(rawContent2);
+        list = extractQuestionList(parsed2);
+      } catch (layer2Error) {
         console.warn(
-          `[AI-Generator] Lớp 1 thất bại (${isJsonValidateFailed ? 'json_validate_failed' : 'other'}). Đang tự động chuyển sang Lớp 2 (Text Mode + Resilient Parser)...`,
-          errObj?.error?.message || errObj?.message || layer1Error,
+          '[AI-Generator] Lớp 1 & Lớp 2 AI Gateway đều không khả dụng. Tự động kích hoạt Lớp 3 (Domain-Aware Fallback)...',
+          layer2Error,
         );
 
         // =========================================================================
-        // LỚP 2 (Auto-Retry Text Mode + Resilient JSON Parser):
-        // Gọi lại mà KHÔNG dùng response_format để tránh lỗi 400 json_validate_failed của Groq
+        // LỚP 3 (Domain-Aware Fallback): Cung cấp bộ câu hỏi chuẩn xác theo đúng môn học và đề tài
         // =========================================================================
-        try {
-          const { content: rawContent2 } = await callAiChatCompletion({
-            temperature: 0.3,
-            max_tokens: MAX_COMPLETION_TOKENS,
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt },
-            ],
-          });
-
-          const parsed2 = sanitizeAndParseAiJson(rawContent2);
-          list = extractQuestionList(parsed2);
-        } catch (layer2Error) {
-          console.warn(
-            '[AI-Generator] Lớp 2 thất bại. Tự động kích hoạt Lớp 3 (Domain-Aware Fallback)...',
-            layer2Error,
-          );
-
-          // =========================================================================
-          // LỚP 3 (Domain-Aware Fallback): Cung cấp bộ câu hỏi chuẩn xác theo đúng môn học và đề tài
-          // =========================================================================
-          list = generateSmartDiverseFallback(batchCount, isMC, req.topic, req.subjectName, req.subjectCode, offset);
-        }
+        list = generateSmartDiverseFallback(batchCount, isMC, req.topic, req.subjectName, req.subjectCode, offset);
       }
-    } else {
-      console.warn('[AI-Generator] Không có GROQ_API_KEY, kích hoạt Lớp 3 (Domain-Aware Fallback)...');
-      list = generateSmartDiverseFallback(batchCount, isMC, req.topic, req.subjectName, req.subjectCode, offset);
     }
 
     // Nếu list vẫn rỗng, kích hoạt fallback đa môn

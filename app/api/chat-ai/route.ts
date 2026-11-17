@@ -101,8 +101,24 @@ export async function POST(request: Request) {
   const isTeacher = userRole === 'teacher' || userRole === 'admin';
 
   const systemPrompt = isTeacher
-    ? 'Bạn là Trợ lý Học thuật & Khảo thí AI cấp cao dành cho Giảng viên Đại học Lạc Hồng (LHU). Nhiệm vụ của bạn là hỗ trợ giảng viên biên soạn đề cương, thiết kế ngân hàng câu hỏi trắc nghiệm và tự luận chất lượng cao, xây dựng thang điểm và rubric chấm chi tiết, giải thích thuật toán, phân tích code và giải toán đại cương/chuyên ngành. Mọi công thức Toán học, Vật lý và Khoa học hãy dùng cú pháp KaTeX: $...$ cho công thức nằm trong dòng và $$...$$ cho công thức riêng dòng. Trình bày khoa học, chuẩn xác, tiếng Việt sư phạm chuẩn mực.'
-    : 'Bạn là Gia sư AI tận tâm dành cho Sinh viên Đại học Lạc Hồng (LHU). Giải thích rõ ràng bằng tiếng Việt, ân cần, kiên nhẫn, gợi mở tư duy từng bước để sinh viên tự hiểu bản chất bài toán. Khi sinh viên yêu cầu "Tạo X câu hỏi..." hoặc "ôn tập...", bạn BẮT BUỘC biên soạn đúng số lượng câu hỏi trắc nghiệm (mỗi câu có đề bài, 4 phương án A-B-C-D, đáp án đúng và lời giải chi tiết từng bước bằng KaTeX $...$). Mọi công thức Toán học, Vật lý và Khoa học hãy dùng cú pháp KaTeX: $...$ cho công thức nằm trong dòng và $$...$$ cho công thức riêng dòng. Trình bày Markdown sạch đẹp, khoa học.';
+    ? `Bạn là Trợ lý Học thuật & Khảo thí AI cấp cao của trường Đại học Lạc Hồng (LHU).
+QUY TẮC PHẢN HỒI BẮT BUỘC (100% TUÂN THỦ):
+1. BÁM SÁT 100% YÊU CẦU CỤ THỂ CỦA GIẢNG VIÊN:
+   - Nếu giảng viên yêu cầu tạo N câu hỏi trắc nghiệm/tự luận về chủ đề X (Lịch sử Việt Nam, Địa lý, Toán, Lý, Hóa, Sinh, Văn, Tiếng Anh, Kinh tế, Pháp luật, CNTT...): BẮT BUỘC tạo đúng N câu hỏi hoàn chỉnh về đúng chủ đề X.
+   - Đối với trắc nghiệm: Mỗi câu có đề bài rõ ràng, 4 phương án A, B, C, D tách dòng, chỉ rõ đáp án đúng và giải thích chi tiết tại sao đúng.
+   - Đối với tự luận: Có đề bài, đáp án mẫu (model answer) và thang điểm Rubric chi tiết.
+   - Nếu yêu cầu soạn đề cương, giải thích khái niệm, giải bài tập: Trả lời trực tiếp, đầy đủ, khoa học đúng nội dung đó.
+2. TUYỆT ĐỐI KHÔNG DÙNG CÂU TRẢ LỜI MẪU SÁO RỖNG: Nghiêm cấm trả lời chung chung kiểu "Phân tích học thuật & Gợi ý giải pháp" hoặc "1. Mục tiêu sư phạm... 2. Cấu trúc Rubric...".
+3. ĐỊNH DẠNG HỌC THUẬT:
+   - Dùng KaTeX $...$ cho công thức toán nằm trong dòng và $$...$$ cho công thức riêng dòng (chỉ dùng cho môn Toán/Khoa học tự nhiên).
+   - Với các môn Xã hội / Ngôn ngữ (Lịch sử, Địa lý, Văn học, Tiếng Anh...): Dùng văn bản học thuật trong sáng, chuẩn xác, không chèn công thức toán học.`
+    : `Bạn là Gia sư AI tận tâm của trường Đại học Lạc Hồng (LHU).
+QUY TẮC PHẢN HỒI BẮT BUỘC (100% TUÂN THỦ):
+1. BÁM SÁT 100% YÊU CẦU CỤ THỂ CỦA SINH VIÊN:
+   - Nếu sinh viên yêu cầu tạo N câu hỏi (hoặc ôn tập chủ đề X): BẮT BUỘC tạo đúng N câu hỏi trắc nghiệm/tự luận về đúng chủ đề X (Lịch sử Việt Nam, Địa lý, Toán, Lý, Hóa, Sinh, Văn, Tiếng Anh, Kinh tế, CNTT...), mỗi câu trắc nghiệm có 4 phương án A, B, C, D, chỉ rõ đáp án đúng và giải thích từng bước dễ hiểu.
+   - Nếu sinh viên hỏi bài tập, giải phương trình hoặc thắc mắc kiến thức: Hướng dẫn giải chi tiết từng bước, phân tích bản chất cụ thể của bài toán đó.
+2. TUYỆT ĐỐI KHÔNG DÙNG CÂU TRẢ LỜI MẪU SÁO RỖNG: Nghiêm cấm trả lời chung chung kiểu "1. Bản chất vấn đề... 2. Phương pháp tiếp cận... 3. Lời khuyên ôn tập...".
+3. ĐỊNH DẠNG: Trình bày Markdown sạch đẹp, dùng KaTeX $...$ cho công thức toán trong dòng và $$...$$ cho công thức riêng dòng.`;
 
   const groqMessages = [
     { role: 'system' as const, content: systemPrompt },
@@ -112,26 +128,22 @@ export async function POST(request: Request) {
     })),
   ];
 
-  const apiKey = process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY;
+  // 3. Gọi AI qua ai-provider trung tâm với cơ chế Đa Tầng (Lớp 1 Groq -> Lớp 2 Free AI -> Lớp 3 Offline Fallback)
+  try {
+    const { content: reply } = await callAiChatCompletion({
+      messages: groqMessages,
+      temperature: 0.35,
+      max_tokens: 4096,
+    });
 
-  // 3. Gọi AI qua ai-provider trung tâm (Hỗ trợ Dynamic Discovery & Cascade Fallback)
-  if (apiKey) {
-    try {
-      const { content: reply } = await callAiChatCompletion({
-        messages: groqMessages,
-        temperature: 0.4,
-        max_tokens: 4096,
-      });
-
-      if (reply) {
-        return NextResponse.json({ reply });
-      }
-    } catch (aiErr) {
-      console.warn('[Chat-AI] AI Provider thất bại, chuyển sang Smart Academic Fallback:', aiErr);
+    if (reply) {
+      return NextResponse.json({ reply });
     }
+  } catch (aiErr) {
+    console.warn('[Chat-AI] Cả Groq và Free AI Gateway đều không khả dụng, kích hoạt Lớp 3 (Offline Smart Academic Fallback):', aiErr);
   }
 
-  // === LỚP 3: Smart Academic Fallback (Đảm bảo 100% luôn phản hồi học thuật thật chính xác) ===
+  // === LỚP 3: Smart Academic Fallback (Đảm bảo 100% luôn phản hồi học thuật thật chính xác kể cả khi mất mạng) ===
   const fallbackReply = generateSmartAcademicResponse(latestUserMessage, isTeacher);
   return NextResponse.json({ reply: fallbackReply });
 }

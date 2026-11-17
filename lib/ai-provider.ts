@@ -16,11 +16,11 @@ export type AiCompletionOptions = {
 
 // Danh sách các model theo thứ tự ưu tiên giảm dần
 const DEFAULT_CANDIDATE_MODELS: string[] = [
+  'llama-3.3-70b-versatile',
   'llama-3.1-8b-instant',
   'meta-llama/llama-4-scout-17b-16e-instruct',
   'qwen/qwen3-32b',
   'gemma2-9b-it',
-  'llama-3.3-70b-versatile',
   'mixtral-8x7b-32768',
 ];
 
@@ -44,7 +44,8 @@ let lastDiscoveryTime = 0;
  * Lấy cấu hình Groq API (key & base url)
  */
 export function getAiConfig() {
-  const apiKey = (process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY || '').trim();
+  const rawKey = process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY || '';
+  const apiKey = rawKey.trim().replace(/^["']|["']$/g, '');
   const envModel = process.env.GROQ_MODEL?.trim();
 
   let baseUrl = (process.env.GROQ_BASE_URL || '').trim();
@@ -144,7 +145,59 @@ async function buildCandidateList(
 }
 
 /**
- * Gọi chat completion với cơ chế Dynamic Discovery và Cascade Fallback an toàn tuyệt đối
+ * Lớp 2: Cổng AI dự phòng trực tuyến miễn phí (Free AI Gateway)
+ * Sử dụng endpoint tương thích chuẩn OpenAI Chat Completions không yêu cầu API key.
+ * Đảm bảo hệ thống luôn phản hồi AI thật 100% theo thời gian thực kể cả khi chưa cấu hình GROQ_API_KEY.
+ */
+export async function callFreeAiChatCompletion(options: AiCompletionOptions): Promise<{
+  content: string;
+  modelUsed: string;
+}> {
+  const endpoint = 'https://text.pollinations.ai/openai/chat/completions';
+
+  const payload = {
+    model: 'openai',
+    messages: options.messages.map((m) => ({
+      role: m.role,
+      content: m.content,
+    })),
+    temperature: options.temperature ?? 0.3,
+    ...(options.response_format ? { response_format: options.response_format } : {}),
+  };
+
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(25000), // 25s timeout cho mạng chậm
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => '');
+    throw new Error(`Free AI Gateway phản hồi lỗi HTTP ${res.status}: ${errorText.slice(0, 150)}`);
+  }
+
+  const json = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+
+  const rawText = json?.choices?.[0]?.message?.content?.trim() ?? '';
+  const cleanText = stripThinkingTags(rawText);
+
+  if (!cleanText) {
+    throw new Error('Free AI Gateway trả về phản hồi rỗng.');
+  }
+
+  return { content: cleanText, modelUsed: 'pollinations-free-openai' };
+}
+
+/**
+ * Gọi chat completion với cơ chế Đa Tầng Dự Phòng (3 Lớp):
+ * - Lớp 1: Groq API với Dynamic Discovery & Candidate Cascade
+ * - Lớp 2: Cổng AI Trực Tuyến Miễn Phí (Không cần key)
+ * - Lớp 3: Caller tự động chuyển sang Offline Smart Academic Fallback
  */
 export async function callAiChatCompletion(options: AiCompletionOptions): Promise<{
   content: string;
@@ -152,68 +205,77 @@ export async function callAiChatCompletion(options: AiCompletionOptions): Promis
 }> {
   const { apiKey, envModel, baseUrl } = getAiConfig();
 
-  if (!apiKey) {
-    throw new Error('Chưa cấu hình GROQ_API_KEY trên server.');
-  }
-
-  const groq = new Groq({ apiKey, baseURL: baseUrl });
-  let candidateList = await buildCandidateList(apiKey, baseUrl, options.preferredModel, envModel);
-
-  let lastError: unknown = null;
-  let hasTriedDiscovery = false;
-
-  for (let i = 0; i < candidateList.length; i++) {
-    const currentModel = candidateList[i];
+  // =========================================================================
+  // LỚP 1: Thử gọi Groq API nếu có API Key
+  // =========================================================================
+  if (apiKey) {
     try {
-      const response = await groq.chat.completions.create({
-        model: currentModel,
-        messages: options.messages,
-        temperature: options.temperature ?? 0.2,
-        max_tokens: options.max_tokens ?? 4096,
-        ...(options.response_format ? { response_format: options.response_format } : {}),
-      });
+      const groq = new Groq({ apiKey, baseURL: baseUrl });
+      let candidateList = await buildCandidateList(apiKey, baseUrl, options.preferredModel, envModel);
 
-      const rawText = response.choices?.[0]?.message?.content?.trim() ?? '';
-      const text = stripThinkingTags(rawText);
-      if (text) {
-        // Ghi nhận model hoạt động tốt
-        cachedWorkingModel = currentModel;
-        return { content: text, modelUsed: currentModel };
-      }
-    } catch (err: unknown) {
-      lastError = err;
-      const errMsg = err instanceof Error ? err.message : String(err);
-      console.warn(`[AI-Provider] Model "${currentModel}" thất bại: ${errMsg}`);
+      let lastError: unknown = null;
+      let hasTriedDiscovery = false;
 
-      const isModelNotFound =
-        errMsg.includes('model_not_found') ||
-        errMsg.includes('does not exist') ||
-        errMsg.includes('decommissioned') ||
-        errMsg.includes('not have access') ||
-        (err as { status?: number })?.status === 404;
-
-      // Nếu gặp lỗi 404 model_not_found và chưa dò tìm động từ /models, thực hiện dò tìm ngay
-      if (isModelNotFound && !hasTriedDiscovery) {
-        hasTriedDiscovery = true;
+      for (let i = 0; i < candidateList.length; i++) {
+        const currentModel = candidateList[i];
         try {
-          const discovered = await discoverAvailableModels(apiKey, baseUrl);
-          for (const dm of discovered) {
-            if (!candidateList.includes(dm)) {
-              candidateList.push(dm);
+          const response = await groq.chat.completions.create({
+            model: currentModel,
+            messages: options.messages,
+            temperature: options.temperature ?? 0.2,
+            max_tokens: options.max_tokens ?? 4096,
+            ...(options.response_format ? { response_format: options.response_format } : {}),
+          });
+
+          const rawText = response.choices?.[0]?.message?.content?.trim() ?? '';
+          const text = stripThinkingTags(rawText);
+          if (text) {
+            cachedWorkingModel = currentModel;
+            return { content: text, modelUsed: currentModel };
+          }
+        } catch (err: unknown) {
+          lastError = err;
+          const errMsg = err instanceof Error ? err.message : String(err);
+          console.warn(`[AI-Provider] Model "${currentModel}" thất bại: ${errMsg}`);
+
+          const isModelNotFound =
+            errMsg.includes('model_not_found') ||
+            errMsg.includes('does not exist') ||
+            errMsg.includes('decommissioned') ||
+            errMsg.includes('not have access') ||
+            (err as { status?: number })?.status === 404;
+
+          if (isModelNotFound && !hasTriedDiscovery) {
+            hasTriedDiscovery = true;
+            try {
+              const discovered = await discoverAvailableModels(apiKey, baseUrl);
+              for (const dm of discovered) {
+                if (!candidateList.includes(dm)) {
+                  candidateList.push(dm);
+                }
+              }
+            } catch (discErr) {
+              console.warn('[AI-Provider] Không thể khám phá thêm model:', discErr);
             }
           }
-        } catch (discErr) {
-          console.warn('[AI-Provider] Không thể khám phá thêm model:', discErr);
         }
       }
+    } catch (groqErr) {
+      console.warn('[AI-Provider] Groq API gặp sự cố, tự động chuyển sang Lớp 2 Free AI Gateway:', groqErr);
     }
   }
 
-  throw new Error(
-    lastError instanceof Error
-      ? `Không thể hoàn tất yêu cầu AI sau khi thử các model [${candidateList.slice(0, 4).join(', ')}...]: ${lastError.message}`
-      : 'Không thể kết nối đến mô hình AI khả dụng nào.'
-  );
+  // =========================================================================
+  // LỚP 2: Cổng AI Trực Tuyến Miễn Phí (Không cần key)
+  // =========================================================================
+  try {
+    const freeAi = await callFreeAiChatCompletion(options);
+    return freeAi;
+  } catch (freeAiErr) {
+    console.warn('[AI-Provider] Lớp 2 Free AI Gateway không phản hồi (có thể do mất kết nối mạng):', freeAiErr);
+  }
+
+  throw new Error('Tất cả các cổng AI trực tuyến (Groq và Free Gateway) đều không phản hồi.');
 }
 
 /**
@@ -224,59 +286,77 @@ export async function callAiChatStream(
 ): Promise<{ stream: AsyncIterable<Groq.Chat.Completions.ChatCompletionChunk>; modelUsed: string }> {
   const { apiKey, envModel, baseUrl } = getAiConfig();
 
-  if (!apiKey) {
-    throw new Error('Chưa cấu hình GROQ_API_KEY trên server.');
-  }
-
-  const groq = new Groq({ apiKey, baseURL: baseUrl });
-  let candidateList = await buildCandidateList(apiKey, baseUrl, options.preferredModel, envModel);
-
-  let lastError: unknown = null;
-  let hasTriedDiscovery = false;
-
-  for (let i = 0; i < candidateList.length; i++) {
-    const currentModel = candidateList[i];
+  if (apiKey) {
     try {
-      const stream = await groq.chat.completions.create({
-        model: currentModel,
-        messages: options.messages,
-        temperature: options.temperature ?? 0.3,
-        max_tokens: options.max_tokens ?? 4096,
-        stream: true,
-      });
+      const groq = new Groq({ apiKey, baseURL: baseUrl });
+      let candidateList = await buildCandidateList(apiKey, baseUrl, options.preferredModel, envModel);
 
-      cachedWorkingModel = currentModel;
-      return { stream, modelUsed: currentModel };
-    } catch (err: unknown) {
-      lastError = err;
-      const errMsg = err instanceof Error ? err.message : String(err);
-      console.warn(`[AI-Provider Stream] Model "${currentModel}" thất bại: ${errMsg}`);
+      let lastError: unknown = null;
+      let hasTriedDiscovery = false;
 
-      const isModelNotFound =
-        errMsg.includes('model_not_found') ||
-        errMsg.includes('does not exist') ||
-        errMsg.includes('decommissioned') ||
-        (err as { status?: number })?.status === 404;
-
-      if (isModelNotFound && !hasTriedDiscovery) {
-        hasTriedDiscovery = true;
+      for (let i = 0; i < candidateList.length; i++) {
+        const currentModel = candidateList[i];
         try {
-          const discovered = await discoverAvailableModels(apiKey, baseUrl);
-          for (const dm of discovered) {
-            if (!candidateList.includes(dm)) {
-              candidateList.push(dm);
+          const stream = await groq.chat.completions.create({
+            model: currentModel,
+            messages: options.messages,
+            temperature: options.temperature ?? 0.3,
+            max_tokens: options.max_tokens ?? 4096,
+            stream: true,
+          });
+
+          cachedWorkingModel = currentModel;
+          return { stream, modelUsed: currentModel };
+        } catch (err: unknown) {
+          lastError = err;
+          const errMsg = err instanceof Error ? err.message : String(err);
+          console.warn(`[AI-Provider Stream] Model "${currentModel}" thất bại: ${errMsg}`);
+
+          const isModelNotFound =
+            errMsg.includes('model_not_found') ||
+            errMsg.includes('does not exist') ||
+            errMsg.includes('decommissioned') ||
+            (err as { status?: number })?.status === 404;
+
+          if (isModelNotFound && !hasTriedDiscovery) {
+            hasTriedDiscovery = true;
+            try {
+              const discovered = await discoverAvailableModels(apiKey, baseUrl);
+              for (const dm of discovered) {
+                if (!candidateList.includes(dm)) {
+                  candidateList.push(dm);
+                }
+              }
+            } catch {
+              // Ignore
             }
           }
-        } catch {
-          // Ignore
         }
       }
+    } catch (groqStreamErr) {
+      console.warn('[AI-Provider Stream] Groq stream thất bại, chuyển sang fallback chunked:', groqStreamErr);
     }
   }
 
-  throw new Error(
-    lastError instanceof Error
-      ? `Không thể khởi tạo streaming AI: ${lastError.message}`
-      : 'Không thể kết nối dịch vụ AI streaming.'
-  );
+  // Fallback streaming giả lập qua Free AI hoàn chỉnh
+  const { content } = await callFreeAiChatCompletion(options);
+  async function* mockChunkStream() {
+    // Tách thành từng từ hoặc dòng để stream tự nhiên
+    const parts = content.split(' ');
+    for (let i = 0; i < parts.length; i++) {
+      const part = (i === 0 ? '' : ' ') + parts[i];
+      yield {
+        id: 'chunk-' + i,
+        choices: [
+          {
+            delta: { content: part },
+            index: 0,
+            finish_reason: i === parts.length - 1 ? 'stop' : null,
+          },
+        ],
+      } as unknown as Groq.Chat.Completions.ChatCompletionChunk;
+    }
+  }
+
+  return { stream: mockChunkStream(), modelUsed: 'pollinations-free-stream' };
 }

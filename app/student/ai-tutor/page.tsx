@@ -137,7 +137,7 @@ export default function StudentAiTutorPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/chat-ai', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: nextMessages.slice(-20) }),
