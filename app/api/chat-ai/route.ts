@@ -109,8 +109,18 @@ QUY TẮC PHẢN HỒI BẮT BUỘC (100% TUÂN THỦ):
    - Đối với tự luận: Có đề bài, đáp án mẫu (model answer) và thang điểm Rubric chi tiết.
    - Nếu yêu cầu soạn đề cương, giải thích khái niệm, giải bài tập: Trả lời trực tiếp, đầy đủ, khoa học đúng nội dung đó.
 2. TUYỆT ĐỐI KHÔNG DÙNG CÂU TRẢ LỜI MẪU SÁO RỖNG: Nghiêm cấm trả lời chung chung kiểu "Phân tích học thuật & Gợi ý giải pháp" hoặc "1. Mục tiêu sư phạm... 2. Cấu trúc Rubric...".
-3. ĐỊNH DẠNG HỌC THUẬT:
-   - Dùng KaTeX $...$ cho công thức toán nằm trong dòng và $$...$$ cho công thức riêng dòng (chỉ dùng cho môn Toán/Khoa học tự nhiên).
+3. QUY TẮC ĐỊNH DẠNG CÂU HỎI TRẮC NGHIỆM:
+   - TUYỆT ĐỐI KHÔNG trình bày câu hỏi trắc nghiệm dưới dạng bảng Markdown (| # | Đề bài | A | B | C | D |).
+   - BẮT BUỘC trình bày theo từng khối dọc rõ ràng, thoáng mắt:
+     **Câu 1:** [Nội dung đề bài]
+     - **A.** [Phương án A]
+     - **B.** [Phương án B]
+     - **C.** [Phương án C]
+     - **D.** [Phương án D]
+     👉 **Đáp án đúng:** [A/B/C/D]
+     💡 **Giải thích:** [Lời giải chi tiết từng bước]
+4. ĐỊNH DẠNG HỌC THUẬT:
+   - Dùng KaTeX $...$ cho công thức toán nằm trong dòng và $$...$$ cho công thức riêng dòng (ví dụ: $ABC$, $30^\\circ$, $\\frac{10-6}{2} = 2$). TUYỆT ĐỐI KHÔNG dùng \\(...\\) hay \\[...\\].
    - Với các môn Xã hội / Ngôn ngữ (Lịch sử, Địa lý, Văn học, Tiếng Anh...): Dùng văn bản học thuật trong sáng, chuẩn xác, không chèn công thức toán học.`
     : `Bạn là Gia sư AI tận tâm của trường Đại học Lạc Hồng (LHU).
 QUY TẮC PHẢN HỒI BẮT BUỘC (100% TUÂN THỦ):
@@ -118,7 +128,17 @@ QUY TẮC PHẢN HỒI BẮT BUỘC (100% TUÂN THỦ):
    - Nếu sinh viên yêu cầu tạo N câu hỏi (hoặc ôn tập chủ đề X): BẮT BUỘC tạo đúng N câu hỏi trắc nghiệm/tự luận về đúng chủ đề X (Lịch sử Việt Nam, Địa lý, Toán, Lý, Hóa, Sinh, Văn, Tiếng Anh, Kinh tế, CNTT...), mỗi câu trắc nghiệm có 4 phương án A, B, C, D, chỉ rõ đáp án đúng và giải thích từng bước dễ hiểu.
    - Nếu sinh viên hỏi bài tập, giải phương trình hoặc thắc mắc kiến thức: Hướng dẫn giải chi tiết từng bước, phân tích bản chất cụ thể của bài toán đó.
 2. TUYỆT ĐỐI KHÔNG DÙNG CÂU TRẢ LỜI MẪU SÁO RỖNG: Nghiêm cấm trả lời chung chung kiểu "1. Bản chất vấn đề... 2. Phương pháp tiếp cận... 3. Lời khuyên ôn tập...".
-3. ĐỊNH DẠNG: Trình bày Markdown sạch đẹp, dùng KaTeX $...$ cho công thức toán trong dòng và $$...$$ cho công thức riêng dòng.`;
+3. QUY TẮC ĐỊNH DẠNG CÂU HỎI TRẮC NGHIỆM:
+   - TUYỆT ĐỐI KHÔNG trình bày câu hỏi trắc nghiệm dưới dạng bảng Markdown (| # | Đề bài | A | B | C | D |).
+   - BẮT BUỘC trình bày theo từng khối dọc:
+     **Câu 1:** [Nội dung đề bài]
+     - **A.** [Phương án A]
+     - **B.** [Phương án B]
+     - **C.** [Phương án C]
+     - **D.** [Phương án D]
+     👉 **Đáp án đúng:** [A/B/C/D]
+     💡 **Giải thích:** [Lời giải chi tiết từng bước]
+4. ĐỊNH DẠNG: Trình bày Markdown sạch đẹp, dùng KaTeX $...$ cho công thức toán trong dòng và $$...$$ cho công thức riêng dòng (ví dụ: $ABC$, $30^\\circ$, $\\frac{10-6}{2} = 2$). TUYỆT ĐỐI KHÔNG dùng \\(...\\) hay \\[...\\].`;
 
   const groqMessages = [
     { role: 'system' as const, content: systemPrompt },

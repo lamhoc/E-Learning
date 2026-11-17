@@ -48,6 +48,7 @@ import {
 } from '@/app/student/exams/[examId]/actions';
 import { shuffleExamQuestions } from '@/lib/exam-shuffle';
 import { isCameraRequired } from '@/lib/exam-camera';
+import { cleanExamInstructions } from '@/lib/exam-auto-grade';
 import { ExamWebcamProctor } from '@/components/student/exam-webcam-proctor';
 import type {
   ActiveAttemptData,
@@ -576,10 +577,10 @@ export function ExamTakingClient({
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
           {/* Questions Container (Left / Center) */}
           <main className="space-y-6">
-            {exam.instructions && (
+            {cleanExamInstructions(exam.instructions) && (
               <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-4 text-xs text-slate-600 dark:text-slate-300 shadow-2xs">
                 <span className="font-bold text-slate-800 dark:text-white">Hướng dẫn bài thi:</span>{' '}
-                {exam.instructions}
+                {cleanExamInstructions(exam.instructions)}
               </div>
             )}
 

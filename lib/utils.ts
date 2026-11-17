@@ -2,10 +2,12 @@ export { cn } from "cn";
 
 /**
  * Xử lý và khắc phục triệt để các chuỗi tiếng Việt bị lỗi font hoặc lỗi mã hóa ký tự (e.g. "Gi?ng vi?n demo")
+ * Đồng thời chuẩn hóa tiếng Việt Unicode NFC và loại bỏ các ký tự null byte / điều khiển lỗi.
  */
 export function sanitizeVietnameseText(text?: string | null): string {
   if (!text) return '';
-  return text
+  let str = String(text).replace(/[\u0000\ufffd]/g, '').normalize('NFC');
+  return str
     .replace(/Gi\?ng\s*vi\?n\s*demo/gi, 'Giảng viên demo')
     .replace(/Gi\?ng\s*vi\?n/gi, 'Giảng viên')
     .replace(/Gi\?ng/gi, 'Giảng')

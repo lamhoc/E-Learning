@@ -47,16 +47,36 @@ const MAX_COMPLETION_TOKENS = 8192;
 
 /**
  * Cắt bỏ các tiền tố bị lặp thừa để giao diện hiển thị sạch sẽ, chuyên nghiệp (Clean Formatting).
- * Tránh lặp "Câu 1: Câu 1:", "A. Phương án A:", "Lời giải chi tiết: Lời giải chi tiết:".
+ * Đồng thời giải mã HTML entities, chuẩn hóa \(...\) -> $...$ và chuẩn hóa Unicode NFC.
  */
 export function cleanPrefix(text: string | null | undefined): string {
   if (!text) return '';
   let str = String(text).trim();
-  // Cắt bỏ "Câu 1:", "Câu 01.", "Bài 1:", "Question 1:", "1.", v.v.
+
+  // 1. Loại bỏ null byte và ký tự rác
+  str = str.replace(/[\u0000\ufffd]/g, '');
+
+  // 2. Giải mã HTML entities
+  str = str
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ');
+
+  // 3. Chuẩn hóa cú pháp LaTeX: \(...\) -> $...$ và \[...\] -> $$...$$
+  str = str.replace(/(?:\\{1,2}\[)([\s\S]*?)(?:\\{1,2}\])/g, (_, p1) => `$$${p1}$$`);
+  str = str.replace(/(?:\\{1,2}\()([\s\S]*?)(?:\\{1,2}\))/g, (_, p1) => `$${p1}$`);
+
+  // 4. Chuẩn hóa tiếng Việt Unicode NFC
+  str = str.normalize('NFC');
+
+  // 5. Cắt bỏ "Câu 1:", "Câu 01.", "Bài 1:", "Question 1:", "1.", v.v.
   str = str.replace(/^(?:câu|bài|question)\s*\d+[\s:.-]+/i, '');
-  // Cắt bỏ "Phương án A:", "Đáp án A:", "A.", "A)", "A:", v.v.
+  // 6. Cắt bỏ "Phương án A:", "Đáp án A:", "A.", "A)", "A:", v.v.
   str = str.replace(/^(?:(?:phương án|đáp án)\s*[a-d]|[a-d])[\s:.)-]+/i, '');
-  // Cắt bỏ "Lời giải chi tiết:", "Lời giải:", "Hướng dẫn giải:", "Giải thích:", v.v.
+  // 7. Cắt bỏ "Lời giải chi tiết:", "Lời giải:", "Hướng dẫn giải:", "Giải thích:", v.v.
   str = str.replace(
     /^(?:lời giải(?:\s*chi tiết)?|hướng dẫn giải|giải thích(?:\s*chi tiết)?|đáp án(?:\s*chi tiết)?|gợi ý(?:\s*đáp án)?|thang điểm(?:\s*chấm)?|rubric(?:\s*chấm)?)[\s:.-]+/i,
     ''

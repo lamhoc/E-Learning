@@ -28,8 +28,9 @@ export function isCameraRequired(exam: {
 export function cleanExamInstructions(instructions: string | null | undefined): string | null {
   if (!instructions) return null;
   const cleaned = instructions
-    .replace(/\[CAMERA_REQUIRED:(true|false)\]/g, '')
-    .replace(/\[AUTO_GRADE_ESSAY:(true|false)\]/g, '')
+    .replace(/\[CAMERA_REQUIRED:(?:true|false)\]/gi, '')
+    .replace(/\[AUTO_GRADE_ESSAY:(?:true|false)\]/gi, '')
+    .replace(/\[[A-Z0-9_]+:(?:true|false)\]/gi, '')
     .trim();
   return cleaned || null;
 }

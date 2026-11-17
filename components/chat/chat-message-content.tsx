@@ -2,6 +2,7 @@
 
 import React, { useMemo } from 'react';
 import katex from 'katex';
+import { MathText, normalizeMathInput } from '@/components/ui/math-text';
 
 type ChatMessageContentProps = {
   content?: string | null;
@@ -163,6 +164,7 @@ type BlockItem =
   | { type: 'heading'; level: number; text: string }
   | { type: 'horizontal-rule' }
   | { type: 'list-item'; prefix?: string; text: string }
+  | { type: 'table'; headers: string[]; rows: string[][] }
   | { type: 'paragraph'; text: string };
 
 /**
@@ -233,7 +235,41 @@ function parseBlocks(rawText: string): BlockItem[] {
       continue;
     }
 
-    // 5. Lựa chọn trắc nghiệm độc lập (A. ..., B. ..., **A.** ..., **B.** ...)
+    // 5. Kiểm tra Bảng Markdown (dòng tiêu đề và dòng phân cách |---|---|)
+    if (
+      trimmed.includes('|') &&
+      i + 1 < lines.length &&
+      /^\|?(\s*:?-+:?\s*\|)+\s*:?-+:?\s*\|?$/.test(lines[i + 1].trim())
+    ) {
+      const headerLine = trimmed;
+      const headers = headerLine
+        .split('|')
+        .map((c) => c.trim())
+        .filter((c, idx, arr) => (idx === 0 && !c ? false : idx === arr.length - 1 && !c ? false : true));
+
+      i++; // Bỏ qua dòng phân cách (|---|---|)
+
+      const rows: string[][] = [];
+      while (i + 1 < lines.length) {
+        const nextLine = lines[i + 1].trim();
+        if (!nextLine || !nextLine.includes('|')) break;
+        i++;
+        const cells = nextLine
+          .split('|')
+          .map((c) => c.trim())
+          .filter((c, idx, arr) => (idx === 0 && !c ? false : idx === arr.length - 1 && !c ? false : true));
+        rows.push(cells);
+      }
+
+      blocks.push({
+        type: 'table',
+        headers,
+        rows,
+      });
+      continue;
+    }
+
+    // 6. Lựa chọn trắc nghiệm độc lập (A. ..., B. ..., **A.** ..., **B.** ...)
     const optionMatch = line.match(/^(\s*)(?:[-*+]\s+)?(\*\*)?([A-D])[:.)-](\*\*)?\s+(.*)$/i);
     if (optionMatch) {
       const optKey = optionMatch[3].toUpperCase();
@@ -246,7 +282,7 @@ function parseBlocks(rawText: string): BlockItem[] {
       continue;
     }
 
-    // 6. Danh sách gạch đầu dòng hoặc đánh số (- ..., * ..., 1. ..., 👉 ..., 💡 ...)
+    // 7. Danh sách gạch đầu dòng hoặc đánh số (- ..., * ..., 1. ..., 👉 ..., 💡 ...)
     const listMatch = line.match(/^(\s*)([-*+]|\d+\.|\uD83D\uDC49|\uD83D\uDCA1)\s+(.*)$/);
     if (listMatch) {
       blocks.push({
@@ -257,12 +293,12 @@ function parseBlocks(rawText: string): BlockItem[] {
       continue;
     }
 
-    // 7. Dòng trống
+    // 8. Dòng trống
     if (!trimmed) {
       continue;
     }
 
-    // 8. Đoạn văn thường
+    // 9. Đoạn văn thường
     blocks.push({ type: 'paragraph', text: line });
   }
 
@@ -282,7 +318,8 @@ export const ChatMessageContent = React.memo(
   function ChatMessageContent({ content, className = '' }: ChatMessageContentProps) {
     const blocks = useMemo(() => {
       if (!content) return [];
-      return parseBlocks(content);
+      const normalized = normalizeMathInput(content);
+      return parseBlocks(normalized);
     }, [content]);
 
     if (!content) return null;
@@ -297,6 +334,34 @@ export const ChatMessageContent = React.memo(
                   key={idx}
                   className="my-3 border-t border-slate-200 dark:border-slate-700/80"
                 />
+              );
+
+            case 'table':
+              return (
+                <div key={idx} className="my-3 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="bg-slate-100 dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 font-semibold border-b border-slate-200 dark:border-slate-700">
+                      <tr>
+                        {block.headers.map((h, hIdx) => (
+                          <th key={hIdx} className="px-3 py-2 border-r last:border-r-0 border-slate-200 dark:border-slate-700 whitespace-nowrap">
+                            <MathText content={h} as="span" />
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-[#111C2D]">
+                      {block.rows.map((row, rIdx) => (
+                        <tr key={rIdx} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                          {row.map((cell, cIdx) => (
+                            <td key={cIdx} className="px-3 py-2 border-r last:border-r-0 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200">
+                              <MathText content={cell} as="span" />
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               );
 
             case 'heading': {

@@ -462,10 +462,39 @@ export function parseQuestionsLocallyFromText(rawText: string): ParsedQuestionIt
 }
 
 /**
+ * Hàm làm sạch chuyên sâu chuỗi học thuật:
+ * - Loại bỏ null bytes, ký tự điều khiển lỗi
+ * - Giải mã HTML entities
+ * - Chuẩn hóa cú pháp LaTeX: \(...\) -> $...$ và \[...\] -> $$...$$
+ * - Khử escape kép dư thừa
+ * - Chuẩn hóa tiếng Việt Unicode NFC
+ * - Loại bỏ tag [RED_ANSWER]
+ */
+export function sanitizeAcademicString(str?: string | null): string {
+  if (!str) return '';
+  let s = String(str);
+  s = s.replace(/[\u0000\ufffd]/g, '');
+  s = s
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ');
+  s = s.replace(/(?:\\{1,2}\[)([\s\S]*?)(?:\\{1,2}\])/g, (_, p1) => `$$${p1}$$`);
+  s = s.replace(/(?:\\{1,2}\()([\s\S]*?)(?:\\{1,2}\))/g, (_, p1) => `$${p1}$`);
+  s = s.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
+  s = s.normalize('NFC');
+  s = s.replace(/\[\/?RED_ANSWER\]/g, '').trim();
+  return s;
+}
+
+/**
  * Hàm hậu xử lý chuẩn hóa danh sách câu hỏi:
  * Đảm bảo dù lấy từ AI hay từ parser local, dữ liệu luôn sạch 100%:
  * - Phương án D không dính "Đáp án: ...".
  * - Câu tự luận tách rời đề bài và đáp án tham khảo.
+ * - Chuẩn hóa mọi ký tự LaTeX và Unicode.
  */
 export function cleanAndStandardizeQuestions(questions: ParsedQuestionItem[]): ParsedQuestionItem[] {
   return questions.map((q) => {
@@ -486,26 +515,23 @@ export function cleanAndStandardizeQuestions(questions: ParsedQuestionItem[]): P
         const ansKeyMatch = /^([A-D])[.:\s-]+([\s\S]*)/i.exec(afterText);
         if (ansKeyMatch) {
           correctOpt = ansKeyMatch[1].toUpperCase() as 'A' | 'B' | 'C' | 'D';
-          explanation = ansKeyMatch[2].replace(/\[\/?RED_ANSWER\]/g, '').trim();
+          explanation = ansKeyMatch[2];
           isRed = true;
         } else if (!explanation) {
-          explanation = afterText.replace(/\[\/?RED_ANSWER\]/g, '').trim();
+          explanation = afterText;
         }
       }
 
-      // Làm sạch [RED_ANSWER]
-      const clean = (s?: string) => (s ? s.replace(/\[\/?RED_ANSWER\]/g, '').trim() : undefined);
-
       return {
         ...q,
-        question_text: clean(q.question_text) || '',
-        option_a: clean(q.option_a),
-        option_b: clean(q.option_b),
-        option_c: clean(q.option_c),
-        option_d: clean(optD),
+        question_text: sanitizeAcademicString(q.question_text),
+        option_a: sanitizeAcademicString(q.option_a),
+        option_b: sanitizeAcademicString(q.option_b),
+        option_c: sanitizeAcademicString(q.option_c),
+        option_d: sanitizeAcademicString(optD),
         correct_option: correctOpt,
         is_red_detected: isRed,
-        explanation: clean(explanation),
+        explanation: sanitizeAcademicString(explanation) || undefined,
       };
     } else {
       // Câu tự luận
@@ -534,13 +560,11 @@ export function cleanAndStandardizeQuestions(questions: ParsedQuestionItem[]): P
         }
       }
 
-      const clean = (s?: string) => (s ? s.replace(/\[\/?RED_ANSWER\]/g, '').trim() : undefined);
-
       return {
         ...q,
-        question_text: clean(qText) || '',
-        model_answer: clean(mAnswer),
-        grading_rubric: clean(rubric),
+        question_text: sanitizeAcademicString(qText),
+        model_answer: sanitizeAcademicString(mAnswer) || undefined,
+        grading_rubric: sanitizeAcademicString(rubric) || undefined,
         is_red_detected: isRed || Boolean(mAnswer),
       };
     }

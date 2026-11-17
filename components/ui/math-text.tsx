@@ -14,7 +14,57 @@ type Segment =
   | { type: 'inline-math'; value: string }
   | { type: 'block-math'; value: string };
 
-function parseSegments(text: string): Segment[] {
+/**
+ * Chuẩn hóa toàn diện chuỗi toán học đầu vào:
+ * 1. Chuyển đổi cú pháp LaTeX chuẩn \[...\] -> $$...$$ và \(...\) -> $...$
+ * 2. Khử dấu escape kép dư thừa (ví dụ \\frac -> \frac, \\sqrt -> \sqrt)
+ * 3. Tự động bọc các biểu thức toán đơn lẻ ngoài dấu $ (như \frac{a}{b}, \sqrt{x}, 30^\circ) vào $...$
+ * 4. Chuẩn hóa tiếng Việt Unicode NFC và loại bỏ ký tự điều khiển lỗi
+ */
+export function normalizeMathInput(text?: string | null): string {
+  if (!text) return '';
+  let str = String(text);
+
+  // 1. Loại bỏ ký tự rác / null byte
+  str = str.replace(/[\u0000\ufffd]/g, '');
+
+  // 2. Chuẩn hóa Unicode NFC
+  str = str.normalize('NFC');
+
+  // 3. Khử escape kép dư thừa cho các lệnh LaTeX phổ biến (\\\\frac -> \frac)
+  str = str.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
+
+  // 4. Chuyển đổi \[...\] hoặc \\\[...\\\] thành $$...$$
+  str = str.replace(/(?:\\{1,2}\[)([\s\S]*?)(?:\\{1,2}\])/g, (_, p1) => `$$${p1}$$`);
+
+  // 5. Chuyển đổi \(...\) hoặc \\\(...\\\) thành $...$
+  str = str.replace(/(?:\\{1,2}\()([\s\S]*?)(?:\\{1,2}\))/g, (_, p1) => `$${p1}$`);
+
+  // 6. Nhận diện các biểu thức LaTeX đơn lẻ còn đứng ngoài dấu $ (như \frac{...}{...}, \sqrt{...}, 30^\circ, \angle ABC)
+  // Chỉ bọc nếu chưa nằm trong cặp $...$ hoặc $$...$$
+  const parts = str.split(/(\$\$[\s\S]+?\$\$|\$[^\$\n]+?\$)/g);
+  for (let i = 0; i < parts.length; i++) {
+    // Chỉ xử lý các đoạn không phải là toán đã được bọc ($...)
+    if (!parts[i].startsWith('$')) {
+      let segment = parts[i];
+      // Tự động bọc \frac{...}{...}
+      segment = segment.replace(/(\\frac\{[^{}]*\}\{[^{}]*\})/g, (_, p1) => `$${p1}$`);
+      // Tự động bọc \sqrt{...}
+      segment = segment.replace(/(\\sqrt\{[^{}]*\})/g, (_, p1) => `$${p1}$`);
+      // Tự động bọc góc ví dụ \angle ABC, \angle BAD
+      segment = segment.replace(/(\\angle\s+[A-Za-z0-9_]+)/g, (_, p1) => `$${p1}$`);
+      // Tự động bọc góc / độ ví dụ 30^\circ, 45^\circ, 60^\circ, 90^\circ
+      segment = segment.replace(/(\b\d+\s*\^\s*(?:\\circ|\{?\\circ\}?))/g, (_, p1) => `$${p1}$`);
+      parts[i] = segment;
+    }
+  }
+  str = parts.join('');
+
+  return str;
+}
+
+function parseSegments(rawText: string): Segment[] {
+  const text = normalizeMathInput(rawText);
   const segments: Segment[] = [];
   // Matches $$...$$ (block) or $...$ (inline, without unescaped newlines)
   const regex = /\$\$([\s\S]+?)\$\$|\$([^\$\n]+?)\$/g;
