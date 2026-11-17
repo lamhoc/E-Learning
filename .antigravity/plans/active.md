@@ -310,3 +310,28 @@
     + Chạy `npx tsc --noEmit` và `npm run build` đạt 0 lỗi (36/36 static/dynamic routes).
     + Tạo Local Commit an toàn `e7a0502` theo quy định `AGENTS.md` (không tự ý push).
     + Ghi mã commit hash vào `.antigravity/plans/active.md`.
+
+- [x] **Phase 55 (Commit `070edec`)**: Sửa triệt để lỗi Gia sư AI bên Sinh viên (Trả lời đúng nội dung thật & Render Markdown + KaTeX):
+  - [x] **Mục tiêu 1 (Sửa Lỗi Kết Nối & Tự Động Dò Model Khả Dụng Trong `lib/ai-provider.ts` & `app/api/chat-ai/route.ts`)**:
+    + Cập nhật thứ tự ưu tiên model Groq: `llama-3.1-8b-instant`, `meta-llama/llama-4-scout-17b-16e-instruct`, `qwen/qwen3-32b`, `gemma2-9b-it`, `llama-3.3-70b-versatile`.
+    + Tự động dò `GET /models` khi gặp `404 model_not_found`, tự động lọc model chat hợp lệ.
+    + Tự động loại bỏ thẻ suy nghĩ `<think>[\s\S]*?</think>` trước khi trả lời.
+    + Đảm bảo System Prompt đóng vai Gia sư AI Đại học Lạc Hồng (LHU) ân cần, giải thích cặn kẽ bằng KaTeX `$..$` và `$$...$$`.
+  - [x] **Mục tiêu 2 (Nâng Cấp Bộ Trả Lời Dự Phòng Học Thuật Thông Minh `Smart Academic Responder`)**:
+    + Xóa bỏ hoàn toàn văn bản mẫu sáo rỗng (`1. Bản chất vấn đề... 2. Phương pháp tiếp cận...`).
+    + Tự động bóc tách số lượng câu hỏi $N$ (mặc định 5 câu) và chủ đề (Toán 10, Toán 11, Toán 12, Giải tích, Đại số, Xác suất, Lập trình OOP, Cấu trúc dữ liệu, CSDL, Mạng...).
+    + Sinh ra đúng $N$ câu hỏi trắc nghiệm hoàn chỉnh khác nhau 100% kèm 4 lựa chọn A-B-C-D, đáp án đúng và lời giải chi tiết KaTeX.
+    + Hỗ trợ giải phương trình, tính đạo hàm, tích phân, ma trận, xác suất từng bước cụ thể.
+  - [x] **Mục tiêu 3 (Xây Dựng Component `ChatMessageContent` Render Markdown + KaTeX Chuyên Nghiệp)**:
+    + Tạo component `components/chat/chat-message-content.tsx` xử lý triệt để:
+      - Cắt gọt và hiển thị tiêu đề `### ...`, `## ...`, `# ...` sạch đẹp không lộ dấu `#`.
+      - Render in đậm `**...**` qua thẻ `<strong>`, in nghiêng `*...*`, không lộ dấu `*`.
+      - Đường kẻ ngang `---` thành `<hr />`.
+      - Code block và inline code gọn gàng, có nền tối.
+      - Tích hợp KaTeX cho cả `$inline$` và `$$block$$`.
+    + Đồng bộ component này vào cả `/student/ai-tutor` và `/teacher/ai-tutor`.
+  - [x] **Mục tiêu 4 (Kiểm Thử Type Check, Build Sản Phẩm & Commit An Toàn)**:
+    + Chạy `npx tsc --noEmit` và `npm run build` đạt 0 lỗi (36/36 static/dynamic routes).
+    + Test thực tế với câu hỏi `"Tạo 5 câu hỏi ôn tập toán 10"`.
+    + Tạo Local Commit an toàn `070edec` theo quy định `AGENTS.md` (không tự ý push).
+    + Ghi mã commit hash vào `.antigravity/plans/active.md`.
