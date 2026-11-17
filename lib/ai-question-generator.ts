@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { callAiChatCompletion } from '@/lib/ai-provider';
+import { generateDomainAwareFallbackQuestions } from '@/lib/domain-fallback-generator';
 
 export type AIDifficulty = 'easy' | 'medium' | 'hard' | 'expert';
 
@@ -331,8 +332,23 @@ function generateSmartDiverseFallback(
   isMC: boolean,
   topic: string,
   subjectName: string,
+  subjectCode: string,
   offset: number
 ): Record<string, unknown>[] {
+  // 1. Ưu tiên kiểm tra bộ câu hỏi theo Domain trước (Lịch sử, Địa lý, Ngữ văn, Tiếng Anh, Sinh học, hoặc Universal generator)
+  const domainQuestions = generateDomainAwareFallbackQuestions(
+    count,
+    isMC,
+    topic,
+    subjectName,
+    subjectCode,
+    offset
+  );
+  if (domainQuestions && domainQuestions.length > 0) {
+    return domainQuestions;
+  }
+
+  // 2. CHỈ KHI môn học là Toán học thì mới dùng kịch bản Đạo hàm / Khảo sát hàm số của Toán
   const mcScenarios = [
     {
       question_text: `Tính đạo hàm của hàm số $y = \\frac{2x - 1}{x + 1}$ trên các khoảng xác định của nó.`,
@@ -497,31 +513,46 @@ function generateSmartDiverseFallback(
 export async function generateQuestionsAI(
   req: GenerateAIRequest,
 ): Promise<GeneratedQuestionDraft[]> {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) {
-    throw new Error('Chưa cấu hình GROQ_API_KEY trên server.');
-  }
+  const apiKey = (process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY || '').trim();
 
   const isMC = req.questionType === 'multiple_choice';
   const difficultyDesc = DIFFICULTY_MAP[req.difficulty] ?? req.difficulty;
 
-  // System Prompt tối ưu hóa: Đa dạng hóa câu hỏi, phân bổ đều đáp án, loại bỏ tiền tố thừa
+  const normSubject = `${req.subjectCode} ${req.subjectName} ${req.topic}`.toLowerCase();
+  const isMathOrScience =
+    normSubject.includes('toan') ||
+    normSubject.includes('math') ||
+    normSubject.includes('giai tich') ||
+    normSubject.includes('dai so') ||
+    normSubject.includes('hinh hoc') ||
+    normSubject.includes('vat ly') ||
+    normSubject.includes('vat li') ||
+    normSubject.includes('phys') ||
+    normSubject.includes('hoa hoc') ||
+    normSubject.includes('chem');
+
+  // System Prompt tối ưu hóa theo đặc thù từng môn học
   const systemPrompt = `Bạn là chuyên gia khảo thí và sư phạm cao cấp, chuyên xây dựng ngân hàng câu hỏi đề thi chuẩn xác cho các trường đại học và THPT tại Việt Nam.
 
 QUY TẮC BẮT BUỘC VỀ NỘI DUNG VÀ ĐỊNH DẠNG (BẮT BUỘC TUÂN THỦ 100%):
-1. ĐA DẠNG HÓA VÀ KHÔNG TRÙNG LẶP DẠNG BÀI:
-   - Các câu hỏi trong cùng một lượt sinh PHẢI kiểm tra các khía cạnh, dạng toán, hàm số và số liệu hoàn toàn khác nhau.
-   - Tuyệt đối KHÔNG sinh các câu hỏi có cấu trúc tương tự nhau hay lặp lại cùng một nội dung.
-2. PHÂN BỔ ĐỀU ĐÁP ÁN ĐÚNG TRẮC NGHIỆM:
+1. BẢO TỒN VÀ BÁM SÁT MÔN HỌC & CHỦ ĐỀ:
+   - BẮT BUỘC 100% câu hỏi, phương án lựa chọn và lời giải phải thuộc môn học "${req.subjectName}" (Mã: "${req.subjectCode}") và bám sát trực tiếp vào chủ đề: "${req.topic}".
+   - TUYỆT ĐỐI KHÔNG sinh câu hỏi của môn khác. Nghiêm cấm sinh câu hỏi Toán học khi môn học là các môn Xã hội, Ngôn ngữ, Lý thuyết hoặc Ngành nghề khác.
+2. QUY TẮC KÝ HIỆU TOÁN HỌC & CÔNG THỨC:
+   ${
+     isMathOrScience
+       ? '- Dùng ký hiệu LaTeX chuẩn: $...$ cho công thức trong dòng và $$...$$ cho công thức riêng dòng. Trong chuỗi JSON, mọi dấu gạch chéo ngược phải được escape thành 2 dấu (\\\\).'
+       : '- ĐÂY LÀ MÔN HỌC LÝ THUYẾT / XÃ HỘI: TUYỆT ĐỐI KHÔNG DÙNG CÔNG THỨC TOÁN HỌC HAY KÝ HIỆU LATEX (KHÔNG dùng $y\'$, $f(x)$, \\frac, \\sqrt...). Toàn bộ câu hỏi, phương án và giải thích phải viết bằng văn bản tiếng Việt học thuật chuẩn xác.'
+   }
+3. ĐA DẠNG HÓA VÀ KHÔNG TRÙNG LẶP DẠNG BÀI:
+   - Các câu hỏi trong cùng một lượt sinh PHẢI kiểm tra các khía cạnh, khái niệm và nội dung hoàn toàn khác nhau.
+4. PHÂN BỔ ĐỀU ĐÁP ÁN ĐÚNG TRẮC NGHIỆM:
    - Bắt buộc rải đều đáp án đúng qua cả 4 phương án A, B, C, D (ví dụ Câu 1 là B, Câu 2 là D, Câu 3 là A, Câu 4 là C...). Tuyệt đối không để đáp án đúng chỉ tập trung ở A.
-3. LOẠI BỎ TIỀN TỐ THỪA (CLEAN FORMATTING):
+5. LOẠI BỎ TIỀN TỐ THỪA (CLEAN FORMATTING):
    - Trong 'question_text': KHÔNG ghi chữ "Câu 1:", "Câu 2:" ở đầu.
    - Trong 4 phương án option_a/b/c/d: KHÔNG ghi chữ "Phương án A:", "A.", "B." ở đầu. Chỉ ghi nội dung đáp án thuần túy.
-   - Trong 'explanation': KHÔNG ghi lặp chữ "Lời giải chi tiết:" ở đầu. Trình bày các bước biến đổi cụ thể, cô đọng dưới 120 từ.
-4. CÔNG THỨC TOÁN HỌC & KHOA HỌC: Bắt buộc dùng cú pháp LaTeX chuẩn.
-   - Trong chuỗi JSON, mọi dấu gạch chéo ngược của LaTeX PHẢI được escape thành 2 dấu gạch chéo ngược (ví dụ: \\\\frac{a}{b}, \\\\sqrt{x}, \\\\int, \\\\lim, \\\\infty) hoặc dùng token ${LATEX_BACKSLASH_TOKEN}.
-   - Dùng $...$ cho công thức nằm trong dòng và $$...$$ cho công thức riêng dòng.
-5. ĐỊNH DẠNG ĐẦU RA: Trả về DUY NHẤT một JSON object có khóa "questions" chứa mảng câu hỏi. KHÔNG thêm markdown, chú thích hoặc văn bản thừa ngoài JSON.
+   - Trong 'explanation': KHÔNG ghi lặp chữ "Lời giải chi tiết:" ở đầu.
+6. ĐỊNH DẠNG ĐẦU RA: Trả về DUY NHẤT một JSON object có khóa "questions" chứa mảng câu hỏi. KHÔNG thêm markdown hoặc văn bản thừa ngoài JSON.
 
 Cấu trúc JSON:
 Nếu là trắc nghiệm (multiple_choice):
@@ -544,70 +575,76 @@ Nếu là tự luận (essay):
 ${req.additionalNote ? `- Ghi chú thêm từ giảng viên: ${req.additionalNote}` : ''}
 
 YÊU CẦU ĐẶC BIỆT:
-1. Mỗi câu hỏi trong đợt này (từ câu ${offset + 1} đến ${offset + batchCount}) phải là một dạng bài/hàm số/khái niệm khác nhau hoàn toàn.
-2. Không ghi tiền tố "Câu X:", "Phương án A:", "Lời giải:".
-3. Mọi công thức LaTeX trong JSON phải dùng 2 dấu gạch chéo ngược \\\\ (ví dụ \\\\frac, \\\\sqrt). Trả về JSON {"questions":[...]}.`;
+1. Mỗi câu hỏi trong đợt này (từ câu ${offset + 1} đến ${offset + batchCount}) phải là một khía cạnh/nội dung khác nhau hoàn toàn của chủ đề "${req.topic}" trong môn "${req.subjectName}".
+${!isMathOrScience ? '2. TUYỆT ĐỐI KHÔNG chèn công thức toán hay ký hiệu LaTeX. Viết bằng tiếng Việt học thuật chuẩn xác.' : '2. Công thức toán học dùng cú pháp LaTeX escape \\\\.'}
+3. Không ghi tiền tố "Câu X:", "Phương án A:", "Lời giải:". Trả về JSON {"questions":[...]}.`;
 
     let list: Record<string, unknown>[] = [];
 
-    // =========================================================================
-    // LỚP 1 (Strict JSON Mode): Gọi Groq với response_format: { type: "json_object" }
-    // =========================================================================
-    try {
-      const { content: rawContent } = await callAiChatCompletion({
-        temperature: 0.4,
-        max_tokens: MAX_COMPLETION_TOKENS,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        response_format: { type: 'json_object' },
-      });
-
-      const parsed = sanitizeAndParseAiJson(rawContent);
-      list = extractQuestionList(parsed);
-    } catch (layer1Error) {
-      const errObj = layer1Error as { error?: { code?: string; message?: string }; code?: string; message?: string };
-      const errCode = errObj?.error?.code ?? errObj?.code;
-      const isJsonValidateFailed = errCode === 'json_validate_failed';
-
-      console.warn(
-        `[AI-Generator] Lớp 1 thất bại (${isJsonValidateFailed ? 'json_validate_failed' : 'other'}). Đang tự động chuyển sang Lớp 2 (Text Mode + Resilient Parser)...`,
-        errObj?.error?.message || errObj?.message || layer1Error,
-      );
-
+    // Chỉ gọi Groq AI nếu có API Key
+    if (apiKey) {
       // =========================================================================
-      // LỚP 2 (Auto-Retry Text Mode + Resilient JSON Parser):
-      // Gọi lại mà KHÔNG dùng response_format để tránh lỗi 400 json_validate_failed của Groq
+      // LỚP 1 (Strict JSON Mode): Gọi Groq với response_format: { type: "json_object" }
       // =========================================================================
       try {
-        const { content: rawContent2 } = await callAiChatCompletion({
-          temperature: 0.3,
+        const { content: rawContent } = await callAiChatCompletion({
+          temperature: 0.4,
           max_tokens: MAX_COMPLETION_TOKENS,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
           ],
+          response_format: { type: 'json_object' },
         });
 
-        const parsed2 = sanitizeAndParseAiJson(rawContent2);
-        list = extractQuestionList(parsed2);
-      } catch (layer2Error) {
+        const parsed = sanitizeAndParseAiJson(rawContent);
+        list = extractQuestionList(parsed);
+      } catch (layer1Error) {
+        const errObj = layer1Error as { error?: { code?: string; message?: string }; code?: string; message?: string };
+        const errCode = errObj?.error?.code ?? errObj?.code;
+        const isJsonValidateFailed = errCode === 'json_validate_failed';
+
         console.warn(
-          '[AI-Generator] Lớp 2 thất bại. Tự động kích hoạt Lớp 3 (Smart Diverse Fallback)...',
-          layer2Error,
+          `[AI-Generator] Lớp 1 thất bại (${isJsonValidateFailed ? 'json_validate_failed' : 'other'}). Đang tự động chuyển sang Lớp 2 (Text Mode + Resilient Parser)...`,
+          errObj?.error?.message || errObj?.message || layer1Error,
         );
 
         // =========================================================================
-        // LỚP 3 (Smart Diverse Fallback): Cung cấp bộ câu hỏi mẫu đa dạng, biến thiên
+        // LỚP 2 (Auto-Retry Text Mode + Resilient JSON Parser):
+        // Gọi lại mà KHÔNG dùng response_format để tránh lỗi 400 json_validate_failed của Groq
         // =========================================================================
-        list = generateSmartDiverseFallback(batchCount, isMC, req.topic, req.subjectName, offset);
+        try {
+          const { content: rawContent2 } = await callAiChatCompletion({
+            temperature: 0.3,
+            max_tokens: MAX_COMPLETION_TOKENS,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt },
+            ],
+          });
+
+          const parsed2 = sanitizeAndParseAiJson(rawContent2);
+          list = extractQuestionList(parsed2);
+        } catch (layer2Error) {
+          console.warn(
+            '[AI-Generator] Lớp 2 thất bại. Tự động kích hoạt Lớp 3 (Domain-Aware Fallback)...',
+            layer2Error,
+          );
+
+          // =========================================================================
+          // LỚP 3 (Domain-Aware Fallback): Cung cấp bộ câu hỏi chuẩn xác theo đúng môn học và đề tài
+          // =========================================================================
+          list = generateSmartDiverseFallback(batchCount, isMC, req.topic, req.subjectName, req.subjectCode, offset);
+        }
       }
+    } else {
+      console.warn('[AI-Generator] Không có GROQ_API_KEY, kích hoạt Lớp 3 (Domain-Aware Fallback)...');
+      list = generateSmartDiverseFallback(batchCount, isMC, req.topic, req.subjectName, req.subjectCode, offset);
     }
 
-    // Nếu list vẫn rỗng, kích hoạt fallback đa dạng
+    // Nếu list vẫn rỗng, kích hoạt fallback đa môn
     if (list.length === 0) {
-      list = generateSmartDiverseFallback(batchCount, isMC, req.topic, req.subjectName, offset);
+      list = generateSmartDiverseFallback(batchCount, isMC, req.topic, req.subjectName, req.subjectCode, offset);
     }
 
     // Deduplication Guard: Đảm bảo không trùng lặp câu hỏi
@@ -618,8 +655,8 @@ YÊU CẦU ĐẶC BIỆT:
       const normalizedText = draft.question_text.toLowerCase().replace(/\s+/g, ' ').trim();
 
       if (seenQuestionTexts.has(normalizedText) && normalizedText.length > 10) {
-        // Nếu trùng câu hỏi đã có, lấy câu hỏi thay thế từ kịch bản đa dạng
-        const fallbackItems = generateSmartDiverseFallback(1, isMC, req.topic, req.subjectName, offset + index + 5);
+        // Nếu trùng câu hỏi đã có, lấy câu hỏi thay thế từ kịch bản đa dạng theo môn
+        const fallbackItems = generateSmartDiverseFallback(1, isMC, req.topic, req.subjectName, req.subjectCode, offset + index + 5);
         const altDraft = mapToQuestionDraft(fallbackItems[0], index, offset, isMC);
         seenQuestionTexts.add(altDraft.question_text.toLowerCase().replace(/\s+/g, ' ').trim());
         batchQuestions.push(altDraft);

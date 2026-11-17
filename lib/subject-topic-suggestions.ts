@@ -117,6 +117,46 @@ export const LAW_PHILOSOPHY_TOPIC_SUGGESTIONS: string[] = [
   'Pháp luật về Hợp đồng và Giải quyết tranh chấp thương mại',
 ];
 
+// 7. Nhóm Lịch sử
+export const HISTORY_TOPIC_SUGGESTIONS: string[] = [
+  'Vai trò, chức năng và nhiệm vụ của Sử học',
+  'Các cuộc cách mạng công nghiệp trong lịch sử thế giới',
+  'Văn minh Đại Việt và truyền thống đấu tranh giữ nước',
+  'Cách mạng tháng Tám năm 1945 và sự ra đời nước Việt Nam Dân chủ Cộng hòa',
+  'Trật tự thế giới sau Chiến tranh thế giới thứ hai và xu thế toàn cầu hóa',
+  'Chiến thắng Điện Biên Phủ 1954 và Hiệp định Giơ-ne-vơ',
+];
+
+// 8. Nhóm Địa lý
+export const GEOGRAPHY_TOPIC_SUGGESTIONS: string[] = [
+  'Vị trí địa lý, phạm vi lãnh thổ và ý nghĩa chiến lược của Việt Nam',
+  'Đặc điểm địa hình, khí hậu và tài nguyên thiên nhiên Việt Nam',
+  'Địa lý dân cư: Đô thị hóa, phân bố dân cư và nguồn lao động',
+  'Chuyển dịch cơ cấu kinh tế theo ngành và theo vùng lãnh thổ',
+  'Vấn đề phát triển kinh tế biển và bảo vệ chủ quyền biển đảo',
+  'Địa lý các vùng kinh tế trọng điểm và liên kết vùng',
+];
+
+// 9. Nhóm Ngữ văn
+export const LITERATURE_TOPIC_SUGGESTIONS: string[] = [
+  'Đặc trưng thể loại: Thơ trữ tình, Truyện ngắn và Tiểu thuyết',
+  'Văn học dân gian: Sử thi, Truyền thuyết và Cổ tích',
+  'Chủ nghĩa nhân đạo và cảm hứng yêu nước trong Văn học trung đại',
+  'Phong trào Thơ mới và Văn học hiện thực phê phán 1930 - 1945',
+  'Kỹ năng viết bài văn nghị luận xã hội và nghị luận văn học',
+  'Phân tích nghệ thuật xây dựng nhân vật và ngôn ngữ trần thuật',
+];
+
+// 10. Nhóm Sinh học
+export const BIOLOGY_TOPIC_SUGGESTIONS: string[] = [
+  'Cấu trúc và chức năng của Tế bào: ADN, ARN và Protein',
+  'Cơ chế di truyền và biến dị: Nguyên phân, Giảm phân và Thụ tinh',
+  'Các quy luật di truyền của Men-đen và di truyền liên kết giới tính',
+  'Tiến hóa sinh học: Thuyết tiến hóa Đác-uyn và Tổng hợp hiện đại',
+  'Sinh thái học: Quần thể, Quần xã và Hệ sinh thái sinh quyển',
+  'Ứng dụng Công nghệ gen và Công nghệ tế bào trong đời sống',
+];
+
 // Tập hợp tất cả các gợi ý có sẵn để phát hiện nếu người dùng đang dùng gợi ý mặc định
 const ALL_PRESET_SUGGESTIONS = new Set<string>([
   ...MATH_TOPIC_SUGGESTIONS,
@@ -129,6 +169,10 @@ const ALL_PRESET_SUGGESTIONS = new Set<string>([
   ...ENGLISH_TOPIC_SUGGESTIONS,
   ...ECONOMICS_TOPIC_SUGGESTIONS,
   ...LAW_PHILOSOPHY_TOPIC_SUGGESTIONS,
+  ...HISTORY_TOPIC_SUGGESTIONS,
+  ...GEOGRAPHY_TOPIC_SUGGESTIONS,
+  ...LITERATURE_TOPIC_SUGGESTIONS,
+  ...BIOLOGY_TOPIC_SUGGESTIONS,
   // Các gợi ý cũ trong code cũ trước đây
   'Đạo hàm và khảo sát hàm số',
   'Lập trình Hướng đối tượng OOP trong C#',
@@ -281,6 +325,59 @@ export function getSubjectTopicSuggestions(subject?: SubjectInput | null): strin
     norm.includes('philosophy')
   ) {
     return LAW_PHILOSOPHY_TOPIC_SUGGESTIONS;
+  }
+
+  // 6f. Lịch sử
+  const upperCode = rawCode.trim().toUpperCase();
+  if (
+    upperCode === 'SU' ||
+    upperCode === 'HIST' ||
+    upperCode === 'LS' ||
+    norm.includes('lich su') ||
+    norm.includes('su hoc') ||
+    norm.includes('history') ||
+    norm === 'su' ||
+    /\b(su|lich su|su hoc|history|hist)\b/i.test(combined)
+  ) {
+    return HISTORY_TOPIC_SUGGESTIONS;
+  }
+
+  // 6g. Địa lý
+  if (
+    upperCode === 'DIA' ||
+    upperCode === 'GEO' ||
+    upperCode === 'DL' ||
+    norm.includes('dia ly') ||
+    norm.includes('dia li') ||
+    norm.includes('geography') ||
+    /\b(dia|dia ly|dia li|geography|geo)\b/i.test(combined)
+  ) {
+    return GEOGRAPHY_TOPIC_SUGGESTIONS;
+  }
+
+  // 6h. Ngữ văn
+  if (
+    upperCode === 'VAN' ||
+    upperCode === 'LIT' ||
+    upperCode === 'NV' ||
+    norm.includes('ngu van') ||
+    norm.includes('van hoc') ||
+    norm.includes('literature') ||
+    /\b(van|ngu van|van hoc|literature|lit)\b/i.test(combined)
+  ) {
+    return LITERATURE_TOPIC_SUGGESTIONS;
+  }
+
+  // 6i. Sinh học
+  if (
+    upperCode === 'SINH' ||
+    upperCode === 'BIO' ||
+    upperCode === 'SH' ||
+    norm.includes('sinh hoc') ||
+    norm.includes('biology') ||
+    /\b(sinh hoc|biology|bio)\b/i.test(combined)
+  ) {
+    return BIOLOGY_TOPIC_SUGGESTIONS;
   }
 
   // 7. Fallback thông minh: Dành cho môn học mới do Quản trị viên thêm vào
