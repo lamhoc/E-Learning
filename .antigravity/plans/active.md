@@ -357,3 +357,28 @@
     + Test thực tế với môn `SU · Lịch Sử` và chủ đề `Vai trò của Sử học`.
     + Tạo Local Commit an toàn theo quy định `AGENTS.md` (không tự ý push) với mã hash `1dc1848`.
     + Ghi mã commit hash vào `.antigravity/plans/active.md`.
+
+- [x] **Phase 57 (Commit `662bd48`)**: Tổng kiểm tra & Sửa triệt để toàn bộ hệ thống AI (Gia sư AI Giảng viên, Sinh viên, Sinh câu hỏi AI) để trả về đúng 100% nội dung yêu cầu:
+  - [x] **Mục tiêu 1 (Xóa Bỏ Hoàn Toàn Các Câu Trả Lời Khuôn Mẫu Sáo Rỗng Trong `lib/academic-fallback-responder.ts` & Toàn Bộ Codebase)**:
+    + Xóa vĩnh viễn các chuỗi cố định: "Chào Thầy/Cô! Với tư cách là Trợ lý Học thuật...", "1. Mục tiêu sư phạm...", "2. Cấu trúc Rubric...", "1. Bản chất vấn đề... 2. Phương pháp tiếp cận... 3. Lời khuyên ôn tập...".
+    + Xây dựng Engine Tri thức Đa Môn nội bộ: Phân tích Intent (quiz, essay, outline, rubric, solve/explain) + Số lượng ($N$) + Chủ đề/Môn học.
+    + Khi nhận yêu cầu tạo câu hỏi trắc nghiệm (ví dụ: "Tạo 5 câu hỏi trắc nghiệm liên quan đến lịch sử việt nam"): Sinh đúng $N$ câu hỏi chuẩn xác về Lịch sử Việt Nam (Văn Lang, Ngô Quyền, Mông - Nguyên, CMT8 1945, Điện Biên Phủ 1954...) với 4 phương án A, B, C, D, đáp án đúng và giải thích chi tiết.
+    + Tương tự cho Địa lý, Ngữ văn, Tiếng Anh, Sinh học, Vật lý, Hóa học, Kinh tế/Pháp luật, CNTT, Toán học và các chủ đề tự do.
+  - [x] **Mục tiêu 2 (Sửa Module AI Trung Tâm 3 Lớp Bất Tử Trong `lib/ai-provider.ts` & `app/api/chat-ai/route.ts`)**:
+    + Lớp 1: Gọi Groq API với Dynamic Model Discovery (`llama-3.3-70b-versatile`, `llama-3.1-8b-instant`...) và tự động fallback.
+    + Lớp 2: Cổng AI Dự Phòng Tự Động Miễn Phí (`https://text.pollinations.ai/openai/chat/completions`) khi không có `GROQ_API_KEY`, key 401 hoặc lỗi rate-limit.
+    + Lớp 3: Offline Smart Academic Engine khi mất mạng hoàn toàn.
+    + Tinh chỉnh System Prompt: Bám sát 100% yêu cầu người dùng, tạo đúng $N$ câu hỏi về chủ đề $X$ khi được yêu cầu.
+  - [x] **Mục tiêu 3 (Sửa Lỗi Hiển Thị Ký Tự Markdown Thô Trong `components/chat/chat-message-content.tsx`)**:
+    + Xử lý triệt để Heading: Làm sạch hoặc render chuẩn `**` trong `### **Tiêu đề:**` không bao giờ để lộ dấu `**` hay `###`.
+    + Xử lý triệt để đường kẻ ngang `---`, `***`, `___`.
+    + Xử lý triệt để in đậm `**...**` và in nghiêng `*...*` thành `<strong>` và `<em>` sáng đẹp.
+    + Render các lựa chọn trắc nghiệm và câu hỏi danh sách rõ ràng, thoáng mắt.
+  - [x] **Mục tiêu 4 (Đồng Bộ Trang Sinh Câu Hỏi AI `/teacher/ai-generator` & Upload Đề Thi `/teacher/questions`)**:
+    + Nâng cấp `lib/ai-question-generator.ts` gọi AI 3 lớp (kể cả khi không có `GROQ_API_KEY`, vẫn gọi Lớp 2 Free AI theo thời gian thực).
+    + Đảm bảo chức năng Upload DOCX/PDF tách riêng câu tự luận vào khung Đáp án tham khảo.
+  - [x] **Mục tiêu 5 (Kiểm Thử Type Check, Build Sản Phẩm & Commit An Toàn)**:
+    + Chạy `npx tsc --noEmit` và `npm run build` đạt 0 lỗi (36/36 static/dynamic routes).
+    + Test thực tế với các yêu cầu: "Tạo 5 câu hỏi trắc nghiệm liên quan đến lịch sử việt nam", "Soạn đề cương ôn tập môn Cơ sở dữ liệu", giải phương trình bậc hai.
+    + Tạo Local Commit an toàn theo quy định `AGENTS.md` (không tự ý push) với mã hash `662bd48`.
+    + Ghi mã commit hash vào `.antigravity/plans/active.md`.
