@@ -404,3 +404,27 @@
     + Test thực tế với các chuỗi `\(ABC\)`, `\(30^\circ\)`, bảng markdown `|---|`.
     + Tạo Local Commit an toàn theo quy định `AGENTS.md` (không tự ý push) với mã hash `51074eb`.
     + Ghi mã commit hash vào `.antigravity/plans/active.md`.
+
+- [x] **Phase 59 (Commit `8706b01`)**: Xóa nút "← Tổng quan" trên Topbar & Quét xóa toàn bộ nút quay về Tổng quan dư thừa ở cả 3 giao diện (Admin, Giảng viên, Sinh viên):
+  - [x] **Mục tiêu 1 (Xóa nút "← Tổng quan" trên Thanh Topbar / Header của cả 3 phân hệ)**:
+    + Rà soát và xóa bỏ nút `<Link href="/.../dashboard"><ArrowLeft /> Tổng quan</Link>` cùng vạch phân cách `|` trên Topbar tại `app/teacher/ai-tutor/page.tsx`, `app/student/ai-tutor/page.tsx` và các header tương ứng tại `app/teacher/assignments`, `app/teacher/grading`, `app/teacher/materials`, `app/teacher/subjects`.
+    + Đồng bộ Topbar Skeleton trong `loading.tsx` của `teacher/ai-tutor`, `student/ai-tutor`, `teacher/subjects`.
+    + Đảm bảo bố cục góc trên bên trái của Topbar cân đối, thoáng đãng, hiển thị tiêu đề trang hoặc ngày tháng trực tiếp, không bị lệch giao diện ở cả Light Mode và Dark Mode.
+  - [x] **Mục tiêu 2 (Quét và Xóa Toàn Bộ Nút Quay Về Tổng Quan Dư Thừa Tại Cổng Giảng Viên `/teacher/**`)**:
+    + Rà soát tất cả các trang: `/teacher/subjects`, `/teacher/classes`, `/teacher/materials`, `/teacher/assignments`, `/teacher/questions`, `/teacher/ai-generator`, `/teacher/exams`, `/teacher/exams/create`, `/teacher/exams/[examId]`, `/teacher/grading`, `/teacher/ai-tutor`...
+    + Xóa bỏ triệt để các nút/link dư thừa: `"← Quay về Tổng quan"`, `"← Quay lại Dashboard"` trong empty state của `app/teacher/subjects/page.tsx`.
+    + Thay nút "Quay lại Tổng quan" trong `components/teacher/ai-generator-standalone.tsx` thành "Kiểm tra môn học phụ trách" dẫn đến `/teacher/subjects`.
+    + Chuẩn hóa link tạo lớp mới trong `app/teacher/subjects/page.tsx` trỏ đến `/teacher/classes#create-class-section`.
+    + Giữ nguyên mục "Tổng quan" DUY NHẤT trên Sidebar bên trái của Giảng viên.
+  - [x] **Mục tiêu 3 (Quét và Xóa Toàn Bộ Nút Quay Về Tổng Quan Dư Thừa Tại Cổng Sinh Viên `/student/**`)**:
+    + Rà soát tất cả các trang: `/student/classes`, `/student/materials`, `/student/assignments`, `/student/exams`, `/student/exams/[examId]`, `/student/results`, `/student/ai-tutor`, `/chat`...
+    + Xóa bỏ nút `"Về Tổng quan"` trong section header của `student/assignments`, `student/classes`, `student/exams`, `student/materials`.
+    + Nâng cấp trang chi tiết đề thi `student/exams/[examId]`: đổi nút quay lại Bảng điều khiển / trang chủ thành `"Quay lại danh sách đề thi"` trỏ đúng về `/student/exams`.
+    + Giữ nguyên mục "Tổng quan" DUY NHẤT trên Sidebar bên trái của Sinh viên.
+  - [x] **Mục tiêu 4 (Quét và Xóa Toàn Bộ Nút Quay Về Tổng Quan Dư Thừa Tại Cổng Quản Trị Viên `/admin/**`)**:
+    + Rà soát tất cả các trang: `/admin`, `/admin/teacher-access`, `/admin/student-management`, `/admin/subjects`...
+    + Đảm bảo không có link/nút quay về Dashboard/Tổng quan dư thừa bên trong nội dung (vì Navbar ngang phía trên đã có sẵn mục "Tổng quan").
+  - [x] **Mục tiêu 5 (Kiểm Thử Type Check, Build Sản Phẩm & Commit An Toàn)**:
+    + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 static/dynamic routes).
+    + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push) với mã hash `8706b01`.
+    + Ghi mã commit hash vào `.antigravity/plans/active.md`.
