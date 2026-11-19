@@ -53,6 +53,13 @@ export function StudentShell({ children, studentName = 'Sinh viên' }: StudentSh
     setIsMobileOpen(false);
   }, [pathname]);
 
+  // Tự động thu gọn sidebar trên desktop khi sinh viên vào làm bài thi
+  useEffect(() => {
+    if (pathname && pathname.startsWith('/student/exams/') && pathname !== '/student/exams') {
+      setIsCollapsed(true);
+    }
+  }, [pathname]);
+
   // Đóng khi bấm phím ESC
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -243,19 +250,22 @@ export function StudentShell({ children, studentName = 'Sinh viên' }: StudentSh
                   <p className="text-[11px] text-blue-200/80 truncate">Sinh viên LHU</p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={handleSignOut}
-                disabled={isLoggingOut}
-                title="Đăng xuất"
-                className="grid size-8 place-items-center rounded-lg text-white/70 hover:text-red-300 hover:bg-white/10 transition cursor-pointer shrink-0"
-              >
-                {isLoggingOut ? (
-                  <LoaderCircle className="size-4 animate-spin text-red-400" />
-                ) : (
-                  <LogOut className="size-4" />
-                )}
-              </button>
+              <div className="flex items-center gap-1 shrink-0">
+                <ThemeToggle className="size-8 rounded-lg !bg-white/10 !border-white/15 !text-white hover:!bg-white/20" />
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  disabled={isLoggingOut}
+                  title="Đăng xuất"
+                  className="grid size-8 place-items-center rounded-lg text-white/70 hover:text-red-300 hover:bg-white/10 transition cursor-pointer shrink-0"
+                >
+                  {isLoggingOut ? (
+                    <LoaderCircle className="size-4 animate-spin text-red-400" />
+                  ) : (
+                    <LogOut className="size-4" />
+                  )}
+                </button>
+              </div>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-2">
@@ -265,6 +275,7 @@ export function StudentShell({ children, studentName = 'Sinh viên' }: StudentSh
               >
                 {initials || 'SV'}
               </div>
+              <ThemeToggle className="size-8 rounded-lg !bg-white/10 !border-white/15 !text-white hover:!bg-white/20" />
               <button
                 type="button"
                 onClick={handleSignOut}
@@ -286,14 +297,14 @@ export function StudentShell({ children, studentName = 'Sinh viên' }: StudentSh
       {/* ── 2. KHUNG NỘI DUNG CHÍNH (Kèm Sticky Topbar trên Mobile) ── */}
       <div className="flex-1 min-w-0 flex flex-col min-h-screen">
         {/* Sticky Topbar trên Mobile (< 1024px) */}
-        <header className="sticky top-0 z-40 h-14 bg-white/95 dark:bg-[#0B1628]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 flex items-center justify-between lg:hidden shrink-0">
+        <header className="sticky top-0 z-40 h-14 bg-white/95 dark:bg-[#0B1628]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-3 sm:px-6 flex items-center justify-between lg:hidden shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             {/* Nút Hamburger Menu */}
             <button
               type="button"
               onClick={() => setIsMobileOpen(true)}
               aria-label="Mở menu điều hướng"
-              className="grid size-9 place-items-center rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#111C2D] text-slate-700 dark:text-slate-200 shadow-2xs hover:bg-slate-200 dark:hover:bg-slate-800 transition cursor-pointer shrink-0"
+              className="grid size-10 place-items-center rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#111C2D] text-slate-700 dark:text-slate-200 shadow-2xs hover:bg-slate-200 dark:hover:bg-slate-800 transition cursor-pointer shrink-0"
             >
               <Menu className="size-5" />
             </button>
@@ -317,7 +328,7 @@ export function StudentShell({ children, studentName = 'Sinh viên' }: StudentSh
         </header>
 
         {/* Nội dung trang con */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 overflow-x-hidden">
           {children}
         </div>
       </div>

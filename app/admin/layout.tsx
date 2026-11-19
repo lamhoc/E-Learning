@@ -1,8 +1,7 @@
 import { ReactNode } from 'react';
 import { redirect } from 'next/navigation';
 import { getCurrentUserWithRole } from '@/lib/auth-cache';
-import { BrandLogo } from '@/components/ui/brand-logo';
-import { AdminNav } from '@/components/admin/admin-nav';
+import { AdminShell } from '@/components/admin/admin-shell';
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const { user, role } = await getCurrentUserWithRole();
@@ -21,26 +20,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col transition-colors duration-200">
-      <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-md dark:bg-[#111C2D]/95">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3 sm:px-8">
-          {/* Logo LHU & Brand Admin Link */}
-          <BrandLogo
-            href="/admin"
-            size="md"
-            variant="plain"
-            badgeText="Admin"
-            subtitle="Quản trị Hệ thống LHU"
-          />
-
-          {/* Admin Navigation Hub (Client Component hỗ trợ Active State & Đăng xuất chuẩn) */}
-          <AdminNav />
-        </div>
-      </header>
-
-      <main className="flex-1 bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors">
-        {children}
-      </main>
-    </div>
+    <AdminShell adminEmail={user.email || 'admin@lhu.edu.vn'}>
+      {children}
+    </AdminShell>
   );
 }
