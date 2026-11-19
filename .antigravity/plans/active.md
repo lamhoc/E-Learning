@@ -428,3 +428,32 @@
     + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 static/dynamic routes).
     + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push) với mã hash `8706b01`.
     + Ghi mã commit hash vào `.antigravity/plans/active.md`.
+
+- [x] **Phase 60 (Commit `295b518`)**: Tối ưu hóa giao diện tự động điều chỉnh (Responsive) trên điện thoại & máy tính cho cả 3 phân hệ (Admin, Giảng viên, Sinh viên):
+  - [x] **Mục tiêu 1 (Hệ Thống Điều Hướng & Sidebar Tự Động Co Giãn Desktop vs Mobile)**:
+    + Cập nhật `TeacherSidebar` & `StudentSidebar`: Cung cấp cả Sidebar cố định desktop (`hidden lg:flex`) và Mobile Drawer slide-over (`fixed inset-y-0 left-0 z-50 w-72 bg-[#0A275C] dark:bg-[#0B1628]`) kích hoạt qua nút Hamburger Menu (`TeacherSidebarTrigger` / `StudentSidebarTrigger`) trên Topbar di động (`lg:hidden`).
+    + Tự động đóng Drawer khi click chọn route, click ra vùng nền mờ backdrop (`fixed inset-0 z-40 bg-black/60`), hoặc ấn phím `Escape`.
+    + Ghim cố định nút "Đăng xuất" và thông tin tài khoản ở đáy Drawer (`shrink-0`), 10 mục menu Giảng viên & 7 mục Sinh viên cuộn dọc mượt mà (`flex-1 overflow-y-auto`).
+    + Cập nhật `AdminNav`: Desktop hiển thị đầy đủ thanh tab; mobile (`< md:`) hỗ trợ Drawer trượt ngang chuyên nghiệp với đầy đủ 4 phân hệ Quản trị viên, ThemeToggle và Đăng xuất.
+  - [x] **Mục tiêu 2 (Tự Động Điều Chỉnh Lưới Thẻ & Khu Vực Thao Tác Nhanh)**:
+    + Cập nhật 8 ô Thao tác nhanh tại `/teacher/dashboard`: `grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-8 gap-3`, touch target >= 44px.
+    + Cập nhật các thẻ Metric trên `/teacher/dashboard` & `/student/dashboard`: `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4` (hoặc `lg:grid-cols-4`), hiển thị rộng rãi, không bị cắt cụt chữ.
+    + Chuyển trang Tạo đề thi (`components/teacher/exam-create-form.tsx`): Hỗ trợ `grid-cols-1 lg:grid-cols-[380px_minmax(0,1fr)] xl:grid-cols-[420px_minmax(0,1fr)]` chuyển đổi mượt mà giữa máy tính và điện thoại.
+  - [x] **Mục tiêu 3 (Bảng Dữ Liệu Tables, Thanh Pill Tabs & Bộ Lọc Tìm Kiếm Trên Mobile)**:
+    + Nâng cấp component gốc `components/ui/table.tsx`: Tự động bọc trong `<div className="relative w-full overflow-x-auto overscroll-x-contain rounded-xl">` với `min-w-[640px]`, nút thao tác có `whitespace-nowrap shrink-0`.
+    + Thanh Pill Tabs + Ô tìm kiếm + Nút hành động: `flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3`, Tab cuộn ngang `no-scrollbar`, input & nút tự động giãn full trên mobile (`w-full sm:w-auto`).
+  - [x] **Mục tiêu 4 (Tối Ưu Phòng Thi Trực Tuyến `/student/exams/[examId]` Trên Mobile)**:
+    + Đồng hồ đếm ngược & nút nộp bài ghim cố định đỉnh (`sticky top-0 z-30 backdrop-blur-md`).
+    + Bảng Mục Lục Câu Hỏi (Question Palette): Desktop cố định cột bên; trên mobile tích hợp nút mở Question Palette Drawer dạng Bottom Sheet trượt lên (`isMobilePaletteOpen`) giúp học sinh nhảy câu hỏi tức thì bất cứ lúc nào.
+    + Khung Camera Giám sát AI (`ExamWebcamProctor`): Tự động thu nhỏ linh hoạt trên mobile (`w-36 sm:w-56 md:w-64 bottom-3 right-3`), nút thu nhỏ pill không che đáp án.
+    + Công thức KaTeX MathText: Bổ sung `max-w-full overflow-x-auto py-1` và `break-words` chống tràn layout màn hình 360px–375px.
+  - [x] **Mục tiêu 5 (Tối Ưu Khung Chat Gia Sư AI & Cửa Sổ Modal)**:
+    + Khung Chat Gia sư AI: Chiều cao động `h-[100dvh]` và `h-[calc(100dvh-61px)]` không bị bàn phím ảo che khuất ô nhập tin nhắn.
+    + Bong bóng tin nhắn: `max-w-[92%] sm:max-w-[80%] lg:max-w-[75%] break-words`.
+    + Cỡ chữ ô nhập `<textarea>`: Đặt chuẩn `text-base sm:text-sm` (16px mobile) chống iOS Safari tự động zoom lệch màn hình.
+    + Đồng bộ mọi Cửa sổ Modal / Dialog: Kích thước co giãn an toàn `w-[95vw] max-w-2xl max-h-[90dvh] overflow-y-auto p-4 sm:p-6 rounded-2xl`.
+  - [x] **Mục tiêu 6 (Kiểm Thử Type Check, Build Sản Phẩm & Commit An Toàn)**:
+    + Thêm `overflow-x: hidden;` cho `body` và utility `.no-scrollbar` trong `app/globals.css`.
+    + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 routes).
+    + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push) với mã hash `295b518`.
+    + Ghi mã commit hash vào `.antigravity/plans/active.md`.
