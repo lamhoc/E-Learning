@@ -457,3 +457,24 @@
     + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 routes).
     + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push) với mã hash `295b518`.
     + Ghi mã commit hash vào `.antigravity/plans/active.md`.
+
+- [x] **Phase 61**: Nâng cấp toàn diện Gia sư AI hoạt động đa năng như Google Gemini (Xử lý mọi yêu cầu tự do, xóa bỏ bộ bắt từ khóa ép ra câu hỏi trắc nghiệm):
+  - [x] **Mục tiêu 1 (Xóa bỏ cơ chế bắt từ khóa cứng nhắc ép ra câu hỏi trắc nghiệm)**:
+    + Loại bỏ hoàn toàn việc phát hiện từ khóa môn học (`toán 10`, `lịch sử`, `oop`...) để ép trả về 5 câu hỏi trắc nghiệm A-B-C-D.
+    + Xây dựng bộ nhận diện ý định thông minh `detectUserIntent(q)` và làm sạch chủ đề `extractCleanTopic(query)`: Kịch bản video, giáo án bài giảng, giải bài toán, viết code, dàn ý, giải thích chuyên sâu... phản hồi đúng 100% định dạng mong muốn theo phong cách Gemini.
+    + Chỉ sinh câu hỏi/quiz khi và chỉ khi người dùng nêu rõ từ khóa tạo câu hỏi/đề thi (`tạo câu hỏi`, `trắc nghiệm`, `ra đề`, `quiz`).
+  - [x] **Mục tiêu 2 (Kiến trúc kết nối LLM đa cổng chuẩn Gemini - Multi-Provider LLM Engine)**:
+    + Cổng 1: Google Gemini API chính thức (`gemini-2.5-flash` / `gemini-2.0-flash` / `gemini-1.5-flash` qua REST endpoint nếu có `GEMINI_API_KEY` / `GOOGLE_GENERATIVE_AI_API_KEY`).
+    + Cổng 2: Groq Cloud LLM (`llama-3.3-70b-versatile`, `meta-llama/llama-4-scout-17b-16e-instruct`, `llama-3.1-8b-instant`, `qwen/qwen3-32b` kèm auto-discovery models).
+    + Cổng 3: Cloud LLM miễn phí không cần key (`https://text.pollinations.ai/openai/chat/completions` và fallback `GET https://text.pollinations.ai/...`).
+    + Cổng 4: Offline Smart Academic Fallback không bao giờ bị lỗi ngay cả khi mất mạng.
+  - [x] **Mục tiêu 3 (Thiết lập System Prompt đa năng & Bộ nhớ ngữ cảnh đa lượt Multi-turn Context)**:
+    + Áp dụng System Prompt Gemini-style: Trợ lý AI Đa Năng giải quyết mọi tác vụ học thuật, sáng tạo kịch bản video, lập trình, giải thích chi tiết, định dạng KaTeX `$..$` / `$$..$$`.
+    + Truyền lịch sử trò chuyện `messages: [{ role, content }]` (tối đa 16-20 lượt) thay vì chỉ một câu đơn lẻ, giúp AI hiểu ngữ cảnh trao đổi liên tục.
+  - [x] **Mục tiêu 4 (Đồng bộ đồng nhất cả 2 endpoint `app/api/chat/route.ts` & `app/api/chat-ai/route.ts`)**:
+    + Đảm bảo cả hai route (và phía client Giảng viên/Sinh viên) đều gọi thống nhất một engine đa cổng thông minh, không có route nào bị sót logic cũ.
+  - [x] **Mục tiêu 5 (Kiểm thử, nghiệm thu & commit an toàn)**:
+    + Test thực tế với 9/9 test cases (kịch bản video Toán 10, kịch bản video Lịch sử, kịch bản video OOP, viết code thuật toán, tóm tắt, giáo án, giải phương trình, tạo trắc nghiệm Toán/Sử).
+    + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 routes).
+    + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
+    + Ghi mã commit hash vào `.antigravity/plans/active.md`.

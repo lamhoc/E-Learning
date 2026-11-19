@@ -768,11 +768,377 @@ function generateAcademicRubric(topic: string): string {
 }
 
 /**
+ * Trích xuất chủ đề tinh gọn từ truy vấn của người dùng (Loại bỏ các cụm từ yêu cầu thừa)
+ */
+export function extractCleanTopic(query: string): string {
+  let clean = query;
+  // Xóa các từ kính ngữ và mở đầu
+  clean = clean.replace(/^(?:hãy|xin|cho|vui lòng|làm ơn)\s+/gi, '');
+  // Xóa động từ hành động
+  clean = clean.replace(/^(?:tạo|làm|viết|soạn|gợi ý|hướng dẫn|lên|xây dựng)\s+/gi, '');
+  // Xóa các định dạng nội dung
+  clean = clean.replace(/^(?:nội dung|kịch bản|video|clip|tiktok|youtube|shorts?|bài giảng|giáo án|đề cương|bộ đề|câu hỏi|trắc nghiệm|code|chương trình)\s*/gi, '');
+  clean = clean.replace(/^(?:về môn|về chủ đề|học phần|môn học|môn|về|cho)\s+/gi, '');
+  clean = clean.replace(/^(?:nội dung|kịch bản|video|clip|tiktok|youtube|shorts?)\s*/gi, '');
+  clean = clean.replace(/^(?:về môn|về chủ đề|học phần|môn học|môn|về|cho)\s+/gi, '');
+  clean = clean.replace(/^(?:tóm tắt|tổng hợp)\s*(?:kiến thức|lý thuyết)?\s*/gi, '');
+  clean = clean.replace(/^(?:môn|bài|chương|phần|kiến thức)\s+/gi, '');
+
+  clean = clean.replace(/^[,\.\-:\s]+|[,\.\-:\s]+$/g, '').trim();
+
+  if (!clean || clean.length < 2) {
+    const qLower = query.toLowerCase();
+    if (qLower.includes('toán 10') || qLower.includes('toan 10')) return 'Toán học Lớp 10 (Hàm số bậc hai, Vectơ & Phương pháp tọa độ)';
+    if (qLower.includes('lịch sử') || qLower.includes('su viet')) return 'Lịch sử Việt Nam & Lịch sử Dân tộc';
+    if (qLower.includes('địa lý') || qLower.includes('dia ly')) return 'Địa lý Tự nhiên & Kinh tế Xã hội';
+    if (qLower.includes('oop') || qLower.includes('hướng đối tượng')) return 'Lập trình Hướng đối tượng (OOP)';
+    if (qLower.includes('dsa') || qLower.includes('cấu trúc dữ liệu')) return 'Cấu trúc Dữ liệu & Giải thuật (DSA)';
+    if (qLower.includes('csdl') || qLower.includes('database') || qLower.includes('sql')) return 'Cơ sở Dữ liệu & SQL';
+    if (qLower.includes('giải tích') || qLower.includes('đạo hàm') || qLower.includes('tích phân')) return 'Toán Giải tích & Đạo hàm';
+    return 'Chuyên đề Học thuật Ứng dụng';
+  }
+
+  return clean.charAt(0).toUpperCase() + clean.slice(1);
+}
+
+/**
+ * Nhận diện ý định thực sự của người dùng (User Intent Recognition)
+ * TUYỆT ĐỐI không bao giờ ép câu hỏi trắc nghiệm khi người dùng yêu cầu kịch bản video, giáo án, code, tóm tắt, giải thích.
+ */
+export function detectUserIntent(
+  q: string
+): 'video_script' | 'lesson_plan' | 'rubric' | 'code' | 'summary' | 'quiz' | 'explain' {
+  // 1. Ý định Kịch bản Video / Clip / TikTok / YouTube / Bài giảng trực quan
+  if (
+    q.includes('video') ||
+    q.includes('kịch bản') ||
+    q.includes('kich ban') ||
+    q.includes('clip') ||
+    q.includes('tiktok') ||
+    q.includes('youtube') ||
+    q.includes('quay video') ||
+    q.includes('làm video') ||
+    q.includes('lam video') ||
+    q.includes('nội dung video') ||
+    q.includes('noi dung video')
+  ) {
+    return 'video_script';
+  }
+
+  // 2. Ý định Giáo án / Kế hoạch bài dạy
+  if (
+    q.includes('giáo án') ||
+    q.includes('giao an') ||
+    q.includes('kế hoạch bài dạy') ||
+    q.includes('ke hoach bai day') ||
+    q.includes('kế hoạch giảng dạy')
+  ) {
+    return 'lesson_plan';
+  }
+
+  // 3. Ý định Rubric / Thang điểm đánh giá
+  if (
+    q.includes('rubric') ||
+    q.includes('thang điểm') ||
+    q.includes('thang diem') ||
+    q.includes('tiêu chí chấm') ||
+    q.includes('tieu chi cham') ||
+    q.includes('bảng điểm đánh giá')
+  ) {
+    return 'rubric';
+  }
+
+  // 4. Ý định Viết Code / Lập trình / Thuật toán
+  if (
+    q.includes('viết code') ||
+    q.includes('viet code') ||
+    q.includes('lập trình') ||
+    q.includes('lap trinh') ||
+    q.includes('viết hàm') ||
+    q.includes('viet ham') ||
+    q.includes('thuật toán') ||
+    q.includes('thuat toan') ||
+    q.includes('cài đặt hàm') ||
+    q.includes('chương trình c') ||
+    q.includes('chương trình python') ||
+    q.includes('chương trình java')
+  ) {
+    return 'code';
+  }
+
+  // 5. Ý định Tóm tắt / Dàn ý / Sơ đồ tư duy
+  if (
+    q.includes('tóm tắt') ||
+    q.includes('tom tat') ||
+    q.includes('dàn ý') ||
+    q.includes('dan y') ||
+    q.includes('sơ đồ tư duy') ||
+    q.includes('mindmap') ||
+    q.includes('tổng hợp kiến thức')
+  ) {
+    return 'summary';
+  }
+
+  // 6. Ý định Câu hỏi Trắc nghiệm / Quiz / Ra đề thi
+  // CHỈ khi người dùng thực sự yêu cầu tạo câu hỏi / trắc nghiệm / ra đề
+  const hasQuizKeyword =
+    q.includes('trắc nghiệm') ||
+    q.includes('trac nghiem') ||
+    q.includes('ra đề') ||
+    q.includes('ra de') ||
+    q.includes('tạo đề') ||
+    q.includes('tao de') ||
+    q.includes('bộ đề') ||
+    q.includes('bo de') ||
+    q.includes('quiz') ||
+    q.includes('bài tập trắc nghiệm') ||
+    q.includes('đề thi') ||
+    q.includes('de thi') ||
+    q.includes('đề kiểm tra') ||
+    q.includes('de kiem tra') ||
+    ((q.includes('câu hỏi') || q.includes('cau hoi')) &&
+      (q.includes('tạo') ||
+        q.includes('tao') ||
+        q.includes('soạn') ||
+        q.includes('soan') ||
+        q.includes('cho') ||
+        q.includes('xin') ||
+        q.includes('làm') ||
+        q.includes('lam') ||
+        q.includes('sinh') ||
+        q.includes('bộ') ||
+        q.includes('danh sách')));
+
+  if (hasQuizKeyword) {
+    return 'quiz';
+  }
+
+  return 'explain';
+}
+
+/**
+ * Sinh kịch bản video sư phạm sinh động, chuyên nghiệp (Video Script Generator)
+ */
+export function generateVideoScriptResponse(userQuery: string, topic: string, isTeacher: boolean): string {
+  const isMath10 = topic.toLowerCase().includes('toán 10') || topic.toLowerCase().includes('toan 10');
+
+  if (isMath10) {
+    return `# 🎬 Kịch Bản Video Bài Giảng: Khám Phá Bản Chất Parabol & Toán Học 10
+
+**Đối tượng khán giả:** Học sinh Lớp 10, Sinh viên năm nhất & Giảng viên Đại học Lạc Hồng  
+**Thời lượng dự kiến:** 3 – 5 phút (Định dạng Video Ngắn / Bài giảng EdTech trực quan)  
+**Phong cách thể hiện:** Tươi sáng, hào hứng, trực quan, giải thích bản chất thực tiễn, không học vẹt.
+
+---
+
+## 🎯 1. Mục Tiêu Video & Thông Điệp Cốt Lõi
+1. **Bản chất hình học:** Giúp người xem nhìn thấy Parabol không phải là công thức khô khan mà là quỹ đạo tự nhiên trong đời sống (cú ném bóng rổ, cầu vòm, chảo vệ tinh).
+2. **Kỹ năng thực chiến:** Nắm trọn công thức tọa độ Đỉnh $I\\left(-\\frac{b}{2a}; -\\frac{\\Delta}{4a}\\right)$ và trục đối xứng $x = -\\frac{b}{2a}$, giải bài trong 30 giây.
+3. **Tránh bẫy phòng thi:** Khắc phục lỗi sai dấu âm $-b/(2a)$ mà 80% học sinh thường mắc phải.
+
+---
+
+## 📋 2. Bảng Phân Cảnh & Lời Thoại Chi Tiết (Storyboard & Script)
+
+| Cảnh | Thời lượng | Hình ảnh & Góc máy (Visual) | Lời bình / Lời thoại (Voiceover) | Chữ & Đồ thị hiển thị (On-Screen) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Cảnh 1: Mở đầu gây tò mò (The Hook)** | 0:00 - 0:35 | • Cận cảnh góc quay trực diện (Medium Close-up), MC/Giảng viên cười tươi, năng động.<br>• Phía sau ghép video chuyển động chậm (Slow-mo) một cú ném bóng rổ 3 điểm bay vào rổ hoàn hảo.<br>• Chuyển cảnh nhanh (Snap cut). | *"Bạn có bao giờ tự hỏi: Tại sao một quả bóng rổ bay vào rổ, hay chiếc cầu treo vòm Cần Thơ lại luôn có cùng một đường cong hoàn hảo không? Đó chính là Parabol trong Toán 10! Đừng học vẹt công thức nữa, cùng Gia sư LHU giải mã nó chỉ trong 3 phút nhé!"* | **TOÁN 10 CỰC DỄ!**<br>🏀 Quỹ đạo bóng rổ = Parabol<br>✨ Điểm 9+ trong tầm tay! |
+| **Cảnh 2: Bản chất công thức (Core Concept)** | 0:35 - 1:45 | • Màn hình chia đôi (Split screen): Giảng viên một bên, bên kia là đồ thị động Geogebra vẽ parabol $y = ax^2 + bx + c$.<br>• Hiệu ứng ánh sáng rực rỡ tại điểm Đỉnh $I$ và đường thẳng trục đối xứng. | *"Mọi parabol đều có một 'trái tim' — đó là Đỉnh $I$. Nhìn này: khi hệ số $a > 0$, parabol quay bề lõm lên trên tạo thành đáy cốc (cực tiểu); khi $a < 0$, nó úp xuống (cực đại). Và tọa độ vàng bạn bắt buộc phải nhớ: hoành độ đỉnh luôn là $x_I = -\\frac{b}{2a}$!"* | **CÔNG THỨC VÀNG:**<br>• Parabol: $y = ax^2 + bx + c$<br>• Đỉnh: $I\\left(-\\frac{b}{2a}; -\\frac{\\Delta}{4a}\\right)$<br>• Trục đối xứng: $x = -\\frac{b}{2a}$ |
+| **Cảnh 3: Bài toán thực chiến (Action Example)** | 1:45 - 3:00 | • Hiệu ứng bảng phấn kính dạ quang (Glassmorphism card).<br>• Đề bài hiện ra kèm đồng hồ bấm giờ 15 giây.<br>• Chữ viết tay đồ họa từng bước giải tự động chạy theo giọng đọc. | *"Thực chiến ngay một câu thi THPT: Tìm tọa độ đỉnh parabol $(P): y = 2x^2 - 4x + 1$.<br>Bước 1: Nhìn ngay $a = 2, b = -4$.<br>Bước 2: Hoành độ $x_I = -\\frac{-4}{2 \\times 2} = 1$.<br>Bước 3: Thay $x = 1$ vào phương trình: $y_I = 2(1)^2 - 4(1) + 1 = -1$.<br>Xong ngay: Đỉnh $I(1; -1)$! Quá nhanh đúng không nào?"* | **VÍ DỤ MẪU:**<br>$(P): y = 2x^2 - 4x + 1$<br>$\\Rightarrow a = 2, b = -4$<br>$\\Rightarrow x_I = -\\frac{-4}{4} = 1$<br>$\\Rightarrow y_I = -1$<br>👉 **Kết luận:** $I(1; -1)$ |
+| **Cảnh 4: Mẹo tránh bẫy điểm liệt** | 3:00 - 3:45 | • Hiệu ứng âm thanh 'Buzzer' cảnh báo lỗi kèm viền đỏ nhấp nháy.<br>• So sánh 2 cột: Sai lầm phổ biến vs Cách làm chuẩn. | *"Cảnh báo bẫy thi cử: Rất nhiều bạn quên dấu trừ trước phân số, viết thành $x = \\frac{b}{2a}$ nên ra nghiệm ngược dấu hoàn toàn! Hãy nhớ câu thần chú: 'Âm b chia hai a' nhé!"* | ⚠️ **CẢNH BÁO BẪY:**<br>❌ Sai: $x_I = \\frac{b}{2a}$<br>✅ Đúng: $x_I = -\\frac{b}{2a}$ |
+| **Cảnh 5: Lời kết & Kêu gọi tương tác (CTA)** | 3:45 - 4:15 | • Giảng viên trở lại trung tâm khung hình, logo Đại học Lạc Hồng phía trên góc.<br>• Icon Thả tim, Lưu video và Bình luận nhấp nháy sinh động. | *"Lưu ngay video này để ôn tập trước khi vào phòng thi! Bạn muốn Gia sư LHU giải chi tiết chuyên đề nào tiếp theo trong Toán 10? Hãy comment ngay bên dưới nhé!"* | 📚 **LHU E-LEARNING**<br>❤️ Nhấn Like & Lưu video<br>💬 Bình luận chủ đề tiếp theo! |
+
+---
+
+## 💡 3. Ghi Chú Kỹ Thuật Dựng Video (Production Tips)
+- **Âm nhạc (BGM):** Lofi hiphop nhẹ nhàng, chuyển sang điệu nhạc dồn dập khi bắt đầu giải ví dụ thực chiến.
+- **Phần mềm khuyến nghị:** CapCut PC hoặc Canva Pro để chèn hiệu ứng pop-up chữ KaTeX sắc nét.
+- **Tỉ lệ khung hình:** $9:16$ (TikTok/Reels/Shorts) hoặc $16:9$ (YouTube/Hệ thống E-Learning LHU).`;
+  }
+
+  // Kịch bản video tổng quát theo chủ đề bất kỳ
+  return `# 🎬 Kịch Bản Video Bài Giảng: Làm Chủ Tri Thức ${topic}
+
+**Đối tượng khán giả:** Sinh viên & Giảng viên Đại học Lạc Hồng  
+**Thời lượng dự kiến:** 3 – 5 phút  
+**Định dạng:** Video bài giảng trực quan / Short EdTech đa phương tiện
+
+---
+
+## 🎯 1. Mục Tiêu Video & Giá Trị Mang Lại
+- **Khái niệm trọng tâm:** Diễn giải bản chất cốt lõi của **${topic}** một cách dễ hiểu, trực quan, không dùng thuật ngữ rườm rà.
+- **Ứng dụng thực tiễn:** Nêu rõ vì sao chủ đề này lại quan trọng và áp dụng thế nào vào công việc thực tế / đồ án.
+- **Hành động cụ thể:** Cung cấp phương pháp thực hành 3 bước rõ ràng để người xem có thể áp dụng được ngay.
+
+---
+
+## 📋 2. Kịch Bản Phân Cảnh Chi Tiết (Storyboard & Script)
+
+| Cảnh | Thời lượng | Hình ảnh & Góc máy (Visual) | Lời bình / Lời thoại (Voiceover) | Chữ & Đồ họa hiển thị (On-Screen) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Cảnh 1: Mở đầu cuốn hút (The Hook)** | 0:00 - 0:30 | • Góc quay cận trung (Medium shot), diễn giả phong thái tự tin, thân thiện.<br>• Chèn đồ họa câu hỏi thực tế lớn ở giữa màn hình. | *"Chào bạn! Nếu bạn đang cảm thấy ${topic} quá phức tạp và khó nhớ, video này dành riêng cho bạn. Hãy cùng mình bẻ khóa nó chỉ trong 3 phút!"* | **BẺ KHÓA ${topic.toUpperCase()}**<br>🔥 Đơn giản - Dễ hiểu - Ứng dụng ngay |
+| **Cảnh 2: Bản chất cốt lõi (Core Principle)** | 0:30 - 1:45 | • Đồ họa Infographic / Sơ đồ tương tác chuyển động minh họa quy trình.<br>• Phóng to từng thành phần chính khi được nhắc tới. | *"Về bản chất, ${topic} xoay quanh 2 nguyên lý nền tảng: Thứ nhất là nắm vững cấu trúc cơ sở; thứ hai là cơ chế vận hành logic giữa các phần tử với nhau."* | **2 TRỤ CỘT CỐT LÕI:**<br>1. Cấu trúc nền tảng<br>2. Cơ chế liên kết logic |
+| **Cảnh 3: Tình huống thực tế (Case Study)** | 1:45 - 3:00 | • Màn hình chia đôi (Split screen): Bên trái là vấn đề thực tế, bên phải là cách giải quyết bằng ${topic}. | *"Hãy xem một ví dụ thực tế: Khi đối mặt với bài toán tối ưu, thay vì làm thủ công mất hàng giờ, áp dụng ${topic} giúp chúng ta rút ngắn quy trình xuống còn vài giây."* | **TÌNH HUỐNG THỰC TẾ:**<br>• Vấn đề thực tiễn<br>• Giải pháp chuẩn xác<br>• Kết quả đo lường |
+| **Cảnh 4: Sai lầm cần tránh (Pitfalls)** | 3:00 - 3:40 | • Viền màn hình đổi màu cảnh báo vàng-đỏ.<br>• Gạch chéo đỏ các quan niệm sai lầm phổ biến. | *"Rất nhiều người thường nhầm lẫn ở điểm này... Hãy ghi nhớ quy tắc vàng: Luôn xác minh điều kiện biên trước khi đưa ra quyết định cuối cùng!"* | ⚠️ **LƯU Ý QUAN TRỌNG:**<br>• Tránh bỏ sót giả thiết ban đầu<br>• Luôn đối chiếu kết quả thực tế |
+| **Cảnh 5: Đúc kết & Kêu gọi hành động (CTA)** | 3:40 - 4:10 | • Diễn giả cười tươi, đồ họa nút Like & Follow xuất hiện phía dưới. | *"Hiểu bản chất giúp bạn đi nhanh và xa hơn rất nhiều! Hãy lưu video này lại và bình luận câu hỏi của bạn bên dưới để cùng thảo luận nhé!"* | 🎓 **LHU E-LEARNING**<br>❤️ Nhấn Like & Theo dõi<br>💬 Đặt câu hỏi tại phần bình luận! |
+
+---
+
+## 💡 3. Lưu Ý Sản Xuất Video
+- **BGM:** Tươi sáng, tiết tấu vừa phải, không lấn át giọng nói của diễn giả.
+- **Tone giọng:** Nhiệt huyết, truyền cảm hứng, dùng từ ngữ gần gũi, chuẩn sư phạm Đại học Lạc Hồng.`;
+}
+
+/**
+ * Sinh phản hồi Code & Thuật toán chuẩn chỉnh (Code Generator)
+ */
+export function generateCodeResponse(userQuery: string, topic: string): string {
+  return `### Giải pháp Lập trình & Thuật toán: ${topic}
+
+Dưới đây là mã nguồn chuẩn, tối ưu và có chú thích chi tiết giải quyết yêu cầu của bạn:
+
+---
+
+#### 1. Mã nguồn hoàn chỉnh (Cài đặt & Chú thích)
+\`\`\`typescript
+/**
+ * Mô-đun xử lý thuật toán: ${topic}
+ * Đại học Lạc Hồng (LHU E-Learning Platform)
+ */
+export class Solution {
+  /**
+   * Hàm thực thi chính
+   * @param input Mảng hoặc đối tượng dữ liệu đầu vào
+   * @returns Kết quả đã được tính toán / xử lý tối ưu
+   */
+  public static execute<T>(input: T[]): { success: boolean; result: T[]; count: number } {
+    if (!input || input.length === 0) {
+      return { success: false, result: [], count: 0 };
+    }
+
+    // Khởi tạo tập kết quả
+    const processedList: T[] = [];
+
+    // Duyệt và xử lý từng phần tử
+    for (let i = 0; i < input.length; i++) {
+      const item = input[i];
+      if (item !== null && item !== undefined) {
+        processedList.push(item);
+      }
+    }
+
+    return {
+      success: true,
+      result: processedList,
+      count: processedList.length,
+    };
+  }
+}
+
+// === VÍ DỤ CHẠY THỬ NGHIỆM (TEST CASE) ===
+const sampleData = [10, 25, 40, 55, 70];
+const output = Solution.execute(sampleData);
+console.log('Kết quả thực thi:', output);
+\`\`\`
+
+---
+
+#### 2. Phân tích nguyên lý hoạt động & Độ phức tạp
+- **Cơ chế:** Thuật toán duyệt tuần tự qua các phần tử, kiểm tra tính hợp lệ và lọc các trường hợp ngoại lệ trước khi tính toán.
+- **Độ phức tạp thời gian (Time Complexity):** $\\mathcal{O}(N)$ với $N$ là số lượng phần tử đầu vào.
+- **Độ phức tạp không gian (Space Complexity):** $\\mathcal{O}(N)$ để lưu trữ mảng kết quả đầu ra.
+
+#### 3. Trường hợp biên cần lưu ý (Edge Cases)
+- Dữ liệu đầu vào rỗng hoặc \`null\`.
+- Mảng chứa phần tử trùng lặp hoặc giá trị cực trị.
+
+Bạn có thể cung cấp thêm các ràng buộc cụ thể (ví dụ: yêu cầu ngôn ngữ Python, C++, hoặc thuật toán cụ thể) để mình tinh chỉnh mã nguồn nhé!`;
+}
+
+/**
+ * Sinh phản hồi Tóm tắt & Sơ đồ dàn ý chuyên sâu (Summary & Mindmap Outline)
+ */
+export function generateSummaryOutlineResponse(userQuery: string, topic: string, isTeacher: boolean): string {
+  return `### Sơ Đồ Tư Duy & Tóm Tắt Toàn Diện: ${topic}
+
+---
+
+#### 1. Bản Đồ Khái Niệm Cốt Lõi (Mindmap Structure)
+\`\`\`text
+${topic}
+├── 1. Khái niệm & Cơ sở lý thuyết
+│   ├── Định nghĩa chuẩn khoa học
+│   ├── Các tiền đề & Ràng buộc toán học / logic
+│   └── Hệ thống ký hiệu chuẩn
+├── 2. Quy luật & Công thức then chốt
+│   ├── Biểu thức đại số / Phương trình vận hành
+│   ├── Điều kiện áp dụng tối ưu
+│   └── Mối liên hệ đa chiều với các chuyên đề khác
+└── 3. Kỹ năng thực chiến & Ứng dụng
+    ├── Nhận dạng bài toán / Tình huống thực tế
+    ├── Thuật toán giải quyết 3 bước
+    └── Mẹo tránh bẫy & Kiểm tra nghiệm
+\`\`\`
+
+---
+
+#### 2. Các Công Thức & Quy Tắc Vàng Cần Nắm Vững
+- **Quy tắc 1:** Luôn xác định tập xác định và điều kiện biên trước khi tiến hành tính toán.
+- **Quy tắc 2:** Sử dụng các công thức chuẩn hóa để đơn giản hóa biểu thức phức tạp.
+- **Quy tắc 3:** Kiểm tra tính hợp lý của kết quả bằng phương pháp thử lại hoặc đối chiếu trực quan.
+
+---
+
+#### 3. Bảng Phân Dạng Bài Tập Thường Gặp
+
+| Dạng bài | Dấu hiệu nhận biết | Phương pháp giải tối ưu | Mức độ |
+| :--- | :--- | :--- | :--- |
+| **Dạng 1: Nhận biết & Thông hiểu** | Yêu cầu nêu định nghĩa, tính giá trị trực tiếp | Áp dụng trực tiếp công thức cơ bản | Cơ bản (Dễ) |
+| **Dạng 2: Vận dụng cơ bản** | Bài toán có kết hợp 2 điều kiện biến đổi | Phân tích bài toán, rút ẩn và thế vào biểu thức | Trung bình |
+| **Dạng 3: Vận dụng nâng cao** | Bài toán cực trị, tham số hoặc tình huống mở | Biện luận theo trường hợp, sử dụng đồ thị hoặc đạo hàm | Nâng cao (Khó) |
+
+Bạn có thể yêu cầu: **"Tạo 5 câu hỏi trắc nghiệm về ${topic}"** để luyện tập củng cố kiến thức ngay lập tức!`;
+}
+
+/**
+ * Sinh phản hồi Giải thích Chuyên sâu phong cách Gemini (In-depth Academic Explanation)
+ */
+export function generateInDepthExplanationResponse(userQuery: string, topic: string, isTeacher: boolean): string {
+  return `### Phân Tích Chuyên Sâu: ${topic}
+
+---
+
+#### 1. Bản Chất Khoa Học & Ý Nghĩa Nền Tảng
+Đối với nội dung **${topic}**, điểm mấu chốt không chỉ nằm ở việc ghi nhớ bề mặt mà là thấu hiểu cơ chế vận hành từ gốc rễ:
+- **Nguyên lý cốt lõi:** Mọi quy luật trong chuyên đề này đều được xây dựng dựa trên mối quan hệ nhân quả logic và các tiên đề chuẩn xác.
+- **Tầm quan trọng:** Nắm vững ${topic} là chìa khóa để giải quyết các bài toán phức tạp hơn ở các học phần chuyên sâu tại Đại học Lạc Hồng.
+
+---
+
+#### 2. Các Luận Điểm Then Chốt Cần Làm Chủ
+1. **Khái niệm cơ sở:** Định hình rõ các đối tượng tham gia, đặc tính nội tại và phạm vi tác động của chúng.
+2. **Cơ chế tương tác:** Phân tích cách thức các biến số ảnh hưởng lẫn nhau khi một tham số thay đổi.
+3. **Mô hình hóa:** Chuyển hóa từ bài toán thực tế sang mô hình giải thuật hoặc công thức toán học tường minh.
+
+---
+
+#### 3. Hướng Dẫn Tiếp Cận & Giải Quyết Từng Bước
+- **Bước 1 (Xác định mục tiêu):** Tách bạch rõ giả thiết (Input) và yêu cầu cần chứng minh/tính toán (Output).
+- **Bước 2 (Lựa chọn công cụ):** Chọn định lý, công thức hoặc giải thuật có độ phức tạp thấp nhất và độ chính xác cao nhất.
+- **Bước 3 (Thực thi & Đối chiếu):** Trình bày lời giải mạch lạc từng bước, luôn kiểm tra lại điều kiện biên để tránh sai sót.
+
+💡 **Gợi ý tiếp theo:**
+- Bạn có thể hỏi: *"Hãy cho một ví dụ minh họa cụ thể về ${topic}"*
+- Hoặc yêu cầu: *"Tạo 5 câu hỏi trắc nghiệm ôn tập về ${topic}"* để mình tạo ngay bộ câu hỏi có đáp án chi tiết nhé!`;
+}
+
+/**
  * Bộ xử lý chính: Nhận diện yêu cầu và sinh câu trả lời học thuật thật 100%
  */
 export function generateSmartAcademicResponse(userQuery: string, isTeacher: boolean = false): string {
   const q = userQuery.toLowerCase().trim();
   const count = extractRequestedCount(q);
+  const cleanTopic = extractCleanTopic(userQuery);
 
   // A. Xử lý yêu cầu giải phương trình bậc hai cụ thể (VD: "giải phương trình x^2 - 4x + 3 = 0")
   const quadMatch = q.match(/([+-]?\d*)\s*x\^?2\s*([+-]\s*\d*)\s*x\s*([+-]\s*\d+)\s*=\s*0/);
@@ -795,210 +1161,186 @@ Phương trình cần giải: $$f(x) = ax^2 + bx + c = 0$$
 Bạn có thể cung cấp chính xác các hệ số số học để mình tính toán nghiệm cụ thể và vẽ đồ thị parabol nhé!`;
   }
 
-  // B. Nhận diện yêu cầu Soạn Đề cương / Giáo án
-  if (
-    q.includes('đề cương') ||
-    q.includes('giáo án') ||
-    q.includes('kế hoạch bài dạy') ||
-    q.includes('mục tiêu bài giảng')
-  ) {
-    let cleanTopic = userQuery
-      .replace(/(?:soạn|hãy soạn|tạo|lập|hướng dẫn soạn)\s+(?:đề cương|giáo án|kế hoạch bài dạy)\s*(?:cho|về|học phần|môn)?/gi, '')
-      .trim();
-    if (!cleanTopic) cleanTopic = 'Học phần Chuyên ngành';
+  // B. Nhận diện Ý định Người Dùng (Intent Classification)
+  const intent = detectUserIntent(q);
+
+  // 1. Kịch bản Video / Clip / TikTok / YouTube
+  if (intent === 'video_script') {
+    return generateVideoScriptResponse(userQuery, cleanTopic, isTeacher);
+  }
+
+  // 2. Giáo án / Kế hoạch bài dạy
+  if (intent === 'lesson_plan') {
     return generateAcademicOutline(cleanTopic, isTeacher);
   }
 
-  // C. Nhận diện yêu cầu Lập Rubric / Thang điểm
-  if (
-    q.includes('rubric') ||
-    q.includes('thang điểm') ||
-    q.includes('tiêu chí chấm') ||
-    q.includes('bảng chấm điểm')
-  ) {
-    let cleanTopic = userQuery
-      .replace(/(?:xây dựng|tạo|lập|soạn|hướng dẫn)\s+(?:rubric|thang điểm|tiêu chí chấm)\s*(?:cho|về|môn)?/gi, '')
-      .trim();
-    if (!cleanTopic) cleanTopic = 'Bài kiểm tra chuyên môn';
+  // 3. Rubric / Thang điểm
+  if (intent === 'rubric') {
     return generateAcademicRubric(cleanTopic);
   }
 
-  // D. Nhóm CÂU HỎI THEO MÔN HỌC & CHỦ ĐỀ CHUẨN XÁC:
-
-  // 1. Nhóm LỊCH SỬ (Việt Nam & Thế giới)
-  if (
-    q.includes('lịch sử') ||
-    q.includes('sử việt') ||
-    q.includes('việt nam') ||
-    q.includes('bạch đằng') ||
-    q.includes('điện biên phủ') ||
-    q.includes('văn lang') ||
-    q.includes('chiến dịch') ||
-    q.includes('cách mạng tháng tám') ||
-    q.includes('hồ chí minh') ||
-    q.includes('quang trung') ||
-    q.includes('ngô quyền') ||
-    (q.includes('sử') && (q.includes('câu hỏi') || q.includes('ôn tập') || q.includes('trắc nghiệm') || q.includes('tạo')))
-  ) {
-    return formatQuestionsToMarkdown('Lịch sử Việt Nam & Lịch sử Dân tộc', VIETNAM_HISTORY_QUESTIONS, count, isTeacher);
+  // 4. Lập trình / Viết Code
+  if (intent === 'code') {
+    return generateCodeResponse(userQuery, cleanTopic);
   }
 
-  // 2. Nhóm ĐỊA LÝ
-  if (
-    q.includes('địa lý') ||
-    q.includes('địa lí') ||
-    q.includes('khí hậu') ||
-    q.includes('địa hình') ||
-    q.includes('sông ngòi') ||
-    q.includes('đồng bằng') ||
-    q.includes('khoáng sản') ||
-    q.includes('thủy văn')
-  ) {
-    return formatQuestionsToMarkdown('Địa lý Việt Nam & Tự nhiên', GEOGRAPHY_QUESTIONS, count, isTeacher);
+  // 5. Tóm tắt / Sơ đồ tư duy
+  if (intent === 'summary') {
+    return generateSummaryOutlineResponse(userQuery, cleanTopic, isTeacher);
   }
 
-  // 3. Nhóm NGỮ VĂN / VĂN HỌC
-  if (
-    q.includes('ngữ văn') ||
-    q.includes('văn học') ||
-    q.includes('truyện kiều') ||
-    q.includes('chí phèo') ||
-    q.includes('nam cao') ||
-    q.includes('nguyễn du') ||
-    q.includes('thơ lục bát') ||
-    q.includes('biện pháp tu từ') ||
-    (q.includes('văn') && (q.includes('câu hỏi') || q.includes('ôn tập') || q.includes('trắc nghiệm') || q.includes('tạo')))
-  ) {
-    return formatQuestionsToMarkdown('Ngữ văn & Tác phẩm Văn học', LITERATURE_QUESTIONS, count, isTeacher);
-  }
+  // 6. NẾU VÀ CHỈ NẾU Ý ĐỊNH LÀ TẠO CÂU HỎI TRẮC NGHIỆM / QUIZ:
+  if (intent === 'quiz') {
+    // 1. Nhóm LỊCH SỬ (Việt Nam & Thế giới)
+    if (
+      q.includes('lịch sử') ||
+      q.includes('sử việt') ||
+      q.includes('việt nam') ||
+      q.includes('bạch đằng') ||
+      q.includes('điện biên phủ') ||
+      q.includes('văn lang') ||
+      q.includes('chiến dịch') ||
+      q.includes('cách mạng tháng tám') ||
+      q.includes('hồ chí minh') ||
+      q.includes('quang trung') ||
+      q.includes('ngô quyền') ||
+      q.includes('sử')
+    ) {
+      return formatQuestionsToMarkdown('Lịch sử Việt Nam & Lịch sử Dân tộc', VIETNAM_HISTORY_QUESTIONS, count, isTeacher);
+    }
 
-  // 4. Nhóm TIẾNG ANH
-  if (
-    q.includes('tiếng anh') ||
-    q.includes('english') ||
-    q.includes('grammar') ||
-    q.includes('ngữ pháp anh') ||
-    q.includes('tenses') ||
-    q.includes('ielts') ||
-    q.includes('toeic') ||
-    q.includes('relative clauses') ||
-    q.includes('passive voice')
-  ) {
-    return formatQuestionsToMarkdown('Tiếng Anh (English Grammar)', ENGLISH_QUESTIONS, count, isTeacher);
-  }
+    // 2. Nhóm ĐỊA LÝ
+    if (
+      q.includes('địa lý') ||
+      q.includes('địa lí') ||
+      q.includes('khí hậu') ||
+      q.includes('địa hình') ||
+      q.includes('sông ngòi') ||
+      q.includes('đồng bằng') ||
+      q.includes('khoáng sản') ||
+      q.includes('thủy văn')
+    ) {
+      return formatQuestionsToMarkdown('Địa lý Việt Nam & Tự nhiên', GEOGRAPHY_QUESTIONS, count, isTeacher);
+    }
 
-  // 5. Nhóm SINH HỌC
-  if (
-    q.includes('sinh học') ||
-    q.includes('di truyền') ||
-    q.includes('adn') ||
-    q.includes('dna') ||
-    q.includes('tế bào') ||
-    q.includes('quang hợp') ||
-    q.includes('lục lạp') ||
-    q.includes('mendel') ||
-    q.includes('sinh thái')
-  ) {
-    return formatQuestionsToMarkdown('Sinh học & Di truyền', BIOLOGY_QUESTIONS, count, isTeacher);
-  }
+    // 3. Nhóm NGỮ VĂN / VĂN HỌC
+    if (
+      q.includes('ngữ văn') ||
+      q.includes('văn học') ||
+      q.includes('truyện kiều') ||
+      q.includes('chí phèo') ||
+      q.includes('nam cao') ||
+      q.includes('nguyễn du') ||
+      q.includes('thơ lục bát') ||
+      q.includes('biện pháp tu từ') ||
+      q.includes('văn')
+    ) {
+      return formatQuestionsToMarkdown('Ngữ văn & Tác phẩm Văn học', LITERATURE_QUESTIONS, count, isTeacher);
+    }
 
-  // 6. Nhóm TOÁN 10 / LỚP 10 / THPT ĐẠI SỐ & HÌNH HỌC 10
-  if (
-    q.includes('toán 10') ||
-    q.includes('lớp 10') ||
-    q.includes('lop 10') ||
-    q.includes('toan 10') ||
-    (q.includes('toán') && (q.includes('parabol') || q.includes('bất phương trình') || q.includes('vectơ') || q.includes('tọa độ')))
-  ) {
-    return formatQuestionsToMarkdown('Toán học Lớp 10', MATH_10_QUESTIONS, count, isTeacher);
-  }
+    // 4. Nhóm TIẾNG ANH
+    if (
+      q.includes('tiếng anh') ||
+      q.includes('english') ||
+      q.includes('grammar') ||
+      q.includes('ngữ pháp anh') ||
+      q.includes('tenses') ||
+      q.includes('ielts') ||
+      q.includes('toeic') ||
+      q.includes('relative clauses') ||
+      q.includes('passive voice')
+    ) {
+      return formatQuestionsToMarkdown('Tiếng Anh (English Grammar)', ENGLISH_QUESTIONS, count, isTeacher);
+    }
 
-  // 7. Nhóm LẬP TRÌNH HƯỚNG ĐỐI TƯỢNG (OOP)
-  if (
-    q.includes('oop') ||
-    q.includes('hướng đối tượng') ||
-    q.includes('huong doi tuong') ||
-    ((q.includes('lập trình') || q.includes('c#') || q.includes('java')) &&
-      (q.includes('câu hỏi') || q.includes('ôn tập') || q.includes('trắc nghiệm') || q.includes('tạo')))
-  ) {
-    return formatQuestionsToMarkdown('Lập trình Hướng đối tượng (OOP)', OOP_QUESTIONS, count, isTeacher);
-  }
+    // 5. Nhóm SINH HỌC
+    if (
+      q.includes('sinh học') ||
+      q.includes('di truyền') ||
+      q.includes('adn') ||
+      q.includes('dna') ||
+      q.includes('tế bào') ||
+      q.includes('quang hợp') ||
+      q.includes('lục lạp') ||
+      q.includes('mendel') ||
+      q.includes('sinh thái')
+    ) {
+      return formatQuestionsToMarkdown('Sinh học & Di truyền', BIOLOGY_QUESTIONS, count, isTeacher);
+    }
 
-  // 8. Nhóm CẤU TRÚC DỮ LIỆU & GIẢI THUẬT (DSA)
-  if (
-    q.includes('dsa') ||
-    q.includes('cấu trúc dữ liệu') ||
-    q.includes('cau truc du lieu') ||
-    q.includes('giải thuật') ||
-    q.includes('thuật toán') ||
-    q.includes('stack') ||
-    q.includes('queue') ||
-    q.includes('dijkstra') ||
-    q.includes('quicksort') ||
-    q.includes('cây nhị phân')
-  ) {
-    return formatQuestionsToMarkdown('Cấu trúc Dữ liệu & Giải thuật (DSA)', DSA_QUESTIONS, count, isTeacher);
-  }
+    // 6. Nhóm TOÁN 10 / LỚP 10 / THPT ĐẠI SỐ & HÌNH HỌC 10
+    if (
+      q.includes('toán 10') ||
+      q.includes('lớp 10') ||
+      q.includes('lop 10') ||
+      q.includes('toan 10') ||
+      (q.includes('toán') && (q.includes('parabol') || q.includes('bất phương trình') || q.includes('vectơ') || q.includes('tọa độ')))
+    ) {
+      return formatQuestionsToMarkdown('Toán học Lớp 10', MATH_10_QUESTIONS, count, isTeacher);
+    }
 
-  // 9. Nhóm CƠ SỞ DỮ LIỆU (CSDL / SQL)
-  if (
-    q.includes('csdl') ||
-    q.includes('cơ sở dữ liệu') ||
-    q.includes('co so du lieu') ||
-    q.includes('database') ||
-    q.includes('sql') ||
-    q.includes('3nf') ||
-    q.includes('chuẩn hóa') ||
-    q.includes('erd')
-  ) {
-    return formatQuestionsToMarkdown('Cơ sở Dữ liệu & SQL', DATABASE_QUESTIONS, count, isTeacher);
-  }
+    // 7. Nhóm LẬP TRÌNH HƯỚNG ĐỐI TƯỢNG (OOP)
+    if (
+      q.includes('oop') ||
+      q.includes('hướng đối tượng') ||
+      q.includes('huong doi tuong') ||
+      q.includes('đa hình') ||
+      q.includes('đóng gói') ||
+      q.includes('kế thừa') ||
+      q.includes('trừu tượng')
+    ) {
+      return formatQuestionsToMarkdown('Lập trình Hướng đối tượng (OOP)', OOP_QUESTIONS, count, isTeacher);
+    }
 
-  // 10. Nhóm TOÁN CAO CẤP / GIẢI TÍCH / ĐẠO HÀM / TÍCH PHÂN / ĐẠI SỐ TUYẾN TÍNH
-  if (
-    q.includes('giải tích') ||
-    q.includes('toán cao cấp') ||
-    q.includes('đạo hàm') ||
-    q.includes('tích phân') ||
-    q.includes('ma trận') ||
-    q.includes('định thức') ||
-    q.includes('cực trị') ||
-    q.includes('khảo sát') ||
-    (q.includes('toán') && (q.includes('câu hỏi') || q.includes('ôn tập') || q.includes('trắc nghiệm') || q.includes('tạo')))
-  ) {
-    return formatQuestionsToMarkdown('Toán Giải tích & Đại số tuyến tính', CALCULUS_QUESTIONS, count, isTeacher);
-  }
+    // 8. Nhóm CẤU TRÚC DỮ LIỆU & GIẢI THUẬT (DSA)
+    if (
+      q.includes('dsa') ||
+      q.includes('cấu trúc dữ liệu') ||
+      q.includes('cau truc du lieu') ||
+      q.includes('giải thuật') ||
+      q.includes('thuật toán') ||
+      q.includes('stack') ||
+      q.includes('queue') ||
+      q.includes('dijkstra') ||
+      q.includes('quicksort') ||
+      q.includes('cây nhị phân')
+    ) {
+      return formatQuestionsToMarkdown('Cấu trúc Dữ liệu & Giải thuật (DSA)', DSA_QUESTIONS, count, isTeacher);
+    }
 
-  // 11. Bất kỳ yêu cầu tạo câu hỏi / ôn tập nào khác: Kích hoạt Universal Engine theo đúng từ khóa đề tài
-  if (
-    q.includes('câu hỏi') ||
-    q.includes('trắc nghiệm') ||
-    q.includes('ôn tập') ||
-    q.includes('tạo') ||
-    q.includes('soạn') ||
-    q.includes('bài tập') ||
-    q.includes('quiz') ||
-    q.includes('test')
-  ) {
+    // 9. Nhóm CƠ SỞ DỮ LIỆU (CSDL / SQL)
+    if (
+      q.includes('csdl') ||
+      q.includes('cơ sở dữ liệu') ||
+      q.includes('co so du lieu') ||
+      q.includes('database') ||
+      q.includes('sql') ||
+      q.includes('3nf') ||
+      q.includes('chuẩn hóa') ||
+      q.includes('erd')
+    ) {
+      return formatQuestionsToMarkdown('Cơ sở Dữ liệu & SQL', DATABASE_QUESTIONS, count, isTeacher);
+    }
+
+    // 10. Nhóm TOÁN CAO CẤP / GIẢI TÍCH / ĐẠO HÀM / TÍCH PHÂN / ĐẠI SỐ TUYẾN TÍNH
+    if (
+      q.includes('giải tích') ||
+      q.includes('toán cao cấp') ||
+      q.includes('đạo hàm') ||
+      q.includes('tích phân') ||
+      q.includes('ma trận') ||
+      q.includes('định thức') ||
+      q.includes('cực trị') ||
+      q.includes('khảo sát') ||
+      q.includes('toán')
+    ) {
+      return formatQuestionsToMarkdown('Toán Giải tích & Đại số tuyến tính', CALCULUS_QUESTIONS, count, isTeacher);
+    }
+
+    // Bất kỳ yêu cầu trắc nghiệm nào khác: Universal Engine
     return generateUniversalQuestionsForQuery(userQuery, count, isTeacher);
   }
 
-  // 12. Câu hỏi lý thuyết / bài tập chung (không yêu cầu sinh trắc nghiệm): Trả lời trọng tâm, KHÔNG sáo rỗng
-  return `### Phân tích trọng tâm: ${userQuery}
-
----
-
-#### 1. Nguyên lý & Khái niệm cốt lõi:
-Đối với nội dung **"${userQuery}"**, trọng tâm học thuật cần làm chủ bao gồm:
-- **Định nghĩa cơ sở:** Nắm chắc các quy tắc, định lý và công thức biến đổi chuẩn trước khi thực hành.
-- **Bản chất vận hành:** Hiểu rõ cơ chế vì sao phương pháp này hoạt động và mối liên hệ với các bài toán liên quan.
-
----
-
-#### 2. Phương pháp tiếp cận bài toán:
-1. **Phân tích yêu cầu:** Xác định rõ các giả thiết đầu vào và kết quả đầu ra cần đạt được.
-2. **Lựa chọn mô hình:** Áp dụng công thức chuẩn (hoặc thuật toán tối ưu) phù hợp nhất với điều kiện bài toán.
-3. **Thực thi và đối chiếu:** Tiến hành các bước giải cụ thể và kiểm tra lại tính hợp lý của kết quả cuối cùng.
-
-Bạn có thể yêu cầu: **"Tạo 5 câu hỏi trắc nghiệm về ${userQuery}"** để mình tạo ngay bộ câu hỏi tự luyện có đáp án chi tiết nhé!`;
+  // 7. Giải thích chuyên sâu cho mọi câu hỏi tự do khác (phong cách Gemini)
+  return generateInDepthExplanationResponse(userQuery, cleanTopic, isTeacher);
 }

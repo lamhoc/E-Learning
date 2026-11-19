@@ -14,7 +14,7 @@ export type AiCompletionOptions = {
   preferredModel?: string;
 };
 
-// Danh sách các model theo thứ tự ưu tiên giảm dần
+// Danh sách các model Groq theo thứ tự ưu tiên giảm dần
 const DEFAULT_CANDIDATE_MODELS: string[] = [
   'llama-3.3-70b-versatile',
   'llama-3.1-8b-instant',
@@ -22,6 +22,14 @@ const DEFAULT_CANDIDATE_MODELS: string[] = [
   'qwen/qwen3-32b',
   'gemma2-9b-it',
   'mixtral-8x7b-32768',
+];
+
+// Danh sách các model Google Gemini theo thứ tự ưu tiên giảm dần
+const DEFAULT_GEMINI_CANDIDATE_MODELS: string[] = [
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-1.5-pro',
 ];
 
 /**
@@ -41,6 +49,20 @@ let cachedDiscoveredModels: string[] | null = null;
 let lastDiscoveryTime = 0;
 
 /**
+ * Lấy cấu hình Google Gemini API (key & model)
+ */
+export function getGeminiConfig() {
+  const rawKey =
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    '';
+  const apiKey = rawKey.trim().replace(/^["']|["']$/g, '');
+  const envModel = process.env.GEMINI_MODEL?.trim();
+  return { apiKey, envModel };
+}
+
+/**
  * Lấy cấu hình Groq API (key & base url)
  */
 export function getAiConfig() {
@@ -54,6 +76,116 @@ export function getAiConfig() {
   }
 
   return { apiKey, envModel, baseUrl };
+}
+
+/**
+ * Cổng 1: Google Gemini REST API chính thức (gemini-2.5-flash / gemini-2.0-flash / gemini-1.5-flash)
+ */
+export async function callGoogleGeminiChatCompletion(options: AiCompletionOptions): Promise<{
+  content: string;
+  modelUsed: string;
+}> {
+  const { apiKey, envModel } = getGeminiConfig();
+  if (!apiKey) {
+    throw new Error('Chưa cấu hình GEMINI_API_KEY hoặc GOOGLE_GENERATIVE_AI_API_KEY.');
+  }
+
+  // Tách system message và user/assistant message
+  const systemMessages = options.messages.filter((m) => m.role === 'system');
+  const chatMessages = options.messages.filter((m) => m.role !== 'system');
+  const systemInstructionText = systemMessages.map((m) => m.content).join('\n\n').trim();
+
+  // Chuẩn hóa contents theo cấu trúc Gemini: roles là 'user' hoặc 'model'
+  const contents: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = [];
+
+  for (const m of chatMessages) {
+    const role: 'user' | 'model' = m.role === 'assistant' ? 'model' : 'user';
+    const text = m.content.trim();
+    if (!text) continue;
+
+    const last = contents[contents.length - 1];
+    if (last && last.role === role) {
+      last.parts.push({ text });
+    } else {
+      contents.push({ role, parts: [{ text }] });
+    }
+  }
+
+  if (contents.length === 0) {
+    throw new Error('Không có tin nhắn nào để gửi tới Google Gemini.');
+  }
+
+  // Gemini yêu cầu lượt đầu tiên trong contents phải là user
+  if (contents[0].role !== 'user') {
+    contents.unshift({ role: 'user', parts: [{ text: 'Bắt đầu cuộc trò chuyện.' }] });
+  }
+
+  const candidateModels: string[] = [];
+  if (options.preferredModel && options.preferredModel.toLowerCase().includes('gemini')) {
+    candidateModels.push(options.preferredModel);
+  }
+  if (envModel && !candidateModels.includes(envModel)) {
+    candidateModels.push(envModel);
+  }
+  for (const m of DEFAULT_GEMINI_CANDIDATE_MODELS) {
+    if (!candidateModels.includes(m)) candidateModels.push(m);
+  }
+
+  const payload: Record<string, unknown> = {
+    contents,
+    generationConfig: {
+      temperature: options.temperature ?? 0.35,
+      maxOutputTokens: options.max_tokens ?? 4096,
+      ...(options.response_format?.type === 'json_object' ? { responseMimeType: 'application/json' } : {}),
+    },
+  };
+
+  if (systemInstructionText) {
+    payload.systemInstruction = {
+      parts: [{ text: systemInstructionText }],
+    };
+  }
+
+  let lastError: unknown = null;
+
+  for (const model of candidateModels) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(25000),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        throw new Error(`Gemini API [${model}] HTTP ${res.status}: ${errText.slice(0, 200)}`);
+      }
+
+      const json = (await res.json()) as {
+        candidates?: Array<{
+          content?: {
+            parts?: Array<{ text?: string }>;
+          };
+        }>;
+      };
+
+      const rawText = json?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
+      const cleanText = stripThinkingTags(rawText);
+
+      if (cleanText) {
+        return { content: cleanText, modelUsed: `google/${model}` };
+      }
+    } catch (err) {
+      lastError = err;
+      console.warn(`[AI-Provider] Gemini model "${model}" lỗi:`, err instanceof Error ? err.message : err);
+    }
+  }
+
+  throw lastError || new Error('Tất cả các model Google Gemini đều không phản hồi.');
 }
 
 /**
@@ -145,14 +277,15 @@ async function buildCandidateList(
 }
 
 /**
- * Lớp 2: Cổng AI dự phòng trực tuyến miễn phí (Free AI Gateway)
+ * Cổng 3: Cổng AI dự phòng trực tuyến miễn phí (Free AI Gateway)
  * Sử dụng endpoint tương thích chuẩn OpenAI Chat Completions không yêu cầu API key.
- * Đảm bảo hệ thống luôn phản hồi AI thật 100% theo thời gian thực kể cả khi chưa cấu hình GROQ_API_KEY.
+ * Đảm bảo hệ thống luôn phản hồi AI thật 100% theo thời gian thực kể cả khi chưa cấu hình API key.
  */
 export async function callFreeAiChatCompletion(options: AiCompletionOptions): Promise<{
   content: string;
   modelUsed: string;
 }> {
+  // 1. Thử endpoint OpenAI-compatible POST của Pollinations
   const endpoint = 'https://text.pollinations.ai/openai/chat/completions';
 
   const payload = {
@@ -161,59 +294,99 @@ export async function callFreeAiChatCompletion(options: AiCompletionOptions): Pr
       role: m.role,
       content: m.content,
     })),
-    temperature: options.temperature ?? 0.3,
+    temperature: options.temperature ?? 0.35,
     ...(options.response_format ? { response_format: options.response_format } : {}),
   };
 
-  const res = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(25000), // 25s timeout cho mạng chậm
-  });
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(25000), // 25s timeout cho mạng chậm
+    });
 
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => '');
-    throw new Error(`Free AI Gateway phản hồi lỗi HTTP ${res.status}: ${errorText.slice(0, 150)}`);
+    if (res.ok) {
+      const json = (await res.json()) as {
+        choices?: Array<{ message?: { content?: string } }>;
+      };
+
+      const rawText = json?.choices?.[0]?.message?.content?.trim() ?? '';
+      const cleanText = stripThinkingTags(rawText);
+
+      if (cleanText) {
+        return { content: cleanText, modelUsed: 'pollinations-free-openai' };
+      }
+    } else {
+      console.warn(`[AI-Provider] Free AI POST trả về HTTP ${res.status}, chuyển sang thử GET fallback.`);
+    }
+  } catch (postErr) {
+    console.warn('[AI-Provider] Free AI POST thất bại, chuyển sang thử GET fallback:', postErr);
   }
 
-  const json = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
+  // 2. Thử Fallback GET endpoint trực tiếp của Pollinations
+  try {
+    const latestUserMsg = [...options.messages].reverse().find((m) => m.role === 'user')?.content || '';
+    const sysMsg = options.messages.find((m) => m.role === 'system')?.content || '';
+    if (latestUserMsg) {
+      const encodedPrompt = encodeURIComponent(latestUserMsg);
+      const encodedSystem = sysMsg ? `&system=${encodeURIComponent(sysMsg.slice(0, 1000))}` : '';
+      const getUrl = `https://text.pollinations.ai/${encodedPrompt}?model=openai${encodedSystem}`;
 
-  const rawText = json?.choices?.[0]?.message?.content?.trim() ?? '';
-  const cleanText = stripThinkingTags(rawText);
+      const resGet = await fetch(getUrl, {
+        method: 'GET',
+        signal: AbortSignal.timeout(20000),
+      });
 
-  if (!cleanText) {
-    throw new Error('Free AI Gateway trả về phản hồi rỗng.');
+      if (resGet.ok) {
+        const rawText = (await resGet.text()).trim();
+        const cleanText = stripThinkingTags(rawText);
+        if (cleanText && !cleanText.startsWith('<!DOCTYPE') && !cleanText.startsWith('<html')) {
+          return { content: cleanText, modelUsed: 'pollinations-free-get' };
+        }
+      }
+    }
+  } catch (getErr) {
+    console.warn('[AI-Provider] Free AI GET fallback thất bại:', getErr);
   }
 
-  return { content: cleanText, modelUsed: 'pollinations-free-openai' };
+  throw new Error('Cổng Free AI Gateway trực tuyến không phản hồi.');
 }
 
 /**
- * Gọi chat completion với cơ chế Đa Tầng Dự Phòng (3 Lớp):
- * - Lớp 1: Groq API với Dynamic Discovery & Candidate Cascade
- * - Lớp 2: Cổng AI Trực Tuyến Miễn Phí (Không cần key)
- * - Lớp 3: Caller tự động chuyển sang Offline Smart Academic Fallback
+ * Gọi chat completion với cơ chế Đa Cổng Chuẩn Gemini (Multi-Provider Cascade):
+ * - Cổng 1: Google Gemini REST API chính thức (gemini-2.5-flash / gemini-2.0-flash / gemini-1.5-flash)
+ * - Cổng 2: Groq Cloud LLM với Dynamic Discovery & Candidate Cascade (Llama 3.3, Scout 17B, Qwen 3...)
+ * - Cổng 3: Cổng AI Trực Tuyến Miễn Phí (Pollinations POST/GET)
+ * - Cổng 4: Offline Smart Academic Fallback (Caller tự động kích hoạt khi mất mạng)
  */
 export async function callAiChatCompletion(options: AiCompletionOptions): Promise<{
   content: string;
   modelUsed: string;
 }> {
-  const { apiKey, envModel, baseUrl } = getAiConfig();
-
   // =========================================================================
-  // LỚP 1: Thử gọi Groq API nếu có API Key
+  // CỔNG 1: Google Gemini REST API chính thức (Nếu có cấu hình key)
   // =========================================================================
-  if (apiKey) {
+  const { apiKey: geminiKey } = getGeminiConfig();
+  if (geminiKey) {
     try {
-      const groq = new Groq({ apiKey, baseURL: baseUrl });
-      let candidateList = await buildCandidateList(apiKey, baseUrl, options.preferredModel, envModel);
+      const geminiResult = await callGoogleGeminiChatCompletion(options);
+      return geminiResult;
+    } catch (geminiErr) {
+      console.warn('[AI-Provider] Cổng 1 Google Gemini gặp sự cố, tự động chuyển sang Cổng 2 Groq:', geminiErr);
+    }
+  }
 
-      let lastError: unknown = null;
+  // =========================================================================
+  // CỔNG 2: Groq Cloud LLM (Nếu có API Key)
+  // =========================================================================
+  const { apiKey: groqKey, envModel: groqModel, baseUrl: groqBaseUrl } = getAiConfig();
+  if (groqKey) {
+    try {
+      const groq = new Groq({ apiKey: groqKey, baseURL: groqBaseUrl });
+      let candidateList = await buildCandidateList(groqKey, groqBaseUrl, options.preferredModel, groqModel);
       let hasTriedDiscovery = false;
 
       for (let i = 0; i < candidateList.length; i++) {
@@ -234,9 +407,8 @@ export async function callAiChatCompletion(options: AiCompletionOptions): Promis
             return { content: text, modelUsed: currentModel };
           }
         } catch (err: unknown) {
-          lastError = err;
           const errMsg = err instanceof Error ? err.message : String(err);
-          console.warn(`[AI-Provider] Model "${currentModel}" thất bại: ${errMsg}`);
+          console.warn(`[AI-Provider] Model Groq "${currentModel}" thất bại: ${errMsg}`);
 
           const isModelNotFound =
             errMsg.includes('model_not_found') ||
@@ -248,34 +420,34 @@ export async function callAiChatCompletion(options: AiCompletionOptions): Promis
           if (isModelNotFound && !hasTriedDiscovery) {
             hasTriedDiscovery = true;
             try {
-              const discovered = await discoverAvailableModels(apiKey, baseUrl);
+              const discovered = await discoverAvailableModels(groqKey, groqBaseUrl);
               for (const dm of discovered) {
                 if (!candidateList.includes(dm)) {
                   candidateList.push(dm);
                 }
               }
             } catch (discErr) {
-              console.warn('[AI-Provider] Không thể khám phá thêm model:', discErr);
+              console.warn('[AI-Provider] Không thể khám phá thêm model Groq:', discErr);
             }
           }
         }
       }
     } catch (groqErr) {
-      console.warn('[AI-Provider] Groq API gặp sự cố, tự động chuyển sang Lớp 2 Free AI Gateway:', groqErr);
+      console.warn('[AI-Provider] Groq API gặp sự cố, tự động chuyển sang Cổng 3 Free AI Gateway:', groqErr);
     }
   }
 
   // =========================================================================
-  // LỚP 2: Cổng AI Trực Tuyến Miễn Phí (Không cần key)
+  // CỔNG 3: Cổng AI Trực Tuyến Miễn Phí (Không cần key)
   // =========================================================================
   try {
     const freeAi = await callFreeAiChatCompletion(options);
     return freeAi;
   } catch (freeAiErr) {
-    console.warn('[AI-Provider] Lớp 2 Free AI Gateway không phản hồi (có thể do mất kết nối mạng):', freeAiErr);
+    console.warn('[AI-Provider] Cổng 3 Free AI Gateway không phản hồi (có thể do mất kết nối mạng):', freeAiErr);
   }
 
-  throw new Error('Tất cả các cổng AI trực tuyến (Groq và Free Gateway) đều không phản hồi.');
+  throw new Error('Tất cả các cổng AI trực tuyến (Gemini, Groq và Free Gateway) đều không phản hồi.');
 }
 
 /**
@@ -284,14 +456,13 @@ export async function callAiChatCompletion(options: AiCompletionOptions): Promis
 export async function callAiChatStream(
   options: AiCompletionOptions
 ): Promise<{ stream: AsyncIterable<Groq.Chat.Completions.ChatCompletionChunk>; modelUsed: string }> {
-  const { apiKey, envModel, baseUrl } = getAiConfig();
+  const { apiKey: groqKey, envModel: groqModel, baseUrl: groqBaseUrl } = getAiConfig();
 
-  if (apiKey) {
+  // 1. Thử stream trực tiếp qua Groq nếu có Groq key
+  if (groqKey) {
     try {
-      const groq = new Groq({ apiKey, baseURL: baseUrl });
-      let candidateList = await buildCandidateList(apiKey, baseUrl, options.preferredModel, envModel);
-
-      let lastError: unknown = null;
+      const groq = new Groq({ apiKey: groqKey, baseURL: groqBaseUrl });
+      let candidateList = await buildCandidateList(groqKey, groqBaseUrl, options.preferredModel, groqModel);
       let hasTriedDiscovery = false;
 
       for (let i = 0; i < candidateList.length; i++) {
@@ -308,9 +479,8 @@ export async function callAiChatStream(
           cachedWorkingModel = currentModel;
           return { stream, modelUsed: currentModel };
         } catch (err: unknown) {
-          lastError = err;
           const errMsg = err instanceof Error ? err.message : String(err);
-          console.warn(`[AI-Provider Stream] Model "${currentModel}" thất bại: ${errMsg}`);
+          console.warn(`[AI-Provider Stream] Model Groq "${currentModel}" thất bại: ${errMsg}`);
 
           const isModelNotFound =
             errMsg.includes('model_not_found') ||
@@ -321,7 +491,7 @@ export async function callAiChatStream(
           if (isModelNotFound && !hasTriedDiscovery) {
             hasTriedDiscovery = true;
             try {
-              const discovered = await discoverAvailableModels(apiKey, baseUrl);
+              const discovered = await discoverAvailableModels(groqKey, groqBaseUrl);
               for (const dm of discovered) {
                 if (!candidateList.includes(dm)) {
                   candidateList.push(dm);
@@ -334,12 +504,12 @@ export async function callAiChatStream(
         }
       }
     } catch (groqStreamErr) {
-      console.warn('[AI-Provider Stream] Groq stream thất bại, chuyển sang fallback chunked:', groqStreamErr);
+      console.warn('[AI-Provider Stream] Groq stream thất bại, chuyển sang fallback:', groqStreamErr);
     }
   }
 
-  // Fallback streaming giả lập qua Free AI hoàn chỉnh
-  const { content } = await callFreeAiChatCompletion(options);
+  // 2. Fallback streaming qua Gemini hoặc Free AI Gateway
+  const { content, modelUsed } = await callAiChatCompletion(options);
   async function* mockChunkStream() {
     // Tách thành từng từ hoặc dòng để stream tự nhiên
     const parts = content.split(' ');
@@ -358,5 +528,5 @@ export async function callAiChatStream(
     }
   }
 
-  return { stream: mockChunkStream(), modelUsed: 'pollinations-free-stream' };
+  return { stream: mockChunkStream(), modelUsed: `${modelUsed}-stream` };
 }
