@@ -1,9 +1,0 @@
-feat(navigation): introduce persistent layout shell with collapsible sidebar and mobile drawer across all portals
-
-- Create TeacherShell and StudentShell with desktop collapsible sidebar (w-64 to w-20 with tooltips)
-- Add sticky mobile topbar with hamburger menu and LHU logo linking directly to home/overview
-- Move navigation shell to module-level layout (app/teacher/layout.tsx and app/student/layout.tsx)
-- Clean up redundant sidebars, triggers, and duplicated theme toggles across 25 child pages
-- Fix missing mobile menu and home link on /teacher/classes and all sub-routes
-- Ensure 100% responsive layout, table horizontal scrolling, and dark mode contrast
-- Verified with npx tsc --noEmit and npm run build passing with 0 errors (36/36 routes)
