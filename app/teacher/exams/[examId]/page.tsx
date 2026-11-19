@@ -8,7 +8,6 @@ import {
   Users,
 } from 'lucide-react';
 import { getTeacherExamAnalytics } from '@/lib/teacher-exam-analytics';
-import { TeacherSidebar, TeacherSidebarTrigger } from '@/components/teacher/teacher-sidebar';
 import { ExamAnalyticsClient } from '@/components/teacher/exam-analytics-client';
 import { ExamDraftActions } from '@/components/teacher/exam-draft-actions';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -73,12 +72,11 @@ export default async function TeacherExamAnalyticsPage({
   }).format(new Date());
 
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
-      <TeacherSidebar activeRoute="exams" teacherName={data.teacherName} />
+    <div className="min-w-0">
 
       <div className="min-w-0">
         {/* Sticky Top Header */}
-        <header className="sticky top-0 z-20 border-b border-border bg-card/90 dark:bg-[#0B1628]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
+        <header className="hidden lg:block sticky top-0 z-20 border-b border-border bg-card/90 dark:bg-[#0B1628]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <Link
@@ -158,6 +156,6 @@ export default async function TeacherExamAnalyticsPage({
           <ExamAnalyticsClient data={data} />
         </div>
       </div>
-    </main>
+    </div>
   );
 }

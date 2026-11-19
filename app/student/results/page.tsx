@@ -1,7 +1,6 @@
 import { Trophy } from 'lucide-react';
 import { requireRole } from '@/lib/auth-cache';
 import { sanitizeVietnameseText } from '@/lib/utils';
-import { StudentSidebar, StudentSidebarTrigger } from '@/components/student/student-sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
 import {
   StudentResultsClient,
@@ -144,7 +143,6 @@ export default async function StudentResultsPage() {
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-[#070D18]">
-      <StudentSidebar studentName={studentName} activeRoute="results" />
 
       <main className="flex-1 p-6 md:p-8 lg:p-10">
         {/* Header */}

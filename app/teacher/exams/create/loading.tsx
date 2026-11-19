@@ -2,15 +2,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function TeacherExamCreateLoading() {
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
-      <aside className="hidden border-r border-[#e1e8e2] bg-[#17372e] p-5 lg:block">
-        <Skeleton className="mb-10 h-9 w-36 bg-white/10" />
-        <div className="space-y-3">
-          {Array.from({ length: 5 }, (_, index) => (
-            <Skeleton key={index} className="h-10 w-full bg-white/10 rounded-lg" />
-          ))}
-        </div>
-      </aside>
+    <div className="min-w-0">
+      
       <div className="min-w-0">
         <header className="border-b border-[#e2e8e2] bg-white/95 px-5 py-3 sm:px-8 lg:px-10">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between">
@@ -40,7 +33,7 @@ export default function TeacherExamCreateLoading() {
           </div>
         </section>
       </div>
-    </main>
+    </div>
   );
 }
 

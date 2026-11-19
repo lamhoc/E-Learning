@@ -1,6 +1,5 @@
 import { Sparkles, Wand2 } from 'lucide-react';
 import { getTeacherQuestionsData } from '@/lib/question-bank';
-import { TeacherSidebar, TeacherSidebarTrigger } from '@/components/teacher/teacher-sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { AIGeneratorStandalone } from '@/components/teacher/ai-generator-standalone';
 
@@ -14,7 +13,6 @@ export default async function TeacherAIGeneratorPage() {
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-[#070D18]">
-      <TeacherSidebar activeRoute="ai-generator" teacherName={data.teacherName} />
 
       <main className="flex-1 p-6 md:p-8 lg:p-10">
         {/* Header */}

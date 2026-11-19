@@ -3,7 +3,6 @@ import { BrandLogo } from '@/components/ui/brand-logo';
 import { Metadata } from 'next';
 import { CheckCircle2, FileCheck, GraduationCap, PenTool } from 'lucide-react';
 import { getTeacherGradingQueue } from '@/lib/teacher-grading';
-import { TeacherSidebar, TeacherSidebarTrigger } from '@/components/teacher/teacher-sidebar';
 import { GradingQueueClient } from '@/components/teacher/grading-queue-client';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { Badge } from '@/components/ui/badge';
@@ -30,18 +29,13 @@ export default async function TeacherGradingQueuePage() {
   }).format(new Date());
 
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
-      <TeacherSidebar activeRoute="grading" teacherName={data.teacherName} />
+    <div className="min-w-0">
 
       <div className="min-w-0">
         {/* Sticky Topbar */}
-        <header className="sticky top-0 z-20 border-b border-border bg-card/90 dark:bg-[#0B1628]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
+        <header className="hidden lg:block sticky top-0 z-20 border-b border-border bg-card/90 dark:bg-[#0B1628]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 lg:hidden">
-                <TeacherSidebarTrigger />
-                <BrandLogo size="sm" />
-              </div>
               <p className="hidden text-xs font-medium capitalize text-slate-500 dark:text-slate-400 sm:block">
                 {today}
               </p>
@@ -90,7 +84,7 @@ export default async function TeacherGradingQueuePage() {
           <GradingQueueClient data={data} />
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 

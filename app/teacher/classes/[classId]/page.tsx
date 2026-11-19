@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { createClient } from '@/lib/supabase/server';
-import { TeacherSidebar, TeacherSidebarTrigger } from '@/components/teacher/teacher-sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { RosterManager, type ClassRosterStudent } from '../roster-manager';
 
@@ -68,16 +67,14 @@ export default async function ClassRosterPage({ params }: ClassRosterPageProps) 
   }));
 
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
-      <TeacherSidebar activeRoute="classes" teacherName={teacherName} />
+    <div className="min-w-0">
 
       <div className="min-w-0">
         {/* Sticky Top Header */}
-        <header className="sticky top-0 z-20 border-b border-border bg-card/90 dark:bg-[#0B1628]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
+        <header className="hidden lg:block sticky top-0 z-20 border-b border-border bg-card/90 dark:bg-[#0B1628]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
             {/* Logo mobile */}
             <div className="flex items-center gap-2 lg:hidden">
-              <TeacherSidebarTrigger />
               <span className="grid size-9 place-items-center rounded-lg bg-[#17372e] text-[#c9ed99]">
                 <GraduationCap aria-hidden="true" className="size-5" />
               </span>
@@ -153,6 +150,6 @@ export default async function ClassRosterPage({ params }: ClassRosterPageProps) 
           </Card>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

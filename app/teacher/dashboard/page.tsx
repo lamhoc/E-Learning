@@ -45,7 +45,6 @@ import {
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getTeacherDashboardData, type TeacherExam } from '@/lib/teacher-dashboard';
-import { TeacherSidebar, TeacherSidebarTrigger } from '@/components/teacher/teacher-sidebar';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { ClassForm } from './class-form';
 
@@ -638,17 +637,12 @@ export default async function TeacherDashboardPage() {
   const shortName = fullName.split(/\s+/).at(-1) ?? fullName;
 
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
-      <TeacherSidebar activeRoute="dashboard" teacherName={fullName || 'Giảng viên'} />
+    <div className="min-w-0">
 
       <div className="min-w-0">
         {/* ── Topbar (Static Shell 0ms) ── */}
-        <header className="sticky top-0 z-20 border-b border-border bg-card/90 dark:bg-[#0B1628]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
+        <header className="hidden lg:block sticky top-0 z-20 border-b border-border bg-card/90 dark:bg-[#0B1628]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
-            <div className="flex items-center gap-2 lg:hidden">
-                <TeacherSidebarTrigger />
-                <BrandLogo size="sm" />
-              </div>
 
             <p className="hidden text-xs font-medium capitalize text-slate-500 sm:block">
               {today}
@@ -790,6 +784,6 @@ export default async function TeacherDashboardPage() {
           </footer>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

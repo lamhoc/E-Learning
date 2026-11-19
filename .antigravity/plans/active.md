@@ -478,3 +478,29 @@
     + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 routes).
     + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
     + Ghi mã commit hash vào `.antigravity/plans/active.md`.
+
+- [x] **Phase 62**: Rà soát toàn bộ giao diện & chức năng Web — Sửa triệt để lỗi mất Menu/Trang chủ khi thu nhỏ và bổ sung Sidebar kéo ra / thu gọn cho cả 3 phân hệ:
+  - [x] **Mục tiêu 1 (Thiết kế Client Shell Component: `TeacherShell` & `StudentShell`)**:
+    + Tạo `components/teacher/teacher-shell.tsx`:
+      * Desktop (`lg:` trở lên): Hỗ trợ Sidebar kéo ra (`w-64`) / thu gọn (`w-20` chỉ icon kèm tooltip), nút toggle `PanelLeftClose`/`PanelLeftOpen`, lưu trạng thái vào `localStorage`.
+      * Mobile (`< 1024px`): Luôn hiển thị Sticky Topbar (`h-14`) cố định trên đỉnh mọi trang, có nút Hamburger (`☰`) mở Drawer trượt ngang và Logo LHU liên kết về `/teacher/dashboard` (tuyệt đối không mất lối về Trang chủ).
+      * Mobile Drawer: Trượt mượt từ cạnh trái (`w-72`), đầy đủ 10 route, tự động đóng khi chọn trang hoặc bấm nền mờ, nút Đăng xuất ghim cố định ở đáy.
+    + Tạo `components/student/student-shell.tsx`:
+      * Tương tự với đầy đủ 7 route Sinh viên, Sticky Topbar Mobile có nút `☰` và Logo LHU về `/student/dashboard`.
+  - [x] **Mục tiêu 2 (Đưa Shell Điều Hướng lên Layout cấp phân hệ & Dọn dẹp 25 trang con)**:
+    + Bọc `TeacherShell` tại `app/teacher/layout.tsx` và `StudentShell` tại `app/student/layout.tsx`.
+    + Rà soát và gỡ bỏ việc render lặp `<TeacherSidebar ... />`, `<StudentSidebar ... />`, topbar mobile trùng lặp, và nút `ThemeToggle` thừa trong 17 trang Giảng viên và 8 trang Sinh viên.
+    + Đảm bảo 100% các trang (kể cả `/teacher/classes`, `/teacher/subjects`, các trang `[id]`) đều tự động kế thừa Shell điều hướng chuẩn, không trang nào bị kẹt hay mất menu.
+  - [x] **Mục tiêu 3 (Đồng bộ thanh điều hướng Admin `/admin/**`)**:
+    + Logo LHU Admin luôn là Link về `/admin`.
+    + Đảm bảo ở màn hình nhỏ `360px`, Header Admin không bị tràn chữ, Drawer mobile hiển thị mượt mà.
+  - [x] **Mục tiêu 4 (Tổng rà soát toàn bộ Web & Sửa lỗi chính tả UI / Responsive)**:
+    + Kiểm tra mọi bảng dữ liệu `<table>` nằm trong `overflow-x-auto`.
+    + Chuẩn hóa tiêu đề trang + cụm nút hành động co giãn tự động `flex flex-col sm:flex-row`.
+    + Sửa lỗi chính tả trong mô tả trang Quản lý Lớp học (`/teacher/classes`): *"quản lý tài liệu, bài tập và sinh viên"*.
+    + Kiểm tra độ tương phản chữ ở cả Light Mode và Dark Mode.
+  - [x] **Mục tiêu 5 (Kiểm thử, nghiệm thu & commit an toàn)**:
+    + Kiểm tra responsive ở các độ phân giải `360px`, `768px`, `1024px`, `1440px`.
+    + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 routes).
+    + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
+    + Ghi mã commit hash vào `.antigravity/plans/active.md`.

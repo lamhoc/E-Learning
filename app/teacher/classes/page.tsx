@@ -12,8 +12,6 @@ import {
 import { requireRole } from '@/lib/auth-cache';
 import { getTeacherDashboardData } from '@/lib/teacher-dashboard';
 import { sanitizeVietnameseText } from '@/lib/utils';
-import { TeacherSidebar, TeacherSidebarTrigger } from '@/components/teacher/teacher-sidebar';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,37 +48,33 @@ export default async function TeacherClassesPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-[#070D18]">
-      <TeacherSidebar activeRoute="classes" teacherName={data.teacherName} />
-
-      <main className="flex-1 p-6 md:p-8 lg:p-10">
-        {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 dark:border-slate-800 pb-6">
-          <div className="flex items-center gap-3">
-            <div className="grid size-12 place-items-center rounded-2xl bg-blue-600/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400">
-              <GraduationCap className="size-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-                Quản lý Lớp học
-              </h1>
-              <p className="text-sm text-slate-600 dark:text-slate-300">
-                Danh sách lớp học phụ trách, phân quyền tài liệu, bài tập và sinh viên
-              </p>
-            </div>
+    <main className="p-6 md:p-8 lg:p-10">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 dark:border-slate-800 pb-6">
+        <div className="flex items-center gap-3">
+          <div className="grid size-12 place-items-center rounded-2xl bg-blue-600/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400">
+            <GraduationCap className="size-6" />
           </div>
-
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <a
-              href="#create-class-section"
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition"
-            >
-              <PlusCircle className="size-4" />
-              Tạo lớp mới
-            </a>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Quản lý Lớp học
+            </h1>
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              Danh sách lớp học phụ trách, quản lý tài liệu, bài tập và sinh viên
+            </p>
           </div>
         </div>
+
+        <div className="flex items-center gap-3">
+          <a
+            href="#create-class-section"
+            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition"
+          >
+            <PlusCircle className="size-4" />
+            Tạo lớp mới
+          </a>
+        </div>
+      </div>
 
         {/* Metrics Overview */}
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
@@ -257,6 +251,5 @@ export default async function TeacherClassesPage() {
           </Card>
         </div>
       </main>
-    </div>
-  );
+    );
 }

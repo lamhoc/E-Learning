@@ -2,34 +2,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function TeacherSubjectsLoading() {
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
+    <div className="min-w-0">
       {/* Sidebar skeleton placeholder */}
-      <aside className="hidden min-h-screen flex-col border-r border-[#d9e3dc] bg-[#17372e] px-4 py-6 text-white lg:sticky lg:top-0 lg:flex lg:h-screen">
-        <div className="flex items-center gap-3 px-2">
-          <Skeleton className="size-10 rounded-xl bg-white/20" />
-          <div className="space-y-1.5">
-            <Skeleton className="h-4 w-20 bg-white/20" />
-            <Skeleton className="h-3 w-28 bg-white/10" />
-          </div>
-        </div>
-        <div className="mt-10 px-3">
-          <Skeleton className="h-3 w-24 bg-white/10" />
-        </div>
-        <div className="mt-4 space-y-2">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-10 w-full rounded-lg bg-white/10" />
-          ))}
-        </div>
-        <div className="mt-auto rounded-xl border border-white/10 bg-white/5 p-4">
-          <div className="flex items-center gap-3">
-            <Skeleton className="size-9 rounded-full bg-white/20" />
-            <div className="space-y-1">
-              <Skeleton className="h-3.5 w-24 bg-white/20" />
-              <Skeleton className="h-2.5 w-16 bg-white/10" />
-            </div>
-          </div>
-        </div>
-      </aside>
+      
 
       <div className="min-w-0">
         {/* Topbar skeleton */}
@@ -99,7 +74,7 @@ export default function TeacherSubjectsLoading() {
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 

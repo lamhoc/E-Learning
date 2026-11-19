@@ -16,7 +16,6 @@ import {
   Sparkles,
   Trophy,
 } from 'lucide-react';
-import { StudentSidebar, StudentSidebarTrigger } from '@/components/student/student-sidebar';
 import { getCurrentProfile } from '@/lib/auth-cache';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { Badge } from '@/components/ui/badge';
@@ -538,17 +537,12 @@ export default async function StudentDashboardPage() {
   }).format(new Date());
 
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
-      <StudentSidebar studentName={fullName || 'Sinh viên'} activeRoute="dashboard" />
+    <div className="min-w-0">
 
       <div className="min-w-0">
         {/* Topbar: Static Shell 0ms */}
-        <header className="sticky top-0 z-20 border-b border-border bg-card/90 dark:bg-[#0B1628]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
+        <header className="hidden lg:block sticky top-0 z-20 border-b border-border bg-card/90 dark:bg-[#0B1628]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
-            <div className="flex items-center gap-2 lg:hidden">
-                <StudentSidebarTrigger />
-                <BrandLogo size="sm" />
-              </div>
             <p className="hidden text-xs font-medium capitalize text-slate-500 sm:block">{today}</p>
             <div className="ml-auto flex items-center gap-3">
               <NotificationBell userId={user.id} />
@@ -610,6 +604,6 @@ export default async function StudentDashboardPage() {
           </footer>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

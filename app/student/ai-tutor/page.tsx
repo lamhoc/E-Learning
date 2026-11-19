@@ -13,7 +13,6 @@ import {
   Sparkles,
   User,
 } from 'lucide-react';
-import { StudentSidebar, StudentSidebarTrigger } from '@/components/student/student-sidebar';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { MathText } from '@/components/ui/math-text';
 import { ChatMessageContent } from '@/components/chat/chat-message-content';
@@ -162,20 +161,15 @@ export default function StudentAiTutorPage() {
   const isFirstMessage = messages.length === 1;
 
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
+    <div className="min-w-0">
       {/* 1. Sidebar bên trái đồng bộ khu vực Sinh viên */}
-      <StudentSidebar studentName={studentName} activeRoute="ai-tutor" />
 
       {/* 2. Vùng nội dung bên phải Flexbox tràn 100% viewport */}
-      <div className="flex h-[100dvh] flex-col overflow-hidden min-w-0">
+      <div className="flex h-[calc(100dvh-56px)] lg:h-screen flex-col overflow-hidden min-w-0">
         {/* Topbar đồng bộ khu vực Sinh viên */}
         <header className="sticky top-0 z-20 border-b border-border bg-card/90 dark:bg-[#0B1628]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10 shrink-0">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 lg:hidden">
-                <StudentSidebarTrigger />
-                <BrandLogo size="sm" />
-              </div>
               <div className="flex items-center gap-2">
                 <span className="grid size-8 place-items-center rounded-lg bg-emerald-100 text-emerald-800">
                   <Sparkles className="size-4" />
@@ -352,7 +346,7 @@ export default function StudentAiTutorPage() {
           </footer>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 

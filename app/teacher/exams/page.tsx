@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { FileCheck, PlusCircle } from 'lucide-react';
 import { requireRole } from '@/lib/auth-cache';
 import { sanitizeVietnameseText } from '@/lib/utils';
-import { TeacherSidebar, TeacherSidebarTrigger } from '@/components/teacher/teacher-sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { TeacherExamsClient, type ExamItem } from '@/components/teacher/teacher-exams-client';
 import { isCameraRequired, isAutoGradeEssay } from '@/lib/exam-auto-grade';
@@ -127,7 +126,6 @@ export default async function TeacherExamsPage() {
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-[#070D18]">
-      <TeacherSidebar activeRoute="exams" teacherName={teacherName} />
 
       <main className="flex-1 p-6 md:p-8 lg:p-10">
         {/* Header */}

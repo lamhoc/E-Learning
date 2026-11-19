@@ -2,15 +2,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function TeacherDashboardLoading() {
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
-      <aside className="hidden border-r border-[#e1e8e2] bg-white p-5 lg:block">
-        <Skeleton className="mb-10 h-9 w-36" />
-        <div className="space-y-3">
-          {Array.from({ length: 4 }, (_, index) => (
-            <Skeleton key={index} className="h-10 w-full" />
-          ))}
-        </div>
-      </aside>
+    <div className="min-w-0">
+      
       <section className="mx-auto w-full max-w-[1440px] space-y-7 px-5 py-7 sm:px-8 lg:px-10">
         <div className="flex items-center justify-between">
           <div className="space-y-2">
@@ -30,6 +23,6 @@ export default function TeacherDashboardLoading() {
         </div>
         <Skeleton className="h-80 rounded-xl" />
       </section>
-    </main>
+    </div>
   );
 }

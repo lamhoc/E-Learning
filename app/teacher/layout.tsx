@@ -1,10 +1,17 @@
 import { ReactNode } from 'react';
+import { requireRole } from '@/lib/auth-cache';
+import { TeacherShell } from '@/components/teacher/teacher-shell';
 
-export default function TeacherLayout({ children }: { children: ReactNode }) {
+export default async function TeacherLayout({ children }: { children: ReactNode }) {
+  const { user } = await requireRole('teacher');
+  const teacherName =
+    user?.user_metadata?.full_name ||
+    user?.email?.split('@')[0] ||
+    'Giảng viên';
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors">
+    <TeacherShell teacherName={teacherName}>
       {children}
-    </div>
+    </TeacherShell>
   );
 }
-
