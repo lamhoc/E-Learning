@@ -479,7 +479,7 @@
     + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
     + Ghi mã commit hash vào `.antigravity/plans/active.md`.
 
-- [x] **Phase 62**: Rà soát toàn bộ giao diện & chức năng Web — Sửa triệt để lỗi mất Menu/Trang chủ khi thu nhỏ và bổ sung Sidebar kéo ra / thu gọn cho cả 3 phân hệ:
+- [x] **Phase 62 (Commit `6d64322`)**: Rà soát toàn bộ giao diện & chức năng Web — Sửa triệt để lỗi mất Menu/Trang chủ khi thu nhỏ và bổ sung Sidebar kéo ra / thu gọn cho cả 3 phân hệ:
   - [x] **Mục tiêu 1 (Thiết kế Client Shell Component: `TeacherShell` & `StudentShell`)**:
     + Tạo `components/teacher/teacher-shell.tsx`:
       * Desktop (`lg:` trở lên): Hỗ trợ Sidebar kéo ra (`w-64`) / thu gọn (`w-20` chỉ icon kèm tooltip), nút toggle `PanelLeftClose`/`PanelLeftOpen`, lưu trạng thái vào `localStorage`.
