@@ -16,7 +16,7 @@ import {
   Sparkles,
   Trophy,
 } from 'lucide-react';
-import { StudentSidebar } from '@/components/student/student-sidebar';
+import { StudentSidebar, StudentSidebarTrigger } from '@/components/student/student-sidebar';
 import { getCurrentProfile } from '@/lib/auth-cache';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { Badge } from '@/components/ui/badge';
@@ -254,7 +254,7 @@ async function StudentDashboardDataContent() {
         <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
           Khu vực học tập
         </p>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <Link
             href="/student/classes"
             className="group flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-5 transition-all duration-200 hover:-translate-y-1 hover:border-[#154C99]/50 hover:shadow-md"
@@ -545,9 +545,10 @@ export default async function StudentDashboardPage() {
         {/* Topbar: Static Shell 0ms */}
         <header className="sticky top-0 z-20 border-b border-border bg-card/90 dark:bg-[#0B1628]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
-            <div className="lg:hidden">
-              <BrandLogo size="sm" />
-            </div>
+            <div className="flex items-center gap-2 lg:hidden">
+                <StudentSidebarTrigger />
+                <BrandLogo size="sm" />
+              </div>
             <p className="hidden text-xs font-medium capitalize text-slate-500 sm:block">{today}</p>
             <div className="ml-auto flex items-center gap-3">
               <NotificationBell userId={user.id} />

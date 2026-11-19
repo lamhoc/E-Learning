@@ -1,6 +1,6 @@
 import { Sparkles, Wand2 } from 'lucide-react';
 import { getTeacherQuestionsData } from '@/lib/question-bank';
-import { TeacherSidebar } from '@/components/teacher/teacher-sidebar';
+import { TeacherSidebar, TeacherSidebarTrigger } from '@/components/teacher/teacher-sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { AIGeneratorStandalone } from '@/components/teacher/ai-generator-standalone';
 

@@ -108,7 +108,7 @@ export function DialogContent({
         role="dialog"
         aria-modal="true"
         className={cn(
-          'relative z-50 w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] text-slate-900 dark:text-white p-6 shadow-2xl transition-all animate-in zoom-in-95',
+          'relative z-50 w-[95vw] max-w-lg max-h-[90dvh] overflow-y-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] text-slate-900 dark:text-white p-6 shadow-2xl transition-all animate-in zoom-in-95',
           className
         )}
         {...props}

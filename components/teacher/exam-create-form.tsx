@@ -359,7 +359,7 @@ export function ExamCreateForm({
       )}
 
       {/* Main Grid: Left Settings (40%) + Right Questions Selection (60%) */}
-      <div className="grid gap-6 xl:grid-cols-[400px_minmax(0,1fr)]">
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-[380px_minmax(0,1fr)] xl:grid-cols-[420px_minmax(0,1fr)]">
         {/* LEFT COLUMN: GENERAL SETTINGS */}
         <div className="space-y-6">
           <Card className="shadow-xs dark:bg-[#111C2D] dark:border-slate-800">

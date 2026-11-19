@@ -22,6 +22,8 @@ import {
   ShieldCheck,
   Shuffle,
   Sparkles,
+  Grid,
+  X,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -95,6 +97,7 @@ export function ExamTakingClient({
 
   // Submit Modal & Status
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
+  const [isMobilePaletteOpen, setIsMobilePaletteOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -558,6 +561,17 @@ export function ExamTakingClient({
               <span>{formatTimer(timeLeftMs)}</span>
             </div>
 
+            {/* Mobile Palette Button */}
+            <button
+              type="button"
+              onClick={() => setIsMobilePaletteOpen(true)}
+              className="lg:hidden flex items-center gap-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 px-2 py-1.5 text-xs font-semibold border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+              title="Mục lục câu hỏi"
+            >
+              <Grid className="size-3.5" />
+              <span className="text-[11px]">{answeredCount}/{shuffledQuestions.length}</span>
+            </button>
+
             {/* Submit Button */}
             <Button
               onClick={() => setIsSubmitModalOpen(true)}
@@ -768,6 +782,79 @@ export function ExamTakingClient({
           </aside>
         </div>
       </div>
+
+      {/* Mobile Question Palette Drawer */}
+      {isMobilePaletteOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="fixed inset-0" onClick={() => setIsMobilePaletteOpen(false)} aria-hidden="true" />
+          <div className="relative z-10 w-full max-h-[80vh] overflow-y-auto rounded-t-3xl border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] text-slate-900 dark:text-slate-100 p-5 shadow-2xl animate-in slide-in-from-bottom duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white">Mục lục câu hỏi</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Tiến độ: <strong className="text-slate-800 dark:text-slate-200">{answeredCount}</strong> / {shuffledQuestions.length} câu
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMobilePaletteOpen(false)}
+                className="grid size-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+              <div
+                className="h-full bg-emerald-600 transition-all duration-300"
+                style={{ width: `${(answeredCount / shuffledQuestions.length) * 100}%` }}
+              />
+            </div>
+
+            {/* Question Grid Buttons */}
+            <div className="mt-4 grid grid-cols-5 sm:grid-cols-8 gap-2">
+              {shuffledQuestions.map((q, idx) => {
+                const isMC = q.question_type === 'multiple_choice';
+                const currentAns = answers[q.id];
+                const isDone = isMC
+                  ? Boolean(currentAns?.selected_option)
+                  : Boolean(currentAns?.answer_text?.trim());
+
+                return (
+                  <button
+                    key={q.id}
+                    type="button"
+                    onClick={() => {
+                      scrollToQuestion(q.id);
+                      setIsMobilePaletteOpen(false);
+                    }}
+                    className={`flex size-10 items-center justify-center rounded-xl text-xs font-bold transition cursor-pointer ${
+                      isDone
+                        ? 'bg-emerald-600 text-white shadow-2xs hover:bg-emerald-700'
+                        : 'border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    {idx + 1}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Legend */}
+            <div className="mt-4 flex items-center gap-4 border-t border-slate-100 dark:border-slate-800 pt-3 text-xs text-slate-500 dark:text-slate-400">
+              <div className="flex items-center gap-1.5">
+                <span className="size-2.5 rounded-full bg-emerald-600" />
+                <span>Đã trả lời</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="size-2.5 rounded-full border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800" />
+                <span>Chưa trả lời</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Manual Submit Confirmation Dialog */}
       {isSubmitModalOpen && (

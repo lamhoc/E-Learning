@@ -12,7 +12,7 @@ import {
 import { requireRole } from '@/lib/auth-cache';
 import { getTeacherDashboardData } from '@/lib/teacher-dashboard';
 import { sanitizeVietnameseText } from '@/lib/utils';
-import { TeacherSidebar } from '@/components/teacher/teacher-sidebar';
+import { TeacherSidebar, TeacherSidebarTrigger } from '@/components/teacher/teacher-sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

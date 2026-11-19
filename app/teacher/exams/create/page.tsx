@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { GraduationCap } from 'lucide-react';
 import { getTeacherExamCreateData } from '@/lib/teacher-exam-create';
-import { TeacherSidebar } from '@/components/teacher/teacher-sidebar';
+import { TeacherSidebar, TeacherSidebarTrigger } from '@/components/teacher/teacher-sidebar';
 import { ExamCreateForm } from '@/components/teacher/exam-create-form';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -31,6 +31,7 @@ export default async function TeacherExamCreatePage(props: PageProps) {
         <header className="sticky top-0 z-20 border-b border-border bg-card/90 dark:bg-[#0B1628]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
             <div className="flex items-center gap-2 lg:hidden">
+              <TeacherSidebarTrigger />
               <span className="grid size-9 place-items-center rounded-lg bg-[#17372e] text-[#c9ed99]">
                 <GraduationCap aria-hidden="true" className="size-5" />
               </span>

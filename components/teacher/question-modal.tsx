@@ -67,7 +67,7 @@ export function QuestionModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs animate-in fade-in">
-      <div className="relative max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-xl sm:p-7">
+      <div className="relative max-h-[90dvh] w-[95vw] max-w-2xl overflow-y-auto rounded-2xl border border-border bg-card p-4 sm:p-6 shadow-xl">
         <button
           onClick={onClose}
           type="button"

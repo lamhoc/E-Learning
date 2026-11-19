@@ -126,7 +126,7 @@ export function ForgotPasswordOtpModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-2xl transition-all">
+      <div className="relative w-[95vw] max-w-md max-h-[90dvh] overflow-y-auto rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-2xl transition-all">
         {/* Nút đóng */}
         <button
           type="button"

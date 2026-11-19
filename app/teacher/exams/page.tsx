@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { FileCheck, PlusCircle } from 'lucide-react';
 import { requireRole } from '@/lib/auth-cache';
 import { sanitizeVietnameseText } from '@/lib/utils';
-import { TeacherSidebar } from '@/components/teacher/teacher-sidebar';
+import { TeacherSidebar, TeacherSidebarTrigger } from '@/components/teacher/teacher-sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { TeacherExamsClient, type ExamItem } from '@/components/teacher/teacher-exams-client';
 import { isCameraRequired, isAutoGradeEssay } from '@/lib/exam-auto-grade';

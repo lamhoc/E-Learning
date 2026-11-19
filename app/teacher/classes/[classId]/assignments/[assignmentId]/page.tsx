@@ -28,7 +28,7 @@ import {
 import { createClient } from '@/lib/supabase/server';
 import { getAssignmentDetails } from '@/lib/assignments';
 import { GradeSubmissionDialog } from '@/components/teacher/grade-submission-dialog';
-import { TeacherSidebar } from '@/components/teacher/teacher-sidebar';
+import { TeacherSidebar, TeacherSidebarTrigger } from '@/components/teacher/teacher-sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 type AssignmentSubmissionsPageProps = {
@@ -109,6 +109,7 @@ export default async function AssignmentSubmissionsPage({
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
             {/* Logo mobile */}
             <div className="flex items-center gap-2 lg:hidden">
+              <TeacherSidebarTrigger />
               <span className="grid size-9 place-items-center rounded-lg bg-[#17372e] text-[#c9ed99]">
                 <GraduationCap aria-hidden="true" className="size-5" />
               </span>

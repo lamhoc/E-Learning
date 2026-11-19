@@ -45,7 +45,7 @@ import {
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getTeacherDashboardData, type TeacherExam } from '@/lib/teacher-dashboard';
-import { TeacherSidebar } from '@/components/teacher/teacher-sidebar';
+import { TeacherSidebar, TeacherSidebarTrigger } from '@/components/teacher/teacher-sidebar';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { ClassForm } from './class-form';
 
@@ -279,7 +279,7 @@ async function TeacherDashboardDataContent() {
       )}
 
       {/* ── Metric cards (Bento Grid) ── */}
-      <section aria-label="Chỉ số giảng dạy" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5 items-stretch">
+      <section aria-label="Chỉ số giảng dạy" className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 items-stretch">
         <Link href="/teacher/classes" className="block h-full transition hover:opacity-95">
           <MetricCard
             label="Lớp đang phụ trách"
@@ -645,9 +645,10 @@ export default async function TeacherDashboardPage() {
         {/* ── Topbar (Static Shell 0ms) ── */}
         <header className="sticky top-0 z-20 border-b border-border bg-card/90 dark:bg-[#0B1628]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
-            <div className="lg:hidden">
-              <BrandLogo size="sm" />
-            </div>
+            <div className="flex items-center gap-2 lg:hidden">
+                <TeacherSidebarTrigger />
+                <BrandLogo size="sm" />
+              </div>
 
             <p className="hidden text-xs font-medium capitalize text-slate-500 sm:block">
               {today}
@@ -751,7 +752,7 @@ export default async function TeacherDashboardPage() {
             <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-400">
               Thao tác nhanh
             </p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-8">
               {QUICK_ACTIONS.map((action) => {
                 const Icon = action.icon;
                 return (

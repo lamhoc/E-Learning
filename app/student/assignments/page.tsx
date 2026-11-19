@@ -9,7 +9,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { getStudentDashboardData } from '@/lib/student-dashboard';
-import { StudentSidebar } from '@/components/student/student-sidebar';
+import { StudentSidebar, StudentSidebarTrigger } from '@/components/student/student-sidebar';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { StudentAssignments } from '@/components/student/student-assignments';
 
@@ -42,9 +42,10 @@ export default async function StudentAssignmentsPage() {
       <div className="min-w-0">
         <header className="sticky top-0 z-20 border-b border-border bg-card/90 dark:bg-[#0B1628]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
-            <div className="lg:hidden">
-              <BrandLogo size="sm" />
-            </div>
+            <div className="flex items-center gap-2 lg:hidden">
+                <StudentSidebarTrigger />
+                <BrandLogo size="sm" />
+              </div>
 
             <p className="hidden text-xs font-medium capitalize text-slate-500 sm:block">{today}</p>
 

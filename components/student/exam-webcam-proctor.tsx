@@ -165,7 +165,7 @@ export function ExamWebcamProctor({
   return (
     <div
       aria-label="Khung hình giám sát thi AI"
-      className="fixed bottom-4 right-4 z-40 transition-all duration-300 select-none"
+      className="fixed bottom-3 right-3 sm:bottom-4 sm:right-4 z-40 transition-all duration-300 select-none"
     >
       {isMinimized ? (
         // Khung PiP dạng thu nhỏ (Pill)
@@ -206,7 +206,7 @@ export function ExamWebcamProctor({
         </div>
       ) : (
         // Khung PiP đầy đủ (Picture-in-Picture)
-        <div className="w-56 sm:w-64 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-2xl ring-1 ring-black/5 dark:ring-white/5 transition-all">
+        <div className="w-36 sm:w-56 md:w-64 overflow-hidden rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-2xl ring-1 ring-black/5 dark:ring-white/5 transition-all">
           {/* Header thanh PiP */}
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/90 dark:bg-[#0B1628]/95 px-3 py-2">
             <div className="flex items-center gap-1.5">

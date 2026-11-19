@@ -1,7 +1,7 @@
 import { Trophy } from 'lucide-react';
 import { requireRole } from '@/lib/auth-cache';
 import { sanitizeVietnameseText } from '@/lib/utils';
-import { StudentSidebar } from '@/components/student/student-sidebar';
+import { StudentSidebar, StudentSidebarTrigger } from '@/components/student/student-sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
 import {
   StudentResultsClient,

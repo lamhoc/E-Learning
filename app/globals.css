@@ -138,6 +138,15 @@
   }
   body {
     @apply bg-background text-foreground;
+    overflow-x: hidden;
+  }
+  /* Utility class to hide scrollbar while preserving scroll functionality */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
   button:not(:disabled), [role="button"]:not(:disabled) {
     cursor: pointer;

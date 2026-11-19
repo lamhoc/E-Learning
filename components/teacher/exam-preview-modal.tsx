@@ -45,7 +45,7 @@ export function ExamPreviewModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 backdrop-blur-xs animate-in fade-in">
-      <div className="relative flex max-h-[94vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+      <div className="relative flex max-h-[90dvh] w-[95vw] max-w-4xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
         {/* Header Actions (ẩn khi print) */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/80 bg-muted/40 px-5 py-3.5 print:hidden">
           <div className="flex items-center gap-2.5">

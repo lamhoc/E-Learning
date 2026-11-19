@@ -226,7 +226,7 @@ export function AIGeneratorModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4 backdrop-blur-xs animate-in fade-in">
-      <div className="relative flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+      <div className="relative flex max-h-[90dvh] w-[95vw] max-w-3xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-border/80 bg-muted/30 px-6 py-4">
           <div className="flex items-center gap-3">

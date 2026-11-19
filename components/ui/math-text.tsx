@@ -2,6 +2,7 @@
 
 import React, { useMemo } from 'react';
 import katex from 'katex';
+import { cn } from '@/lib/utils';
 
 type MathTextProps = {
   content?: string | null;
@@ -124,7 +125,7 @@ export const MathText = React.memo(
     if (!content) return null;
 
     return (
-      <Component className={className}>
+      <Component className={cn("max-w-full break-words", className)}>
         {segments.map((segment, index) => {
           if (segment.type === 'block-math') {
             try {
@@ -135,7 +136,7 @@ export const MathText = React.memo(
               return (
                 <span
                   key={index}
-                  className="my-2 block overflow-x-auto text-center"
+                  className="my-2 block max-w-full overflow-x-auto py-1 text-center"
                   dangerouslySetInnerHTML={{ __html: html }}
                 />
               );
@@ -157,7 +158,7 @@ export const MathText = React.memo(
               return (
                 <span
                   key={index}
-                  className="inline-block px-0.5 align-middle"
+                  className="inline-block max-w-full overflow-x-auto align-middle px-0.5"
                   dangerouslySetInnerHTML={{ __html: html }}
                 />
               );

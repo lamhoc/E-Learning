@@ -13,7 +13,7 @@ import {
   Sparkles,
   User,
 } from 'lucide-react';
-import { StudentSidebar } from '@/components/student/student-sidebar';
+import { StudentSidebar, StudentSidebarTrigger } from '@/components/student/student-sidebar';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { MathText } from '@/components/ui/math-text';
 import { ChatMessageContent } from '@/components/chat/chat-message-content';
@@ -167,12 +167,13 @@ export default function StudentAiTutorPage() {
       <StudentSidebar studentName={studentName} activeRoute="ai-tutor" />
 
       {/* 2. Vùng nội dung bên phải Flexbox tràn 100% viewport */}
-      <div className="flex h-screen flex-col overflow-hidden min-w-0">
+      <div className="flex h-[100dvh] flex-col overflow-hidden min-w-0">
         {/* Topbar đồng bộ khu vực Sinh viên */}
         <header className="sticky top-0 z-20 border-b border-border bg-card/90 dark:bg-[#0B1628]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10 shrink-0">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="lg:hidden">
+              <div className="flex items-center gap-2 lg:hidden">
+                <StudentSidebarTrigger />
                 <BrandLogo size="sm" />
               </div>
               <div className="flex items-center gap-2">
@@ -204,7 +205,7 @@ export default function StudentAiTutorPage() {
         </header>
 
         {/* 3. Khung Chat Flexbox cao vừa khít màn hình hiển thị bên phải: h-[calc(100vh-61px)] */}
-        <div className="flex-1 flex flex-col overflow-hidden h-[calc(100vh-61px)] bg-[#f8faf8] dark:bg-[#070D18]">
+        <div className="flex-1 flex flex-col overflow-hidden h-[calc(100dvh-61px)] bg-[#f8faf8] dark:bg-[#070D18]">
           {/* Vùng danh sách tin nhắn: flex-1 overflow-y-auto để cuộn độc lập */}
           <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6">
             <div className="mx-auto flex max-w-3xl flex-col gap-5">
@@ -230,7 +231,7 @@ export default function StudentAiTutorPage() {
 
                   {/* Bong bóng tin nhắn */}
                   <div
-                    className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                    className={`max-w-[92%] sm:max-w-[80%] lg:max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed break-words ${
                       msg.role === 'user'
                         ? 'rounded-tr-sm bg-[#17372e] text-white shadow-2xs'
                         : 'rounded-tl-sm border border-[#d9e3dc] dark:border-slate-800 bg-white dark:bg-[#111C2D] text-slate-800 dark:text-slate-100 shadow-2xs'
@@ -331,7 +332,7 @@ export default function StudentAiTutorPage() {
                   placeholder="Nhập câu hỏi, bài tập hoặc chủ đề bạn muốn ôn tập cùng Gia sư AI..."
                   rows={1}
                   maxLength={4000}
-                  className="flex-1 resize-none bg-transparent px-2 py-1.5 text-sm !text-slate-900 dark:!text-white caret-blue-600 dark:caret-amber-400 placeholder:text-slate-400 dark:placeholder:text-slate-400 outline-none"
+                  className="flex-1 resize-none bg-transparent px-2 py-1.5 text-base sm:text-sm !text-slate-900 dark:!text-white caret-blue-600 dark:caret-amber-400 placeholder:text-slate-400 dark:placeholder:text-slate-400 outline-none"
                   style={{ maxHeight: '140px', overflowY: 'auto' }}
                 />
                 <button

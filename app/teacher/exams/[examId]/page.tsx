@@ -8,7 +8,7 @@ import {
   Users,
 } from 'lucide-react';
 import { getTeacherExamAnalytics } from '@/lib/teacher-exam-analytics';
-import { TeacherSidebar } from '@/components/teacher/teacher-sidebar';
+import { TeacherSidebar, TeacherSidebarTrigger } from '@/components/teacher/teacher-sidebar';
 import { ExamAnalyticsClient } from '@/components/teacher/exam-analytics-client';
 import { ExamDraftActions } from '@/components/teacher/exam-draft-actions';
 import { ThemeToggle } from '@/components/theme-toggle';

@@ -3,7 +3,7 @@ import { BrandLogo } from '@/components/ui/brand-logo';
 import { Suspense } from 'react';
 import { LibraryBig } from 'lucide-react';
 import { getTeacherQuestionsData } from '@/lib/question-bank';
-import { TeacherSidebar } from '@/components/teacher/teacher-sidebar';
+import { TeacherSidebar, TeacherSidebarTrigger } from '@/components/teacher/teacher-sidebar';
 import { QuestionManager } from '@/components/teacher/question-manager';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getCurrentProfile } from '@/lib/auth-cache';
@@ -85,9 +85,10 @@ export default async function TeacherQuestionsPage({ searchParams }: QuestionsPa
       <div className="min-w-0">
         <header className="sticky top-0 z-20 border-b border-border bg-card/90 dark:bg-[#0B1628]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
-            <div className="lg:hidden">
-              <BrandLogo size="sm" />
-            </div>
+            <div className="flex items-center gap-2 lg:hidden">
+                <TeacherSidebarTrigger />
+                <BrandLogo size="sm" />
+              </div>
             <p className="hidden text-xs font-medium capitalize text-muted-foreground sm:block">
               {today}
             </p>
