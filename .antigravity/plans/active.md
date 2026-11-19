@@ -504,3 +504,25 @@
     + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 routes).
     + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
     + Ghi mã commit hash vào `.antigravity/plans/active.md`.
+
+- [x] **Phase 63 (Commit `5e03dd0`)**: Đồng bộ Sidebar kéo ra / thu gọn & rà soát toàn bộ giao diện, chức năng cho cả 3 phân hệ (Admin, Giảng viên, Học sinh):
+  - [x] **Mục tiêu 1 (Thiết kế `AdminShell` với Sidebar kéo ra / thu gọn & Sticky Topbar Mobile)**:
+    + Tạo `components/admin/admin-shell.tsx`:
+      * Desktop (`lg:`): Sidebar kéo ra (`w-64`) / thu gọn (`w-20` có floating tooltip), nút toggle `PanelLeftClose`/`PanelLeftOpen`, lưu `localStorage`.
+      * Mobile (`< 1024px`): Sticky Topbar (`h-14`) có nút Hamburger `☰` (`size-10`) + Logo Admin liên kết về `/admin` + ThemeToggle.
+      * Mobile Drawer: Trượt mượt từ cạnh trái (`w-72`), đủ 4 route Admin, nút Đăng xuất ghim ở đáy.
+    + Cập nhật `app/admin/layout.tsx` sử dụng `AdminShell`.
+  - [x] **Mục tiêu 2 (Hoàn thiện cơ chế thu gọn tự động an toàn trong phòng thi Sinh viên `/student/exams/[examId]`)**:
+    + Nâng cấp `StudentShell`: Khi học sinh vào trang làm bài thi (`/student/exams/[examId]`), Sidebar mặc định thu gọn (`w-20`) hoặc tự ẩn để giải phóng tối đa không gian làm bài, học sinh có thể mở lại khi cần.
+    + Chuẩn hóa nút Hamburger `☰` trên Mobile của cả 3 phân hệ có kích thước bấm chuẩn `h-10 w-10` (`size-10`), padding topbar `px-3 sm:px-6`.
+  - [x] **Mục tiêu 3 (Khung chat Gia sư AI & Chuẩn hóa chiều cao viewport)**:
+    + Đảm bảo khung chat Gia sư AI ở cả Giảng viên và Học sinh dùng `h-[calc(100dvh-3.5rem)]` (trừ đúng 3.5rem = 56px của Sticky Topbar) để ô nhập liệu luôn hiển thị rõ ràng, không bị bàn phím ảo che khuất.
+  - [x] **Mục tiêu 4 (Rà soát toàn diện Responsive & Màu sắc ở cả 3 phân hệ)**:
+    + Đảm bảo các bảng `<table>` đều nằm trong `overflow-x-auto`.
+    + Đảm bảo không có trang nào bị tràn thanh cuộn ngang (`overflow-x-hidden`).
+    + Đảm bảo độ tương phản màu chữ Dark / Light Mode trên cả 3 phân hệ, tích hợp ThemeToggle vào desktop sidebar footer.
+  - [x] **Mục tiêu 5 (Kiểm thử, nghiệm thu & commit an toàn)**:
+    + Test responsive ở `360px`, `768px`, `1024px`, `1440px`.
+    + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 routes).
+    + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
+    + Ghi mã commit hash vào `.antigravity/plans/active.md`.
