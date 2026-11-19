@@ -526,3 +526,27 @@
     + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 routes).
     + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
     + Ghi mã commit hash vào `.antigravity/plans/active.md`.
+
+- [x] **Phase 64 (Commit `166adb5`)**: Chuyển đổi Gia sư AI thành Trợ lý AI Chat Tự do Đa Năng (Gỡ bỏ khung "Gợi ý theo môn" ở cả Giảng viên & Sinh viên):
+  - [x] **Mục tiêu 1 (Xóa bỏ khung "Gợi ý theo môn" & Thiết kế Empty State chuẩn AI Chat hiện đại)**:
+    + Tại `app/student/ai-tutor/page.tsx` và `app/teacher/ai-tutor/page.tsx`:
+      * Xóa bỏ hoàn toàn khung viền xanh "Gợi ý câu hỏi ôn tập theo môn:" / "Gợi ý tác vụ nhanh theo môn:".
+      * Gỡ bỏ logic chọn môn học `subjects`, `selectedSubjectId` và helper `getSubjectTopicSuggestions`.
+      * Thiết kế Empty State phong cách Gemini/ChatGPT: Icon AI nổi bật, lời chào cá nhân hóa "Xin chào [Tên]! Hôm nay tôi có thể giúp gì cho bạn?", mô tả hỗ trợ đa năng mọi lĩnh vực, 4 thẻ gợi ý ý tưởng tự do (kịch bản video, viết code, giải bài tập, kế hoạch học tập).
+      * Focus sẵn vào ô `<textarea>`, placeholder: "Hỏi Gia sư AI bất cứ điều gì bạn cần...".
+  - [x] **Mục tiêu 2 (Cấu hình Backend AI Chat Tự do Toàn Năng `app/api/chat-ai/route.ts` & `lib/ai-provider.ts`)**:
+    + Xóa bỏ mọi ràng buộc ép theo môn học hoặc câu trả lời cứng nhắc/trắc nghiệm tự ý.
+    + Cập nhật System Prompt chuẩn Trợ lý AI Toàn Năng (General-Purpose AI Assistant) xử lý mọi môn học, mọi lĩnh vực và mọi dạng tác vụ (giải bài, viết code, soạn giáo án, kịch bản video, dịch thuật, trò chuyện tự nhiên).
+    + Duy trì thứ tự kết nối LLM 3 cổng: Cổng 1 Google Gemini API -> Cổng 2 Groq API -> Cổng 3 Free AI Gateway (Pollinations OpenAI-compatible).
+    + Nếu mất kết nối mạng hoàn toàn: Phản hồi thông báo lỗi kết nối rõ ràng kèm nút "Thử gửi lại" (tuyệt đối không in câu trả lời giả mạo).
+  - [x] **Mục tiêu 3 (Nâng cấp trải nghiệm Chat UX & Dọn nút thừa)**:
+    + Nâng cấp `components/chat/chat-message-content.tsx`: Thêm nút Sao chép (Copy code) trong khối Code Block.
+    + Thêm nút Sao chép (Copy) nhỏ gọn dưới mỗi bong bóng tin nhắn trả lời của AI.
+    + Hiển thị trạng thái đang suy nghĩ: "Đang soạn câu trả lời..." với 3 dấu chấm nhảy động mượt mà.
+    + Hỗ trợ auto-resize `<textarea>`, phím Enter để gửi và Shift + Enter để xuống dòng.
+    + Ẩn nút `ThemeToggle` trong header trang chat trên Mobile (`hidden lg:flex`) để không bị lặp 2 nút chuyển giao diện với Topbar Shell.
+  - [x] **Mục tiêu 4 (Kiểm thử thực tế, nghiệm thu & commit an toàn)**:
+    + Test 4 câu hỏi thực tế: Kịch bản video biến đổi khí hậu, Code Python số nguyên tố, Định luật II Newton, Kế hoạch ôn thi 7 ngày.
+    + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 routes).
+    + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
+    + Cập nhật commit hash vào `.antigravity/plans/active.md`.
