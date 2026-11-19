@@ -57,10 +57,10 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
       <header className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B1628] px-5 py-3.5 sm:px-8">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
           <Link
-            href="/student/dashboard"
+            href="/student/exams"
             className="inline-flex items-center gap-2 text-xs font-semibold text-[#17372e] dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:underline transition"
           >
-            <ArrowLeft className="size-4" /> Quay lại Bảng điều khiển
+            <ArrowLeft className="size-4" /> Quay lại danh sách đề thi
           </Link>
           <div className="flex items-center gap-2">
             <span className="grid size-7 place-items-center rounded-md bg-[#17372e] dark:bg-emerald-950 text-[#c9ed99] dark:text-emerald-300">
@@ -355,14 +355,14 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-[#162235] p-4 text-xs text-slate-800 dark:text-slate-200">
                 <span className="font-medium">Bạn đã hoàn thành đủ số lượt thi tối đa cho đề thi này.</span>
                 <Link
-                  href="/student/dashboard"
+                  href="/student/exams"
                   className={buttonVariants({
                     variant: 'outline',
                     size: 'sm',
                     className: 'bg-slate-200 hover:bg-slate-300 text-slate-900 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-white dark:border-slate-700 font-semibold',
                   })}
                 >
-                  Quay về trang chủ
+                  Quay lại danh sách đề thi
                 </Link>
               </div>
             )}

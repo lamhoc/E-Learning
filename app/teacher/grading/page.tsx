@@ -1,14 +1,12 @@
 import { ThemeToggle } from '@/components/theme-toggle';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import { Metadata } from 'next';
-import Link from 'next/link';
-import { ArrowLeft, CheckCircle2, FileCheck, GraduationCap, PenTool } from 'lucide-react';
+import { CheckCircle2, FileCheck, GraduationCap, PenTool } from 'lucide-react';
 import { getTeacherGradingQueue } from '@/lib/teacher-grading';
 import { TeacherSidebar } from '@/components/teacher/teacher-sidebar';
 import { GradingQueueClient } from '@/components/teacher/grading-queue-client';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { Badge } from '@/components/ui/badge';
-import { buttonVariants } from '@/components/ui/button';
 
 export const metadata: Metadata = {
   title: 'Chấm thi & Đánh giá tự luận | Mầm Học',
@@ -40,18 +38,13 @@ export default async function TeacherGradingQueuePage() {
         <header className="sticky top-0 z-20 border-b border-border bg-card/90 dark:bg-[#0B1628]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <Link
-                href="/teacher/dashboard"
-                className={buttonVariants({ variant: 'ghost', size: 'sm', className: 'gap-1.5' })}
-              >
-                <ArrowLeft className="size-4" />
-                <span className="hidden sm:inline">Tổng quan</span>
-              </Link>
+              <div className="lg:hidden">
+                <BrandLogo size="sm" />
+              </div>
+              <p className="hidden text-xs font-medium capitalize text-slate-500 dark:text-slate-400 sm:block">
+                {today}
+              </p>
             </div>
-
-            <p className="hidden text-xs font-medium capitalize text-slate-500 sm:block">
-              {today}
-            </p>
 
             <div className="ml-auto flex items-center gap-3">
               <NotificationBell userId={data.teacherId} />

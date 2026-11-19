@@ -4,9 +4,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { BrandLogo } from '@/components/ui/brand-logo';
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
 import {
-  ArrowLeft,
   Bot,
   CornerDownLeft,
   GraduationCap,
@@ -17,7 +15,6 @@ import {
 } from 'lucide-react';
 import { TeacherSidebar } from '@/components/teacher/teacher-sidebar';
 import { NotificationBell } from '@/components/layout/notification-bell';
-import { buttonVariants } from '@/components/ui/button';
 import { MathText } from '@/components/ui/math-text';
 import { ChatMessageContent } from '@/components/chat/chat-message-content';
 import { createClient } from '@/lib/supabase/client';
@@ -171,16 +168,8 @@ export default function TeacherAiTutorPage() {
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="lg:hidden">
-              <BrandLogo size="sm" />
-            </div>
-              <Link
-                href="/teacher/dashboard"
-                className={buttonVariants({ variant: 'ghost', size: 'sm', className: 'gap-1.5' })}
-              >
-                <ArrowLeft className="size-4" />
-                <span className="hidden sm:inline">Tổng quan</span>
-              </Link>
-              <div className="hidden h-4 w-px bg-slate-300 sm:block" />
+                <BrandLogo size="sm" />
+              </div>
               <div className="flex items-center gap-2">
                 <span className="grid size-8 place-items-center rounded-lg bg-emerald-100 text-emerald-800">
                   <Sparkles className="size-4" />

@@ -3,7 +3,6 @@ import { BrandLogo } from '@/components/ui/brand-logo';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import {
-  ArrowLeft,
   ArrowRight,
   BookOpen,
   HelpCircle,
@@ -45,18 +44,10 @@ export default async function TeacherSubjectsPage() {
               <div className="lg:hidden">
                 <BrandLogo size="sm" />
               </div>
-              <Link
-                href="/teacher/dashboard"
-                className={buttonVariants({ variant: 'ghost', size: 'sm', className: 'gap-1.5' })}
-              >
-                <ArrowLeft className="size-4" />
-                <span className="hidden sm:inline">Tổng quan</span>
-              </Link>
+              <p className="hidden text-xs font-medium capitalize text-muted-foreground sm:block">
+                {today}
+              </p>
             </div>
-
-            <p className="hidden text-xs font-medium capitalize text-muted-foreground sm:block">
-              {today}
-            </p>
 
             <div className="ml-auto flex items-center gap-3">
               <NotificationBell userId={data.teacherId} />
@@ -95,7 +86,7 @@ export default async function TeacherSubjectsPage() {
                 <span>Ngân hàng câu hỏi</span>
               </Link>
               <Link
-                href="/teacher/dashboard#create-class"
+                href="/teacher/classes#create-class-section"
                 className={buttonVariants({
                   size: 'sm',
                   className: 'gap-2 bg-primary text-white shadow-xs hover:bg-primary/90',
@@ -176,12 +167,6 @@ export default async function TeacherSubjectsPage() {
                 quản trị viên hệ thống Đại học Lạc Hồng để kiểm tra danh mục phân môn.
               </CardDescription>
               <div className="mt-6 flex justify-center gap-3">
-                <Link
-                  href="/teacher/dashboard"
-                  className={buttonVariants({ variant: 'outline', size: 'sm', className: 'gap-1.5' })}
-                >
-                  <ArrowLeft className="size-4" /> Quay lại Dashboard
-                </Link>
                 <Link
                   href="/teacher/ai-tutor"
                   className={buttonVariants({ size: 'sm', className: 'gap-1.5 bg-primary text-white hover:bg-primary/90' })}
@@ -272,7 +257,7 @@ export default async function TeacherSubjectsPage() {
                     </Link>
 
                     <Link
-                      href={`/teacher/dashboard#create-class`}
+                      href={`/teacher/classes#create-class-section`}
                       className={buttonVariants({
                         variant: 'ghost',
                         size: 'sm',

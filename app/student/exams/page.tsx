@@ -2,7 +2,6 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import Link from 'next/link';
 import {
-  ArrowLeft,
   ArrowRight,
   CalendarClock,
   Camera,
@@ -213,12 +212,7 @@ export default async function StudentExamsPage() {
                 Làm bài thi trực tuyến và xem kết quả sau khi được giảng viên công bố.
               </p>
             </div>
-            <Link
-              href="/student/dashboard"
-              className={buttonVariants({ variant: 'outline', size: 'sm', className: 'gap-1.5' })}
-            >
-              <ArrowLeft className="size-4" /> Về Tổng quan
-            </Link>
+            
           </section>
 
           {/* Section 1: Đề thi đang mở */}

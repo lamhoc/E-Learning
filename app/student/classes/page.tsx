@@ -2,7 +2,6 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import Link from 'next/link';
 import {
-  ArrowLeft,
   BookOpen,
   Calendar,
   CheckCircle2,
@@ -134,16 +133,7 @@ export default async function StudentClassesPage() {
                 Danh sách các lớp học bạn đã được giảng viên ghi danh trong năm học.
               </p>
             </div>
-            <Link
-              href="/student/dashboard"
-              className={buttonVariants({
-                variant: 'outline',
-                size: 'sm',
-                className: 'gap-1.5 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-100 dark:hover:bg-slate-700',
-              })}
-            >
-              <ArrowLeft className="size-4" /> Về Tổng quan
-            </Link>
+            
           </section>
 
           {data.classes.length ? (

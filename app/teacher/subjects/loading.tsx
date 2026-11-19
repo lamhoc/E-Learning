@@ -35,7 +35,6 @@ export default function TeacherSubjectsLoading() {
         {/* Topbar skeleton */}
         <header className="sticky top-0 z-20 border-b border-[#e2e8e2] bg-[#f8faf8]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
-            <Skeleton className="h-8 w-28 rounded-lg" />
             <Skeleton className="hidden h-4 w-32 rounded sm:block" />
             <div className="flex items-center gap-3">
               <Skeleton className="size-8 rounded-full" />

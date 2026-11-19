@@ -218,10 +218,10 @@ export function AIGeneratorStandalone({ subjects, teacherName }: Props) {
             Bạn cần được Quản trị viên phân công phụ trách ít nhất một môn học để sử dụng tính năng sinh câu hỏi AI.
           </p>
           <Link
-            href="/teacher/dashboard"
+            href="/teacher/subjects"
             className="mt-6 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
           >
-            Quay lại Tổng quan
+            Kiểm tra môn học phụ trách
           </Link>
         </CardContent>
       </Card>

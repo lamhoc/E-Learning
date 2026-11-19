@@ -2,7 +2,6 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import Link from 'next/link';
 import {
-  ArrowLeft,
   CheckCircle2,
   FileText,
   GraduationCap,
@@ -76,16 +75,7 @@ export default async function StudentMaterialsPage() {
                 Slide bài giảng, giáo trình PDF/Word và video học tập của các lớp bạn tham gia.
               </p>
             </div>
-            <Link
-              href="/student/dashboard"
-              className={buttonVariants({
-                variant: 'outline',
-                size: 'sm',
-                className: 'gap-1.5 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-100 dark:hover:bg-slate-700',
-              })}
-            >
-              <ArrowLeft className="size-4" /> Về Tổng quan
-            </Link>
+            
           </section>
 
           <StudentClassMaterials classes={data.classes} materials={data.materials} />

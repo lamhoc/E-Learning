@@ -3,7 +3,6 @@ import { BrandLogo } from '@/components/ui/brand-logo';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import {
-  ArrowLeft,
   CheckCircle2,
   ClipboardList,
   PenTool,
@@ -48,18 +47,10 @@ export default async function TeacherAssignmentsPage() {
               <div className="lg:hidden">
                 <BrandLogo size="sm" />
               </div>
-              <Link
-                href="/teacher/dashboard"
-                className={buttonVariants({ variant: 'ghost', size: 'sm', className: 'gap-1.5' })}
-              >
-                <ArrowLeft className="size-4" />
-                <span className="hidden sm:inline">Tổng quan</span>
-              </Link>
+              <p className="hidden text-xs font-medium capitalize text-slate-500 dark:text-slate-400 sm:block">
+                {today}
+              </p>
             </div>
-
-            <p className="hidden text-xs font-medium capitalize text-slate-500 dark:text-slate-400 sm:block">
-              {today}
-            </p>
 
             <div className="ml-auto flex items-center gap-3">
               <NotificationBell userId={data.teacherId} />

@@ -36,8 +36,7 @@ export default function TeacherAiTutorLoading() {
         <header className="sticky top-0 z-20 border-b border-[#e2e8e2] bg-[#f8faf8]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10 shrink-0">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <Skeleton className="h-8 w-28 rounded-lg" />
-              <Skeleton className="h-4 w-px" />
+              <Skeleton className="size-8 rounded-lg" />
               <Skeleton className="h-6 w-32 rounded-lg" />
             </div>
             <div className="flex items-center gap-3">
