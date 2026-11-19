@@ -320,20 +320,49 @@ export async function callFreeAiChatCompletion(options: AiCompletionOptions): Pr
         return { content: cleanText, modelUsed: 'pollinations-free-openai' };
       }
     } else {
-      console.warn(`[AI-Provider] Free AI POST trả về HTTP ${res.status}, chuyển sang thử GET fallback.`);
+      console.warn(`[AI-Provider] Free AI OpenAI POST trả về HTTP ${res.status}, chuyển sang thử direct POST/GET fallback.`);
     }
   } catch (postErr) {
-    console.warn('[AI-Provider] Free AI POST thất bại, chuyển sang thử GET fallback:', postErr);
+    console.warn('[AI-Provider] Free AI OpenAI POST thất bại, chuyển sang thử direct POST/GET fallback:', postErr);
   }
 
-  // 2. Thử Fallback GET endpoint trực tiếp của Pollinations
+  // 2. Thử Direct POST endpoint của Pollinations (hỗ trợ đầy đủ messages, không yêu cầu credit)
+  try {
+    const directPostRes = await fetch('https://text.pollinations.ai/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messages: options.messages.map((m) => ({
+          role: m.role,
+          content: m.content,
+        })),
+      }),
+      signal: AbortSignal.timeout(25000),
+    });
+
+    if (directPostRes.ok) {
+      const rawText = (await directPostRes.text()).trim();
+      const cleanText = stripThinkingTags(rawText);
+      if (cleanText && !cleanText.startsWith('<!DOCTYPE') && !cleanText.startsWith('<html')) {
+        return { content: cleanText, modelUsed: 'pollinations-free-direct-post' };
+      }
+    } else {
+      console.warn(`[AI-Provider] Free AI Direct POST trả về HTTP ${directPostRes.status}`);
+    }
+  } catch (directPostErr) {
+    console.warn('[AI-Provider] Free AI Direct POST thất bại:', directPostErr);
+  }
+
+  // 3. Thử Fallback GET endpoint trực tiếp của Pollinations
   try {
     const latestUserMsg = [...options.messages].reverse().find((m) => m.role === 'user')?.content || '';
     const sysMsg = options.messages.find((m) => m.role === 'system')?.content || '';
     if (latestUserMsg) {
       const encodedPrompt = encodeURIComponent(latestUserMsg);
-      const encodedSystem = sysMsg ? `&system=${encodeURIComponent(sysMsg.slice(0, 1000))}` : '';
-      const getUrl = `https://text.pollinations.ai/${encodedPrompt}?model=openai${encodedSystem}`;
+      const encodedSystem = sysMsg ? `?system=${encodeURIComponent(sysMsg.slice(0, 1000))}` : '';
+      const getUrl = `https://text.pollinations.ai/${encodedPrompt}${encodedSystem}`;
 
       const resGet = await fetch(getUrl, {
         method: 'GET',

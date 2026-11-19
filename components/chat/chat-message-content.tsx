@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import katex from 'katex';
+import { Check, Copy } from 'lucide-react';
 import { MathText, normalizeMathInput } from '@/components/ui/math-text';
 
 type ChatMessageContentProps = {
@@ -314,6 +315,49 @@ function parseBlocks(rawText: string): BlockItem[] {
   return blocks;
 }
 
+function CodeBlockView({ language, content }: { language: string; content: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Ignore
+    }
+  };
+
+  return (
+    <div className="my-2.5 overflow-hidden rounded-xl border border-slate-800 bg-slate-900 shadow-md">
+      <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950/60 px-3 py-1.5 text-[11px] font-mono text-slate-400">
+        <span>{language || 'code'}</span>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="flex items-center gap-1 rounded px-2 py-0.5 text-xs text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+          title="Sao chép toàn bộ mã nguồn"
+        >
+          {copied ? (
+            <>
+              <Check className="size-3 text-emerald-400" />
+              <span className="text-emerald-400">Đã chép</span>
+            </>
+          ) : (
+            <>
+              <Copy className="size-3" />
+              <span>Sao chép</span>
+            </>
+          )}
+        </button>
+      </div>
+      <pre className="p-3.5 overflow-x-auto text-xs font-mono text-slate-100 leading-normal">
+        <code>{content}</code>
+      </pre>
+    </div>
+  );
+}
+
 export const ChatMessageContent = React.memo(
   function ChatMessageContent({ content, className = '' }: ChatMessageContentProps) {
     const blocks = useMemo(() => {
@@ -390,16 +434,11 @@ export const ChatMessageContent = React.memo(
 
             case 'code-block':
               return (
-                <div key={idx} className="my-2.5 overflow-hidden rounded-xl border border-slate-800 bg-slate-900 shadow-md">
-                  {block.language && (
-                    <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950/60 px-3 py-1 text-[11px] font-mono text-slate-400">
-                      <span>{block.language}</span>
-                    </div>
-                  )}
-                  <pre className="p-3.5 overflow-x-auto text-xs font-mono text-slate-100 leading-normal">
-                    <code>{block.content}</code>
-                  </pre>
-                </div>
+                <CodeBlockView
+                  key={idx}
+                  language={block.language}
+                  content={block.content}
+                />
               );
 
             case 'list-item': {
