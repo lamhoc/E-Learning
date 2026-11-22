@@ -35,6 +35,20 @@ export function StudentShell({ children, studentName = 'Sinh viên' }: StudentSh
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isExamFullscreen, setIsExamFullscreen] = useState(false);
+
+  // Lắng nghe sự kiện phòng thi kích hoạt / kết thúc chế độ toàn màn hình để ẩn hoàn toàn menu
+  useEffect(() => {
+    const handleExamFullscreen = (e: Event) => {
+      const customEvent = e as CustomEvent<{ active: boolean }>;
+      setIsExamFullscreen(Boolean(customEvent.detail?.active));
+    };
+
+    window.addEventListener('exam-fullscreen-mode', handleExamFullscreen);
+    return () => {
+      window.removeEventListener('exam-fullscreen-mode', handleExamFullscreen);
+    };
+  }, []);
 
   // Đọc trạng thái thu gọn từ localStorage khi mount
   useEffect(() => {
@@ -160,7 +174,8 @@ export function StudentShell({ children, studentName = 'Sinh viên' }: StudentSh
       {/* ── 1. DESKTOP SIDEBAR (Kéo ra w-64 / Thu gọn w-20) ── */}
       <aside
         className={cn(
-          'hidden lg:flex flex-col shrink-0 h-screen sticky top-0 z-30 transition-all duration-300 ease-in-out',
+          isExamFullscreen ? 'hidden' : 'hidden lg:flex',
+          'flex-col shrink-0 h-screen sticky top-0 z-30 transition-all duration-300 ease-in-out',
           'bg-[#0A275C] dark:bg-[#0B1628] text-white border-r border-[#153B75] dark:border-slate-800/80 shadow-md',
           isCollapsed ? 'w-20' : 'w-64'
         )}
@@ -295,9 +310,13 @@ export function StudentShell({ children, studentName = 'Sinh viên' }: StudentSh
       </aside>
 
       {/* ── 2. KHUNG NỘI DUNG CHÍNH (Kèm Sticky Topbar trên Mobile) ── */}
-      <div className="flex-1 min-w-0 flex flex-col min-h-screen">
+      <div className={cn("flex-1 min-w-0 flex flex-col min-h-screen", isExamFullscreen && "w-full")}>
         {/* Sticky Topbar trên Mobile (< 1024px) */}
-        <header className="sticky top-0 z-40 h-14 bg-white/95 dark:bg-[#0B1628]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-3 sm:px-6 flex items-center justify-between lg:hidden shrink-0">
+        <header
+          className={cn(
+            isExamFullscreen ? 'hidden' : 'sticky top-0 z-40 h-14 bg-white/95 dark:bg-[#0B1628]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-3 sm:px-6 flex items-center justify-between lg:hidden shrink-0'
+          )}
+        >
           <div className="flex items-center gap-3 min-w-0">
             {/* Nút Hamburger Menu */}
             <button
@@ -336,10 +355,11 @@ export function StudentShell({ children, studentName = 'Sinh viên' }: StudentSh
       {/* ── 3. MOBILE DRAWER SLIDE-OVER (< 1024px) ── */}
       <div
         className={cn(
+          isExamFullscreen && 'hidden',
           'fixed inset-0 z-50 lg:hidden transition-all duration-300',
           isMobileOpen ? 'visible' : 'invisible pointer-events-none'
         )}
-        aria-hidden={!isMobileOpen}
+        aria-hidden={!isMobileOpen || isExamFullscreen}
       >
         {/* Lớp nền mờ Backdrop */}
         <div

@@ -56,6 +56,8 @@ export function normalizeMathInput(text?: string | null): string {
       segment = segment.replace(/(\\angle\s+[A-Za-z0-9_]+)/g, (_, p1) => `$${p1}$`);
       // Tự động bọc góc / độ ví dụ 30^\circ, 45^\circ, 60^\circ, 90^\circ
       segment = segment.replace(/(\b\d+\s*\^\s*(?:\\circ|\{?\\circ\}?))/g, (_, p1) => `$${p1}$`);
+      // Khử ký hiệu phần trăm LaTeX (\% -> %) trong văn bản thường
+      segment = segment.replace(/\\%/g, '%');
       parts[i] = segment;
     }
   }

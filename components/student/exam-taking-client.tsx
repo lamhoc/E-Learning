@@ -51,6 +51,7 @@ import {
 import { shuffleExamQuestions } from '@/lib/exam-shuffle';
 import { isCameraRequired } from '@/lib/exam-camera';
 import { cleanExamInstructions } from '@/lib/exam-auto-grade';
+import { enterFullscreenSafe, exitFullscreenSafe, isFullscreen } from '@/lib/fullscreen';
 import { ExamWebcamProctor } from '@/components/student/exam-webcam-proctor';
 import type {
   ActiveAttemptData,
@@ -81,6 +82,45 @@ export function ExamTakingClient({
     }
     return false;
   });
+  const [isFullscreenActive, setIsFullscreenActive] = useState<boolean>(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Đồng bộ trạng thái bài thi với layout StudentShell để ẩn hoàn toàn Sidebar & Topbar
+  useEffect(() => {
+    if (hasEnteredExam && !isSubmitting) {
+      window.dispatchEvent(new CustomEvent('exam-fullscreen-mode', { detail: { active: true } }));
+    }
+  }, [hasEnteredExam, isSubmitting]);
+
+  // Theo dõi sự kiện thay đổi fullscreen của trình duyệt
+  useEffect(() => {
+    if (!hasEnteredExam || isSubmitting) return;
+
+    const handleFsChange = () => {
+      const active = isFullscreen();
+      setIsFullscreenActive(active);
+    };
+
+    handleFsChange();
+    document.addEventListener('fullscreenchange', handleFsChange);
+    document.addEventListener('webkitfullscreenchange', handleFsChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFsChange);
+      document.removeEventListener('webkitfullscreenchange', handleFsChange);
+    };
+  }, [hasEnteredExam, isSubmitting]);
+
+  // Cleanup an toàn khi unmount
+  useEffect(() => {
+    return () => {
+      void exitFullscreenSafe();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('exam-fullscreen-mode', { detail: { active: false } }));
+      }
+    };
+  }, []);
 
   // 2. Deterministic Seeded Shuffle: Xáo trộn câu hỏi và phương án A-B-C-D theo attemptId
   const shuffledQuestions = useMemo(() => {
@@ -98,8 +138,6 @@ export function ExamTakingClient({
   // Submit Modal & Status
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [isMobilePaletteOpen, setIsMobilePaletteOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Countdown Timer
   const [timeLeftMs, setTimeLeftMs] = useState<number>(() => {
@@ -110,6 +148,10 @@ export function ExamTakingClient({
   const handleForceSubmit = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
+    await exitFullscreenSafe();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('exam-fullscreen-mode', { detail: { active: false } }));
+    }
     await submitExamAttemptAction(activeAttempt.id, exam.id);
     startTransition(() => {
       router.refresh();
@@ -136,6 +178,10 @@ export function ExamTakingClient({
   const handleAutoSubmitOnTabViolation = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
+    await exitFullscreenSafe();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('exam-fullscreen-mode', { detail: { active: false } }));
+    }
     await submitExamAttemptAction(activeAttempt.id, exam.id);
     startTransition(() => {
       router.refresh();
@@ -216,8 +262,19 @@ export function ExamTakingClient({
       previewStreamRef.current.getTracks().forEach((t) => t.stop());
       previewStreamRef.current = null;
     }
-    await requestFullscreen();
+    await enterFullscreenSafe();
     setHasEnteredExam(true);
+    setIsFullscreenActive(true);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('exam-fullscreen-mode', { detail: { active: true } }));
+    }
+  };
+
+  // Xử lý khi học sinh bấm quay lại Toàn màn hình sau khi ấn Esc / F11
+  const handleReEnterFullscreen = async () => {
+    await enterFullscreenSafe();
+    setIsFullscreenActive(true);
+    dismissWarning();
   };
 
   // Xử lý chọn đáp án trắc nghiệm (nhận originalKey gốc)
@@ -267,11 +324,19 @@ export function ExamTakingClient({
   const handleSubmitConfirm = async () => {
     setIsSubmitting(true);
     setSubmitError(null);
+    await exitFullscreenSafe();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('exam-fullscreen-mode', { detail: { active: false } }));
+    }
 
     const res = await submitExamAttemptAction(activeAttempt.id, exam.id);
     if (res.status === 'error') {
       setSubmitError(res.message);
       setIsSubmitting(false);
+      await enterFullscreenSafe();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('exam-fullscreen-mode', { detail: { active: true } }));
+      }
     } else {
       setIsSubmitModalOpen(false);
       startTransition(() => {
@@ -480,7 +545,32 @@ export function ExamTakingClient({
 
   // ─── 5. GIAO DIỆN LÀM BÀI CHÍNH THỨC ──────────────────────────────────────
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors select-none">
+    <div className="fixed inset-0 z-[100] w-screen h-screen overflow-y-auto bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors select-none">
+      {/* Lớp phủ cảnh báo & khóa màn hình khi thí sinh bấm Esc hoặc thoát Toàn màn hình */}
+      {hasEnteredExam && !isSubmitting && !isFullscreenActive && (
+        <div className="fixed inset-0 z-[250] flex flex-col items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 text-center">
+          <div className="max-w-md w-full rounded-3xl border border-red-500/40 bg-white dark:bg-[#111C2D] p-6 sm:p-8 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200">
+            <div className="mx-auto grid size-16 place-items-center rounded-2xl bg-red-100 dark:bg-red-950/80 text-red-600 dark:text-red-400">
+              <ShieldAlert className="size-8" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+              Cảnh báo: Bạn đã rời chế độ Toàn màn hình
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+              Quy chế thi Đại học Lạc Hồng yêu cầu bài thi phải luôn được giữ ở chế độ Toàn màn hình (Lockdown) để chống gian lận.
+            </p>
+            <Button
+              size="lg"
+              onClick={handleReEnterFullscreen}
+              className="w-full gap-2 rounded-2xl py-6 font-bold bg-[#154C99] hover:bg-[#0F3D8A] text-white cursor-pointer shadow-lg shadow-blue-900/30 text-sm sm:text-base"
+            >
+              <Maximize2 className="size-5" />
+              <span>🖥️ Vào chế độ Toàn màn hình để tiếp tục làm bài</span>
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Khung Camera Giám sát AI (Picture-in-Picture góc dưới bên phải) - Chỉ render khi đề thi yêu cầu camera */}
       {cameraRequired && (
         <ExamWebcamProctor
