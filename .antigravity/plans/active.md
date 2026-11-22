@@ -550,3 +550,25 @@
     + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 routes).
     + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
     + Cập nhật commit hash vào `.antigravity/plans/active.md`.
+
+- [x] **Phase 65 (Commit `017739d`)**: Build lại định dạng AI Chat — Cấm xuất bảng, hiển thị chi tiết từng dòng & sửa lỗi `**` + thanh cuộn phân số KaTeX (Cả Giảng viên & Học sinh):
+  - [x] **Mục tiêu 1 (Cấm AI xuất bảng Markdown & Ép trình bày chi tiết từng dòng trong System Prompt)**:
+    + Cập nhật System Prompt trong `app/api/chat-ai/route.ts`: Cấm tuyệt đối bảng Markdown (`| ... |`, `|---|---|`), chỉ dùng khi người dùng ghi rõ chữ "lập bảng".
+    + Ép định dạng trắc nghiệm theo bố cục dọc: Mỗi phương án A, B, C, D trên 1 dòng riêng biệt, bắt buộc có Đáp án đúng và Giải thích chi tiết từng bước.
+    + Tự động chèn lời nhắc cấm bảng vào cuối tin nhắn cuối của người dùng.
+  - [x] **Mục tiêu 2 (Module Anti-Table Post-Processor `lib/anti-table-processor.ts`)**:
+    + Viết hàm `convertMarkdownTablesToLines(content)` chạy ở cả Backend (`/api/chat-ai`) và Frontend.
+    + Tự động bóc tách các bảng câu hỏi trắc nghiệm thành từng câu dọc, tách 4 phương án dính liền (A. ... B. ... C. ... D. ...) thành 4 dòng riêng biệt kèm Đáp án đúng và Giải thích.
+    + Bóc tách các bảng nội dung khác (kế hoạch, so sánh) thành danh sách gạch đầu dòng dọc thoáng mắt.
+  - [x] **Mục tiêu 3 (Đồng bộ Component `ChatMessageRenderer.tsx` & Sửa triệt để lỗi lộ `**`)**:
+    + Tạo `components/chat/ChatMessageRenderer.tsx` dùng chung cho cả 2 giao diện `/teacher/ai-tutor` và `/student/ai-tutor`.
+    + Loại bỏ hoàn toàn mọi ký tự `**` thô mồ côi khỏi giao diện.
+    + Khối trắc nghiệm có badge xanh A, B, C, D căn lề thẳng hàng; khối Đáp án đúng có pill xanh ngọc nổi bật; khối Giải thích chi tiết có card bo góc thoáng mắt.
+    + Tích hợp nút Sao chép mã nguồn cho Code Block.
+  - [x] **Mục tiêu 4 (Sửa triệt để lỗi thanh cuộn mini dính vào phân số KaTeX)**:
+    + Trong `components/ui/math-text.tsx`: Xóa bỏ hoàn toàn `overflow-x-auto` và `max-w-full` khỏi thẻ `<span>` bọc inline math.
+    + Trong `app/globals.css`: Thiết lập `.katex { overflow: visible !important; }`, `.katex-html { overflow: visible !important; }`, và `.katex-display { overflow-x: auto !important; overflow-y: hidden !important; padding: 0.5rem 0 !important; }`.
+  - [x] **Mục tiêu 5 (Kiểm thử, nghiệm thu & commit an toàn)**:
+    + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 routes).
+    + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
+    + Cập nhật commit hash `017739d` vào `.antigravity/plans/active.md`.
