@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { NotificationBell } from '@/components/layout/notification-bell';
-import { ChatMessageContent } from '@/components/chat/chat-message-content';
+import { ChatMessageRenderer } from '@/components/chat/ChatMessageRenderer';
 import { createClient } from '@/lib/supabase/client';
 
 type ChatMessage = {
@@ -291,7 +291,7 @@ export default function StudentAiTutorPage() {
                         }`}
                       >
                         {msg.role === 'assistant' ? (
-                          <ChatMessageContent content={msg.content} />
+                          <ChatMessageRenderer content={msg.content} />
                         ) : (
                           <p className="whitespace-pre-wrap">{msg.content}</p>
                         )}

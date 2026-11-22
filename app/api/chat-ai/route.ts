@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { callAiChatCompletion } from '@/lib/ai-provider';
+import { convertMarkdownTablesToLines } from '@/lib/anti-table-processor';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -104,18 +105,38 @@ Bạn hoạt động như một trợ lý AI chat tổng quát (tương tự Cha
 - Mọi môn học và lĩnh vực: Toán, Lý, Hóa, Sinh, Sử, Địa, Văn, Tiếng Anh, Kinh tế, Luật, Công nghệ thông tin, Kỹ năng mềm, Kiến thức tổng hợp, Khoa học & Đời sống...
 - Mọi dạng tác vụ: Giải đáp thắc mắc, giải bài tập từng bước, viết/sửa code, soạn giáo án/slide/kịch bản video, tóm tắt văn bản, dịch thuật, viết email/báo cáo, lên kế hoạch học tập, brainstorm ý tưởng, tạo đề kiểm tra/rubric (khi được yêu cầu), hoặc trò chuyện tự nhiên.
 
-QUY TẮC TRẢ LỜI:
-1. Trả lời trực tiếp, chính xác, đầy đủ và đi thẳng vào đúng yêu cầu của người dùng. Tuyệt đối không vòng vo sáo rỗng, không tự tiện chuyển sang câu hỏi trắc nghiệm hoặc văn mẫu khuôn sáo trừ khi người dùng yêu cầu rõ ràng.
-2. Trình bày mạch lạc bằng Markdown (tiêu đề, in đậm, gạch đầu dòng, bảng biểu, khối code có tên ngôn ngữ rõ ràng).
-3. Bọc công thức toán học/khoa học trong dấu $...$ cho công thức nằm trong dòng và $$...$$ cho công thức nằm trên dòng riêng để hiển thị đẹp bằng KaTeX. Tuyệt đối không dùng \\(...\\) hay \\[...\\].
+QUY TẮC CẤM XUẤT BẢNG TUYỆT ĐỐI:
+- TUYỆT ĐỐI KHÔNG sử dụng bảng Markdown (| ... |, |---|---|) trong câu trả lời cho các yêu cầu tạo câu hỏi, giải bài tập, lập kế hoạch, soạn giáo án, viết kịch bản hay giải thích kiến thức (CHỈ dùng bảng khi người dùng gõ rõ cụm từ "lập bảng").
+
+QUY TẮC TRÌNH BÀY CHI TIẾT TỪNG DÒNG:
+1. Mọi nội dung phải được tách dòng rõ ràng, thoáng mắt, có khoảng trắng giữa các ý.
+2. Khi tạo câu hỏi trắc nghiệm (ví dụ: "10 câu trắc nghiệm Toán lớp 10"), BẮT BUỘC trình bày từng câu theo bố cục dọc đầy đủ (mỗi phương án A, B, C, D nằm trên 1 DÒNG RIÊNG BIỆT, bắt buộc có Đáp án đúng và Giải thích chi tiết từng bước):
+   ### Câu 1: [Nội dung câu hỏi kèm công thức KaTeX $...$ nếu có]
+   - **A.** [Phương án A]
+   - **B.** [Phương án B]
+   - **C.** [Phương án C]
+   - **D.** [Phương án D]
+
+   **Đáp án đúng:** [A/B/C/D]
+   **Giải thích chi tiết:** [Lời giải từng bước]
+3. Trình bày Markdown sạch đẹp, bọc công thức toán học/khoa học trong dấu $...$ cho công thức nằm trong dòng và $$...$$ cho công thức nằm trên dòng riêng. Tuyệt đối không dùng \\(...\\) hay \\[...\\].
 4. Ghi nhớ toàn bộ ngữ cảnh các tin nhắn trước đó trong cùng cuộc trò chuyện để phản hồi liền mạch.`;
 
   const aiMessages = [
     { role: 'system' as const, content: systemPrompt },
-    ...messages.slice(-16).map((m) => ({
-      role: m.role as 'user' | 'assistant',
-      content: m.content,
-    })),
+    ...messages.slice(-16).map((m, idx, arr) => {
+      // Ở tin nhắn cuối cùng của user, nối thêm lời nhắc cấm xuất bảng
+      if (idx === arr.length - 1 && m.role === 'user') {
+        return {
+          role: 'user' as const,
+          content: `${m.content}\n\n[Lưu ý bắt buộc: Tuyệt đối không xuất bảng Markdown; trình bày chi tiết từng dòng, mỗi phương án A, B, C, D trên 1 dòng riêng kèm Đáp án đúng và Giải thích chi tiết!]`,
+        };
+      }
+      return {
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      };
+    }),
   ];
 
   // 3. Gọi AI qua ai-provider trung tâm với cơ chế Đa Cổng (Cổng 1 Gemini -> Cổng 2 Groq -> Cổng 3 Free AI Gateway)
@@ -127,7 +148,9 @@ QUY TẮC TRẢ LỜI:
     });
 
     if (reply) {
-      return NextResponse.json({ reply });
+      // Áp dụng bộ lọc Anti-Table Post-Processor để chặn 100% bảng bị lọt ra JSON
+      const cleanReply = convertMarkdownTablesToLines(reply);
+      return NextResponse.json({ reply: cleanReply });
     }
   } catch (aiErr) {
     console.warn('[Chat-AI] Tất cả các cổng AI trực tuyến (Gemini, Groq, Free Gateway) đều không khả dụng:', aiErr);

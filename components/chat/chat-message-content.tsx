@@ -488,3 +488,5 @@ export const ChatMessageContent = React.memo(
   },
   (prev, next) => prev.content === next.content && prev.className === next.className
 );
+
+export { ChatMessageRenderer } from './ChatMessageRenderer';

@@ -183,6 +183,16 @@
   /* KaTeX math formula styling in light & dark mode */
   .katex {
     color: inherit;
+    overflow: visible !important;
+  }
+  .katex-html {
+    overflow: visible !important;
+  }
+  .katex-display {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding: 0.5rem 0 !important;
+    scrollbar-width: thin;
   }
   .dark .katex,
   .dark .katex-display,

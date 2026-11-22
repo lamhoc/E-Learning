@@ -136,7 +136,7 @@ export const MathText = React.memo(
               return (
                 <span
                   key={index}
-                  className="my-2 block max-w-full overflow-x-auto py-1 text-center"
+                  className="my-2 block max-w-full overflow-x-auto overflow-y-hidden py-1.5 text-center"
                   dangerouslySetInnerHTML={{ __html: html }}
                 />
               );
@@ -158,7 +158,7 @@ export const MathText = React.memo(
               return (
                 <span
                   key={index}
-                  className="inline-block max-w-full overflow-x-auto align-middle px-0.5"
+                  className="inline-block align-middle px-0.5 leading-normal"
                   dangerouslySetInnerHTML={{ __html: html }}
                 />
               );
