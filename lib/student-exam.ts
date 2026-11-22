@@ -1,5 +1,5 @@
 import { sanitizeVietnameseText } from '@/lib/utils';
-import { isCameraRequired, cleanExamInstructions, isAutoGradeEssay } from '@/lib/exam-auto-grade';
+import { isCameraRequired, cleanExamInstructions, isAutoGradeEssay, isShowAnswersAfterSubmit } from '@/lib/exam-auto-grade';
 import 'server-only';
 
 import { redirect } from 'next/navigation';
@@ -31,6 +31,7 @@ export type StudentExamDetail = {
   status: 'draft' | 'published' | 'closed' | 'archived';
   require_camera?: boolean;
   auto_grade_essay?: boolean;
+  show_answers_after_submit?: boolean;
   subject: {
     id: string;
     name: string;
@@ -120,6 +121,7 @@ export async function getStudentExamPageData(examId: string): Promise<StudentExa
     subject: subjectRecord ?? null,
     require_camera: isReqCam,
     auto_grade_essay: isAutoGrade,
+    show_answers_after_submit: isShowAnswersAfterSubmit(rawExam),
   };
 
   // 2. Fetch User Profile

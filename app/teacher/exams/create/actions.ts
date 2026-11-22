@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { appendExamInstructionTags } from '@/lib/exam-auto-grade';
+import { appendExamInstructionTags, isAutoGradeEssay, isCameraRequired } from '@/lib/exam-auto-grade';
 
 export type CreateExamPayload = {
   subjectId: string;
@@ -17,6 +17,7 @@ export type CreateExamPayload = {
   publishImmediately: boolean;
   requireCamera?: boolean;
   autoGradeEssay?: boolean;
+  showAnswersAfterSubmit?: boolean;
   selectedQuestions: {
     questionId: string;
     points: number;
@@ -99,9 +100,11 @@ export async function createExamAction(payload: CreateExamPayload): Promise<Crea
   const adminClient = createAdminClient();
   const requireCamera = Boolean(payload.requireCamera);
   const autoGradeEssay = Boolean(payload.autoGradeEssay);
+  const showAnswersAfterSubmit = payload.showAnswersAfterSubmit !== false;
   const taggedInstructions = appendExamInstructionTags(instructions, {
     requireCamera,
     autoGradeEssay,
+    showAnswersAfterSubmit,
   });
 
   try {
@@ -109,7 +112,7 @@ export async function createExamAction(payload: CreateExamPayload): Promise<Crea
     let newExam: { id: string } | null = null;
     let examInsertError: unknown = null;
 
-    // Lần thử 1: Ghi trực tiếp cả 2 cột require_camera và auto_grade_essay
+    // Lần thử 1: Ghi trực tiếp cả 3 cột require_camera, auto_grade_essay, show_answers_after_submit
     const firstAttempt = await adminClient
       .from('exams')
       .insert({
@@ -124,17 +127,18 @@ export async function createExamAction(payload: CreateExamPayload): Promise<Crea
         status: 'draft',
         require_camera: requireCamera,
         auto_grade_essay: autoGradeEssay,
+        show_answers_after_submit: showAnswersAfterSubmit,
       })
       .select('id')
       .single();
 
     if (firstAttempt.error) {
       console.warn(
-        'Lần thử 1 ghi require_camera và auto_grade_essay thất bại (có thể DB chưa chạy migration). Thử lần 2 chỉ ghi require_camera:',
+        'Lần thử 1 ghi show_answers_after_submit thất bại (có thể DB chưa chạy migration). Thử lần 2 không có cột này:',
         firstAttempt.error.message,
       );
 
-      // Lần thử 2: Thử ghi với require_camera (nếu auto_grade_essay chưa có trong schema)
+      // Lần thử 2: Thử ghi với require_camera & auto_grade_essay
       const secondAttempt = await adminClient
         .from('exams')
         .insert({
@@ -148,6 +152,7 @@ export async function createExamAction(payload: CreateExamPayload): Promise<Crea
           available_until: availableUntil || null,
           status: 'draft',
           require_camera: requireCamera,
+          auto_grade_essay: autoGradeEssay,
         })
         .select('id')
         .single();
@@ -438,16 +443,18 @@ export async function updateExamAction(payload: UpdateExamPayload): Promise<Crea
 
   const requireCamera = Boolean(payload.requireCamera);
   const autoGradeEssay = Boolean(payload.autoGradeEssay);
+  const showAnswersAfterSubmit = payload.showAnswersAfterSubmit !== false;
   const taggedInstructions = appendExamInstructionTags(instructions, {
     requireCamera,
     autoGradeEssay,
+    showAnswersAfterSubmit,
   });
 
   try {
     // 1. UPDATE trực tiếp bảng public.exams (Zero-Crash Fallback cho các cột mới)
     let updateSuccess = false;
 
-    // Lần thử 1: Cập nhật cả require_camera và auto_grade_essay
+    // Lần thử 1: Cập nhật cả require_camera, auto_grade_essay, show_answers_after_submit
     const firstAttempt = await adminClient
       .from('exams')
       .update({
@@ -460,13 +467,14 @@ export async function updateExamAction(payload: UpdateExamPayload): Promise<Crea
         available_until: availableUntil || null,
         require_camera: requireCamera,
         auto_grade_essay: autoGradeEssay,
+        show_answers_after_submit: showAnswersAfterSubmit,
         updated_at: new Date().toISOString(),
       })
       .eq('id', examId);
 
     if (firstAttempt.error) {
-      console.warn('Lần thử 1 update require_camera & auto_grade_essay lỗi. Thử lần 2:', firstAttempt.error.message);
-      // Lần thử 2: Cập nhật chỉ require_camera
+      console.warn('Lần thử 1 update show_answers_after_submit lỗi. Thử lần 2:', firstAttempt.error.message);
+      // Lần thử 2: Cập nhật require_camera và auto_grade_essay
       const secondAttempt = await adminClient
         .from('exams')
         .update({
@@ -478,6 +486,7 @@ export async function updateExamAction(payload: UpdateExamPayload): Promise<Crea
           available_from: availableFrom || null,
           available_until: availableUntil || null,
           require_camera: requireCamera,
+          auto_grade_essay: autoGradeEssay,
           updated_at: new Date().toISOString(),
         })
         .eq('id', examId);
@@ -809,6 +818,104 @@ export async function deleteDraftExamAction(
   return {
     status: 'success',
     message: `Đã xóa bản nháp "${exam.title}" thành công.`,
+  };
+}
+
+/**
+ * Bật/tắt nhanh quyền xem đáp án đúng/sai sau khi nộp bài thi (Dành cho Giảng viên/Admin).
+ */
+export async function toggleExamAnswerVisibilityAction(
+  examId: string,
+  showAnswers: boolean,
+): Promise<{ status: 'success' | 'error'; message: string; showAnswers?: boolean }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { status: 'error', message: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.' };
+  }
+
+  if (!uuidPattern.test(examId)) {
+    return { status: 'error', message: 'Mã đề thi không hợp lệ.' };
+  }
+
+  const adminClient = createAdminClient();
+
+  const { data: exam, error: examErr } = await adminClient
+    .from('exams')
+    .select('id, title, instructions, require_camera, auto_grade_essay, created_by')
+    .eq('id', examId)
+    .maybeSingle();
+
+  if (examErr || !exam) {
+    return { status: 'error', message: 'Không tìm thấy đề thi cần cập nhật.' };
+  }
+
+  const { data: roleRecord } = await adminClient
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  const isOwner = exam.created_by === user.id;
+  const isAdmin = roleRecord?.role === 'admin';
+  if (!isOwner && !isAdmin) {
+    return { status: 'error', message: 'Bạn không có quyền thay đổi cấu hình đề thi này.' };
+  }
+
+  const reqCam = isCameraRequired(exam);
+  const autoGrade = isAutoGradeEssay(exam);
+  const taggedInstructions = appendExamInstructionTags(exam.instructions, {
+    requireCamera: reqCam,
+    autoGradeEssay: autoGrade,
+    showAnswersAfterSubmit: showAnswers,
+  });
+
+  // Lần thử 1: Cập nhật cả cột show_answers_after_submit và instructions
+  const firstAttempt = await adminClient
+    .from('exams')
+    .update({
+      show_answers_after_submit: showAnswers,
+      instructions: taggedInstructions,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', examId);
+
+  if (firstAttempt.error) {
+    console.warn(
+      'Cột show_answers_after_submit chưa có trong schema, fallback cập nhật vào instructions tag:',
+      firstAttempt.error.message,
+    );
+    // Lần thử 2: Cập nhật instructions mang tag [SHOW_ANSWERS:true/false]
+    const secondAttempt = await adminClient
+      .from('exams')
+      .update({
+        instructions: taggedInstructions,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', examId);
+
+    if (secondAttempt.error) {
+      console.error('Lỗi cập nhật instructions exams:', secondAttempt.error);
+      return { status: 'error', message: 'Không thể cập nhật cấu hình xem đáp án.' };
+    }
+  }
+
+  revalidatePath('/teacher/exams');
+  revalidatePath('/teacher/exams/[examId]', 'page');
+  revalidatePath('/student/exams');
+  revalidatePath('/student/exams/[examId]', 'page');
+  revalidatePath('/student/results');
+
+  return {
+    status: 'success',
+    message: showAnswers
+      ? 'Đã mở quyền xem đáp án chi tiết và lời giải cho học sinh!'
+      : 'Đã khóa đáp án thành công. Học sinh chỉ xem được tổng điểm!',
+    showAnswers,
   };
 }
 

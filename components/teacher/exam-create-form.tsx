@@ -105,6 +105,9 @@ export function ExamCreateForm({
   const [autoGradeEssay, setAutoGradeEssay] = useState<boolean>(
     initialExam?.auto_grade_essay ?? false,
   );
+  const [showAnswersAfterSubmit, setShowAnswersAfterSubmit] = useState<boolean>(
+    initialExam?.show_answers_after_submit ?? true,
+  );
 
   // 2. Question Bank Selection States
   const [selectedQuestions, setSelectedQuestions] = useState<SelectedQuestionItem[]>(
@@ -246,6 +249,7 @@ export function ExamCreateForm({
       publishImmediately,
       requireCamera,
       autoGradeEssay,
+      showAnswersAfterSubmit,
       selectedQuestions: selectedQuestions.map((q, idx) => ({
         questionId: q.questionId,
         points: q.points,
@@ -672,6 +676,66 @@ export function ExamCreateForm({
                       <span
                         className={`pointer-events-none inline-block size-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
                           autoGradeEssay ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Show Answers After Submit Toggle Switch */}
+                <div className="mt-3 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-[#162235] p-4 transition-colors">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-2.5">
+                      <span
+                        className={`grid size-8 shrink-0 place-items-center rounded-lg transition-colors ${
+                          showAnswersAfterSubmit
+                            ? 'bg-blue-100 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400'
+                            : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                        }`}
+                      >
+                        <Eye className="size-4" />
+                      </span>
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Label
+                            htmlFor="show-answers-toggle"
+                            className="text-sm font-semibold text-slate-900 dark:text-white cursor-pointer"
+                          >
+                            Cho phép học sinh xem đáp án đúng/sai sau khi nộp bài
+                          </Label>
+                          {showAnswersAfterSubmit ? (
+                            <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10px] font-semibold">
+                              Cho xem đáp án & lời giải
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px]"
+                            >
+                              Ẩn đáp án sau khi nộp
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                          Khi bật, sau khi nộp bài và có điểm, học sinh có thể xem lại từng câu hỏi, biết câu nào làm đúng/sai, xem đáp án đúng và lời giải chi tiết. Khi tắt, học sinh chỉ xem được tổng điểm để tránh lộ đề thi.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Toggle Switch */}
+                    <button
+                      type="button"
+                      id="show-answers-toggle"
+                      role="switch"
+                      aria-checked={showAnswersAfterSubmit}
+                      onClick={() => setShowAnswersAfterSubmit((prev) => !prev)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${
+                        showAnswersAfterSubmit ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block size-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                          showAnswersAfterSubmit ? 'translate-x-5' : 'translate-x-0'
                         }`}
                       />
                     </button>

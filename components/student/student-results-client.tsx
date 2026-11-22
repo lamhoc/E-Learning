@@ -8,15 +8,20 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
+  Eye,
   FileCheck2,
   FileText,
   GraduationCap,
+  Lock,
   Sparkles,
   Trophy,
   XCircle,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ExamAnswerReviewModal } from '@/components/student/exam-answer-review-modal';
+import { ExamTutorDrawer } from '@/components/student/exam-tutor-drawer';
 
 export type ExamResultRecord = {
   id: string;
@@ -31,6 +36,8 @@ export type ExamResultRecord = {
   subjectiveScore: number | null;
   feedback: string | null;
   isPassed: boolean;
+  showAnswersAfterSubmit?: boolean;
+  releasedAt?: string | null;
 };
 
 export type AssignmentResultRecord = {
@@ -54,6 +61,9 @@ type Props = {
 export function StudentResultsClient({ examResults, assignmentResults }: Props) {
   const [activeTab, setActiveTab] = useState<'exams' | 'assignments'>('exams');
   const [examFilter, setExamFilter] = useState<'all' | 'passed' | 'failed' | 'pending'>('all');
+  const [reviewItem, setReviewItem] = useState<ExamResultRecord | null>(null);
+  const [tutorItem, setTutorItem] = useState<ExamResultRecord | null>(null);
+  const [targetQuestionNumber, setTargetQuestionNumber] = useState<number | null>(null);
 
   const filteredExams = useMemo(() => {
     return examResults.filter((item) => {
@@ -368,13 +378,47 @@ export function StudentResultsClient({ examResults, assignmentResults }: Props) 
                         </p>
                       )}
 
-                      <div className="mt-4">
+                      <div className="mt-4 flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          {(item.status === 'completed' || item.status === 'pending_grading') && (
+                            item.showAnswersAfterSubmit !== false ? (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setReviewItem(item)}
+                                className="flex-1 h-8 text-xs font-semibold gap-1.5 border-emerald-300 dark:border-emerald-700 bg-emerald-50/80 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition cursor-pointer"
+                              >
+                                <Eye className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                                <span>Xem đáp án</span>
+                              </Button>
+                            ) : (
+                              <div className="flex-1 flex items-center justify-center gap-1 h-8 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/80 text-slate-500 text-[11px] font-medium">
+                                <Lock className="size-3 text-slate-400" />
+                                <span>Đáp án đang ẩn</span>
+                              </div>
+                            )
+                          )}
+
+                          {item.releasedAt && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => setTutorItem(item)}
+                              className="h-8 text-xs font-semibold gap-1.5 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer"
+                            >
+                              <Sparkles className="size-3.5" />
+                              <span>Gia sư AI</span>
+                            </Button>
+                          )}
+                        </div>
+
                         <Link
                           href={`/student/exams/${item.examId}`}
-                          className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-800 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+                          className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
                         >
                           <BookOpen className="size-3.5" />
-                          <span>Xem chi tiết đề thi</span>
+                          <span>Chi tiết đề thi</span>
                         </Link>
                       </div>
                     </CardContent>
@@ -487,6 +531,41 @@ export function StudentResultsClient({ examResults, assignmentResults }: Props) 
             </div>
           )}
         </div>
+      )}
+      {/* Modal Xem chi tiết bài làm */}
+      {reviewItem && (
+        <ExamAnswerReviewModal
+          attemptId={reviewItem.id}
+          examTitle={reviewItem.examTitle}
+          attemptNo={reviewItem.attemptNo}
+          isOpen={Boolean(reviewItem)}
+          onClose={() => setReviewItem(null)}
+          onAskTutor={(questionNumber) => {
+            const item = reviewItem;
+            setReviewItem(null);
+            if (item) {
+              setTargetQuestionNumber(questionNumber);
+              setTutorItem(item);
+            }
+          }}
+        />
+      )}
+
+      {/* Drawer Gia sư AI */}
+      {tutorItem && (
+        <ExamTutorDrawer
+          attemptId={tutorItem.id}
+          examTitle={tutorItem.examTitle}
+          attemptNo={tutorItem.attemptNo}
+          isOpenControlled={Boolean(tutorItem)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setTutorItem(null);
+              setTargetQuestionNumber(null);
+            }
+          }}
+          initialQuestionNumber={targetQuestionNumber}
+        />
       )}
     </div>
   );

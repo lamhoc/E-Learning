@@ -10,6 +10,7 @@ import {
 import { getTeacherExamAnalytics } from '@/lib/teacher-exam-analytics';
 import { ExamAnalyticsClient } from '@/components/teacher/exam-analytics-client';
 import { ExamDraftActions } from '@/components/teacher/exam-draft-actions';
+import { ExamAnswerVisibilityToggle } from '@/components/teacher/exam-answer-visibility-toggle';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
@@ -123,6 +124,10 @@ export default async function TeacherExamAnalyticsPage({
                       Không yêu cầu Camera
                     </Badge>
                   )}
+                  <ExamAnswerVisibilityToggle
+                    examId={data.exam.id}
+                    initialShowAnswers={data.exam.showAnswersAfterSubmit}
+                  />
                 </div>
                 <h1 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
                   {data.exam.title}

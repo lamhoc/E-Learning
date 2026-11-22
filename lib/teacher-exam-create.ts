@@ -4,7 +4,7 @@ import 'server-only';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import type { BankQuestion, SubjectSummary } from '@/lib/question-bank';
-import { cleanExamInstructions, isAutoGradeEssay, isCameraRequired } from '@/lib/exam-auto-grade';
+import { cleanExamInstructions, isAutoGradeEssay, isCameraRequired, isShowAnswersAfterSubmit } from '@/lib/exam-auto-grade';
 
 export type TeacherClassSummary = {
   id: string;
@@ -25,6 +25,7 @@ export type DraftExamInitialData = {
   available_until: string | null;
   require_camera: boolean;
   auto_grade_essay: boolean;
+  show_answers_after_submit: boolean;
   status: 'draft' | 'published' | 'closed' | 'archived';
   selectedClassIds: string[];
   selectedQuestions: {
@@ -114,6 +115,7 @@ export async function getTeacherExamCreateData(editId?: string): Promise<Teacher
 
         const requireCamera = isCameraRequired(examData);
         const autoGradeEssay = isAutoGradeEssay(examData);
+        const showAnswersAfterSubmit = isShowAnswersAfterSubmit(examData);
         const instructionsClean = cleanExamInstructions(examData.instructions) || '';
 
         initialExam = {
@@ -127,6 +129,7 @@ export async function getTeacherExamCreateData(editId?: string): Promise<Teacher
           available_until: examData.available_until,
           require_camera: requireCamera,
           auto_grade_essay: autoGradeEssay,
+          show_answers_after_submit: showAnswersAfterSubmit,
           status: examData.status,
           selectedClassIds,
           selectedQuestions,

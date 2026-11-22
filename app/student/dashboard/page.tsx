@@ -10,9 +10,11 @@ import {
   CheckCircle2,
   ClipboardList,
   Clock3,
+  Eye,
   FileCheck2,
   FileText,
   GraduationCap,
+  Lock,
   Sparkles,
   Trophy,
 } from 'lucide-react';
@@ -387,6 +389,17 @@ async function StudentDashboardDataContent() {
                       ) : (
                         <Badge variant="outline" className="border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-[9px] px-1.5 py-0.5">
                           Không Camera
+                        </Badge>
+                      )}
+                      {exam.show_answers_after_submit !== false ? (
+                        <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[9px] font-semibold gap-1 px-1.5 py-0.5">
+                          <Eye className="size-2.5" />
+                          <span>Xem đáp án</span>
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-[9px] px-1.5 py-0.5">
+                          <Lock className="size-2.5 text-slate-400" />
+                          <span>Ẩn đáp án</span>
                         </Badge>
                       )}
                     </div>

@@ -1,6 +1,7 @@
 import { Trophy } from 'lucide-react';
 import { requireRole } from '@/lib/auth-cache';
 import { sanitizeVietnameseText } from '@/lib/utils';
+import { isShowAnswersAfterSubmit } from '@/lib/exam-auto-grade';
 import { ThemeToggle } from '@/components/theme-toggle';
 import {
   StudentResultsClient,
@@ -22,7 +23,7 @@ export default async function StudentResultsPage() {
       .from('exam_attempts')
       .select(`
         id, exam_id, attempt_no, started_at, submitted_at, status,
-        exam:exams(title, duration_minutes, subject:subjects(name)),
+        exam:exams(title, duration_minutes, instructions, show_answers_after_submit, subject:subjects(name)),
         result:attempt_results(total_score, objective_score, subjective_score, feedback, released_at)
       `)
       .eq('student_id', user.id)
@@ -50,6 +51,8 @@ export default async function StudentResultsPage() {
     exam: {
       title: string;
       duration_minutes: number;
+      instructions?: string | null;
+      show_answers_after_submit?: boolean | null;
       subject: { name: string } | { name: string }[] | null;
     } | null;
     result: {
@@ -99,6 +102,8 @@ export default async function StudentResultsPage() {
       subjectiveScore: subjectiveScoreNum,
       feedback: attempt.result?.feedback || null,
       isPassed,
+      showAnswersAfterSubmit: isShowAnswersAfterSubmit(rawExam),
+      releasedAt: attempt.result?.released_at || null,
     };
   });
 

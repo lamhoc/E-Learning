@@ -592,3 +592,45 @@
     + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 routes).
     + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
     + Cập nhật commit hash `21a9303` vào `.antigravity/plans/active.md`.
+
+- [ ] **Phase 67**: Thêm tính năng Bật/Tắt "Xem đáp án đúng/sai sau khi nộp bài" & Nâng cấp ngăn kéo "Gia sư AI chữa đề" hiển thị danh sách câu hỏi đã làm:
+  - [ ] **Mục tiêu 1 (Cấu hình Bật/Tắt xem đáp án ở Cổng Giảng viên & Migration DB)**:
+    + Tạo migration SQL `supabase/migrations/20261122_add_show_answers_after_submit_to_exams.sql` (`ALTER TABLE public.exams ADD COLUMN IF NOT EXISTS show_answers_after_submit BOOLEAN NOT NULL DEFAULT true`).
+    + Nâng cấp `lib/exam-auto-grade.ts`: Viết hàm `isShowAnswersAfterSubmit(exam)` (default `true` trừ khi `false` hoặc `[SHOW_ANSWERS:false]`), cập nhật `cleanExamInstructions` và `appendExamInstructionTags` xử lý cờ `[SHOW_ANSWERS:true/false]` cho Zero-Crash Fallback.
+    + Cập nhật `components/teacher/exam-create-form.tsx`: Thêm toggle switch "Cho phép học sinh xem đáp án đúng/sai sau khi nộp bài" kèm icon `Eye` và badge trạng thái. Hỗ trợ nạp lại khi chỉnh sửa bản nháp (`editId`).
+    + Cập nhật `app/teacher/exams/create/actions.ts`: Lưu `showAnswersAfterSubmit` với cơ chế 3 lần thử fallback an toàn, và thêm action `toggleExamAnswerVisibilityAction` để bật/tắt nhanh ngay trên trang chi tiết đề thi `/teacher/exams/[examId]`.
+    + Tạo component `ExamAnswerVisibilityToggle.tsx` trên trang `/teacher/exams/[examId]` cho phép giảng viên mở/khóa đáp án sau khi cả lớp thi xong.
+    + Thêm badge `👁️ Cho xem đáp án` / `🔒 Ẩn đáp án` tại danh sách đề thi giảng viên và sinh viên.
+  - [ ] **Mục tiêu 2 (Tính năng Xem chi tiết đáp án đúng/sai cho Sinh viên & Bảo mật Server-side)**:
+    + Cập nhật `lib/student-exam.ts`: Thêm `show_answers_after_submit` vào `StudentExamDetail`.
+    + Trong bảng "Lịch sử các lần làm bài" (`app/student/exams/[examId]/page.tsx`):
+      * Nếu `showAnswersAfterSubmit === true`: Thêm nút `👁️ Xem đáp án` (màu xanh dương/ngọc nổi bật) bên cạnh nút `✨ Hỏi gia sư AI`.
+      * Nếu `showAnswersAfterSubmit === false`: Hiển thị badge `🔒 Đáp án đang ẩn`.
+    + Xây dựng Component `ExamAnswerReviewModal.tsx`:
+      * Thanh tổng kết: Điểm tổng, số câu Làm đúng (xanh), Làm sai (đỏ), Chưa làm (xám).
+      * Bộ lọc nhanh: Tất cả, ❌ Câu làm sai, ✅ Câu làm đúng, 📝 Tự luận.
+      * Danh sách chi tiết từng câu (đúng thứ tự thí sinh đã làm với `shuffleExamQuestions`):
+        - Trắc nghiệm: 4 phương án A-B-C-D, đánh dấu rõ đáp án đã chọn (xanh nếu đúng, đỏ nếu sai), đánh dấu đáp án đúng kèm icon, giải thích chi tiết.
+        - Tự luận: bài làm học sinh, đáp án tham khảo/rubric, điểm đạt được, nhận xét của giảng viên.
+        - Nút `✨ Hỏi Gia sư AI câu này` liên kết trực tiếp sang ngăn kéo chữa đề.
+    + Tạo Server Action / API an toàn lấy chi tiết bài làm: Nếu `showAnswersAfterSubmit === false`, loại bỏ toàn bộ `correct_answer`, `is_correct`, `explanation`, `grading_rubric` trước khi trả về client.
+  - [ ] **Mục tiêu 3 (Nâng cấp toàn diện Ngăn kéo "Gia sư AI chữa đề" & Nạp danh sách câu hỏi thực tế)**:
+    + Nâng cấp Backend `lib/ai-exam-tutor.ts` và `app/api/student/exam-tutor/route.ts`:
+      * Hàm `getExamAttemptQuestions(examId, attemptId, isAllowedViewAnswers)`: Lấy toàn bộ câu hỏi của lượt thi (đúng thứ tự shuffle theo seed `attemptId`), bài làm học sinh, điểm số và đáp án đúng (chỉ khi được phép xem).
+      * Trả về danh sách câu hỏi trong phản hồi `action === 'initialize'`.
+      * Truyền toàn bộ câu hỏi (Câu 1 -> Câu N) vào System Prompt của AI.
+      * Quy tắc bảo mật: Nếu `showAnswers === true`, AI phân tích đáp án đúng và lý do sai. Nếu `showAnswers === false`, AI chỉ hướng dẫn phương pháp giải và công thức, tuyệt đối KHÔNG tiết lộ trực tiếp đáp án đúng.
+      * Định dạng trả lời: Trình bày chi tiết từng dòng, không xuất bảng Markdown, công thức KaTeX chuẩn đẹp.
+    + Nâng cấp Frontend `components/student/exam-tutor-drawer.tsx`:
+      * Mở rộng chiều rộng drawer (`w-full sm:w-[540px] lg:w-[620px]`).
+      * Khu vực Danh sách Câu hỏi Bài Thi: Thanh lọc nhanh (Tất cả, ❌ Câu làm sai), Lưới nút số câu hỏi (Câu 1, 2, ..., N) với màu sắc trực quan (🔴 Đỏ, 🟢 Xanh, ⚪ Xám).
+      * Tương tác 1 chạm: Bấm vào câu hỏi -> ghim câu hỏi đang hỏi hoặc tự động gửi câu hỏi giải thích chi tiết.
+      * Nút nhanh "Chữa toàn bộ các câu mình làm sai".
+      * Hỗ trợ focus ngay vào câu hỏi được chọn khi mở từ nút `✨ Hỏi Gia sư AI câu này` của Modal Xem đáp án.
+  - [ ] **Mục tiêu 4 (Kiểm thử thực tế, nghiệm thu & commit an toàn)**:
+    + Kiểm tra tạo đề BẬT và TẮT xem đáp án bên Giảng viên.
+    + Kiểm tra bật/tắt nhanh đáp án tại `/teacher/exams/[examId]`.
+    + Kiểm tra hiển thị nút "Xem đáp án" và ngăn kéo Gia sư AI bên Sinh viên.
+    + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 routes).
+    + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
+    + Cập nhật commit hash vào `.antigravity/plans/active.md`.

@@ -4,7 +4,7 @@ import { requireRole } from '@/lib/auth-cache';
 import { sanitizeVietnameseText } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { TeacherExamsClient, type ExamItem } from '@/components/teacher/teacher-exams-client';
-import { isCameraRequired, isAutoGradeEssay } from '@/lib/exam-auto-grade';
+import { isCameraRequired, isAutoGradeEssay, isShowAnswersAfterSubmit } from '@/lib/exam-auto-grade';
 
 export const metadata = {
   title: 'Quản lý Đề thi | Cổng Giảng viên LHU',
@@ -105,6 +105,7 @@ export default async function TeacherExamsPage() {
     const pendingAttempts = exam.exam_attempts?.filter((a) => a.status === 'pending_grading').length || 0;
     const requireCamera = isCameraRequired(exam);
     const autoGradeEssay = isAutoGradeEssay(exam);
+    const showAnswersAfterSubmit = isShowAnswersAfterSubmit(exam);
 
     return {
       id: exam.id,
@@ -121,6 +122,7 @@ export default async function TeacherExamsPage() {
       pendingAttempts,
       requireCamera,
       autoGradeEssay,
+      showAnswersAfterSubmit,
     };
   });
 

@@ -1,5 +1,6 @@
 import { sanitizeVietnameseText } from '@/lib/utils';
 import { isCameraRequired } from '@/lib/exam-camera';
+import { isShowAnswersAfterSubmit } from '@/lib/exam-auto-grade';
 import 'server-only';
 
 import { redirect } from 'next/navigation';
@@ -66,6 +67,7 @@ export type TeacherExamAnalyticsData = {
     essayCount: number;
     maxScore: number;
     requireCamera: boolean;
+    showAnswersAfterSubmit: boolean;
   };
   metrics: {
     totalGraded: number;
@@ -247,6 +249,7 @@ export async function getTeacherExamAnalytics(examId: string): Promise<TeacherEx
         essayCount: essayQuestions.length,
         maxScore,
         requireCamera: isCameraRequired(examRecord),
+        showAnswersAfterSubmit: isShowAnswersAfterSubmit(examRecord),
       },
       metrics: {
         totalGraded: 0,
@@ -682,6 +685,7 @@ export async function getTeacherExamAnalytics(examId: string): Promise<TeacherEx
       essayCount: essayQuestions.length,
       maxScore,
       requireCamera: isCameraRequired(examRecord),
+      showAnswersAfterSubmit: isShowAnswersAfterSubmit(examRecord),
     },
     metrics: {
       totalGraded,

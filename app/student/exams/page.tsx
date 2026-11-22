@@ -8,7 +8,9 @@ import {
   CheckCircle2,
   ClipboardList,
   Clock3,
+  Eye,
   GraduationCap,
+  Lock,
   Trophy,
   Zap,
 } from 'lucide-react';
@@ -120,6 +122,17 @@ function ExamCard({ exam }: { exam: StudentExam }) {
           ) : (
             <Badge variant="outline" className="border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-[10px]">
               <span>✍️ GV chấm tự luận</span>
+            </Badge>
+          )}
+          {exam.show_answers_after_submit !== false ? (
+            <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10px] font-semibold gap-1">
+              <Eye className="size-3" />
+              <span>Cho xem đáp án</span>
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] gap-1">
+              <Lock className="size-3 text-slate-400" />
+              <span>Ẩn đáp án</span>
             </Badge>
           )}
         </div>

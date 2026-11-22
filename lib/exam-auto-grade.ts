@@ -25,11 +25,26 @@ export function isCameraRequired(exam: {
   return false;
 }
 
+export function isShowAnswersAfterSubmit(exam: {
+  show_answers_after_submit?: boolean | null;
+  showAnswersAfterSubmit?: boolean | null;
+  instructions?: string | null;
+} | null | undefined): boolean {
+  if (!exam) return true;
+  // Nếu bị tắt rõ ràng bằng boolean false
+  if (exam.show_answers_after_submit === false || exam.showAnswersAfterSubmit === false) return false;
+  // Nếu bị tắt trong fallback instructions tag
+  if (exam.instructions && exam.instructions.includes('[SHOW_ANSWERS:false]')) return false;
+  // Mặc định luôn là true (cho phép xem đáp án sau khi nộp)
+  return true;
+}
+
 export function cleanExamInstructions(instructions: string | null | undefined): string | null {
   if (!instructions) return null;
   const cleaned = instructions
     .replace(/\[CAMERA_REQUIRED:(?:true|false)\]/gi, '')
     .replace(/\[AUTO_GRADE_ESSAY:(?:true|false)\]/gi, '')
+    .replace(/\[SHOW_ANSWERS:(?:true|false)\]/gi, '')
     .replace(/\[[A-Z0-9_]+:(?:true|false)\]/gi, '')
     .trim();
   return cleaned || null;
@@ -37,12 +52,14 @@ export function cleanExamInstructions(instructions: string | null | undefined): 
 
 export function appendExamInstructionTags(
   instructions: string | null | undefined,
-  flags: { requireCamera?: boolean; autoGradeEssay?: boolean }
+  flags: { requireCamera?: boolean; autoGradeEssay?: boolean; showAnswersAfterSubmit?: boolean }
 ): string {
   const cameraTag = flags.requireCamera ? '[CAMERA_REQUIRED:true]' : '[CAMERA_REQUIRED:false]';
   const autoGradeTag = flags.autoGradeEssay ? '[AUTO_GRADE_ESSAY:true]' : '[AUTO_GRADE_ESSAY:false]';
+  const showAnswers = flags.showAnswersAfterSubmit !== false;
+  const showAnswersTag = showAnswers ? '[SHOW_ANSWERS:true]' : '[SHOW_ANSWERS:false]';
   const base = cleanExamInstructions(instructions);
-  const tags = `${cameraTag} ${autoGradeTag}`;
+  const tags = `${cameraTag} ${autoGradeTag} ${showAnswersTag}`;
   return base ? `${base} ${tags}` : tags;
 }
 

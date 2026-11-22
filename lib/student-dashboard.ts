@@ -4,7 +4,7 @@ import { requireRole } from '@/lib/auth-cache';
 import { sanitizeVietnameseText } from '@/lib/utils';
 import type { ClassMaterialItem } from '@/lib/class-materials';
 import { getStudentAssignments, type StudentAssignmentItem } from '@/lib/assignments';
-import { isCameraRequired, cleanExamInstructions, isAutoGradeEssay } from '@/lib/exam-auto-grade';
+import { isCameraRequired, cleanExamInstructions, isAutoGradeEssay, isShowAnswersAfterSubmit } from '@/lib/exam-auto-grade';
 
 type Related<T> = T | T[] | null;
 
@@ -26,6 +26,7 @@ export type StudentExam = {
   available_until: string | null;
   require_camera?: boolean;
   auto_grade_essay?: boolean;
+  show_answers_after_submit?: boolean;
   subject: Related<{ name: string }>;
 };
 
@@ -147,6 +148,7 @@ export async function getStudentDashboardData(): Promise<StudentDashboardData> {
     instructions: cleanExamInstructions(exam.instructions),
     require_camera: isCameraRequired(exam),
     auto_grade_essay: isAutoGradeEssay(exam),
+    show_answers_after_submit: isShowAnswersAfterSubmit(exam),
   }));
 
   const openExams = exams.filter((exam) => {

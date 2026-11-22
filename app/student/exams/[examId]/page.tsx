@@ -7,10 +7,12 @@ import {
   Camera,
   CheckCircle2,
   Clock,
+  Eye,
   FileQuestion,
   GraduationCap,
   HelpCircle,
   History,
+  Lock,
   RotateCcw,
   ShieldAlert,
   Sparkles,
@@ -25,6 +27,7 @@ import { isCameraRequired, isAutoGradeEssay, cleanExamInstructions } from '@/lib
 import { ExamTakingClient } from '@/components/student/exam-taking-client';
 import { StartExamButton } from '@/components/student/start-exam-button';
 import { ExamTutorDrawer } from '@/components/student/exam-tutor-drawer';
+import { StudentExamHistoryTable } from '@/components/student/student-exam-history-table';
 
 type StudentExamPageProps = {
   params: Promise<{
@@ -100,6 +103,17 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
               ) : (
                 <Badge variant="outline" className="border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-xs">
                   <span>✍️ GV chấm tự luận</span>
+                </Badge>
+              )}
+              {exam.show_answers_after_submit !== false ? (
+                <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-xs font-semibold gap-1">
+                  <Eye className="size-3" />
+                  <span>Cho xem đáp án</span>
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-xs gap-1">
+                  <Lock className="size-3 text-slate-400" />
+                  <span>Ẩn đáp án</span>
                 </Badge>
               )}
             </div>
@@ -206,80 +220,11 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
               </span>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400">
-                    <th className="py-2.5 font-semibold">Lượt thi</th>
-                    <th className="py-2.5 font-semibold">Bắt đầu</th>
-                    <th className="py-2.5 font-semibold">Nộp bài</th>
-                    <th className="py-2.5 font-semibold">Trạng thái</th>
-                    <th className="py-2.5 text-right font-semibold">Điểm số</th>
-                    <th className="py-2.5 text-right font-semibold">Gia sư AI</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {attempts.map((att) => (
-                    <tr key={att.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
-                      <td className="py-3 font-bold text-slate-800 dark:text-slate-200">
-                        Lượt #{att.attempt_no}
-                      </td>
-                      <td className="py-3 text-slate-600 dark:text-slate-300">
-                        {new Intl.DateTimeFormat('vi-VN', {
-                          dateStyle: 'short',
-                          timeStyle: 'short',
-                        }).format(new Date(att.started_at))}
-                      </td>
-                      <td className="py-3 text-slate-600 dark:text-slate-300">
-                        {att.submitted_at
-                          ? new Intl.DateTimeFormat('vi-VN', {
-                              dateStyle: 'short',
-                              timeStyle: 'short',
-                            }).format(new Date(att.submitted_at))
-                          : '—'}
-                      </td>
-                      <td className="py-3">
-                        {att.status === 'completed' && (
-                          <Badge className="border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
-                            Đã chấm điểm
-                          </Badge>
-                        )}
-                        {att.status === 'pending_grading' && (
-                          <Badge className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
-                            Chờ chấm tự luận
-                          </Badge>
-                        )}
-                        {att.status === 'in_progress' && (
-                          <Badge className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300">
-                            Đang làm dở
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="py-3 text-right font-bold text-slate-900 dark:text-white">
-                        {att.total_score != null ? (
-                          <span className="text-emerald-700 dark:text-emerald-400 text-sm">
-                            {att.total_score.toLocaleString('vi-VN')}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 dark:text-slate-500">Chờ duyệt</span>
-                        )}
-                      </td>
-                      <td className="py-3 text-right">
-                        {att.released_at ? (
-                          <ExamTutorDrawer
-                            attemptId={att.id}
-                            examTitle={exam.title}
-                            attemptNo={att.attempt_no}
-                          />
-                        ) : (
-                          <span className="text-slate-400 dark:text-slate-600">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <StudentExamHistoryTable
+              attempts={attempts}
+              examTitle={exam.title}
+              showAnswersAfterSubmit={exam.show_answers_after_submit !== false}
+            />
           </section>
         )}
 
@@ -305,6 +250,23 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
                   </span>
                 </li>
               )}
+              <li className="flex items-start gap-2">
+                {exam.show_answers_after_submit !== false ? (
+                  <>
+                    <Eye className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
+                    <span>
+                      <strong className="text-slate-900 dark:text-white font-semibold">Xem chi tiết đáp án & lời giải:</strong> Sau khi nộp bài, bạn có thể xem lại từng câu hỏi, đối chiếu đáp án đúng/sai và nhận lời giải chi tiết từ hệ thống.
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="size-4 shrink-0 text-slate-500 mt-0.5" />
+                    <span>
+                      <strong className="text-slate-900 dark:text-white font-semibold">Khóa đáp án sau khi nộp:</strong> Để đảm bảo tính bảo mật của đề thi, hệ thống sẽ ẩn đáp án chi tiết và chỉ hiển thị tổng điểm số sau khi nộp.
+                    </span>
+                  </>
+                )}
+              </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
                 <span>
