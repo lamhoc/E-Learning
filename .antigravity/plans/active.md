@@ -572,3 +572,23 @@
     + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 routes).
     + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
     + Cập nhật commit hash `017739d` vào `.antigravity/plans/active.md`.
+
+- [x] **Phase 66 (Commit `21a9303`)**: Tự động chiếu toàn màn hình & ẩn hoàn toàn thanh Menu khi làm bài thi, tự động thoát Fullscreen khi nộp bài:
+  - [x] **Mục tiêu 1 (Ẩn hoàn toàn Sidebar & Topbar Shell trong lúc làm bài thi)**:
+    + Nâng cấp `StudentShell` (`components/student/student-shell.tsx`): Lắng nghe tín hiệu `exam-fullscreen-mode` để ẩn hoàn toàn `<aside>` Sidebar, `<header>` Topbar Mobile và Drawer khi đang làm bài.
+    + Bọc container phòng thi đang diễn ra trong `fixed inset-0 z-[100] w-screen h-screen overflow-y-auto bg-slate-50 dark:bg-[#09111E]`.
+    + Chỉ hiển thị Header riêng biệt của phòng thi (Logo LHU, tên đề, đồng hồ đếm ngược, nút nộp bài, ThemeToggle).
+  - [x] **Mục tiêu 2 (Tự động bật Fullscreen API khi bấm "Bắt đầu làm bài" & Lớp phủ khóa màn hình khi thoát Fullscreen)**:
+    + Xây dựng bộ hàm `enterFullscreenSafe()` và `exitFullscreenSafe()` hỗ trợ đa trình duyệt trong `lib/fullscreen.ts`.
+    + Kích hoạt Fullscreen ngay trong sự kiện `onClick` của nút "Bắt đầu làm bài".
+    + Xử lý F5 hoặc ấn `Esc`: Hiển thị Lớp phủ khóa màn hình (Fullscreen Lock Overlay) che mờ đề thi kèm cảnh báo và nút "🖥️ Vào chế độ Toàn màn hình để tiếp tục làm bài".
+  - [x] **Mục tiêu 3 (Tự động thoát Fullscreen & Hiện lại Menu khi nộp bài hoặc hết giờ)**:
+    + Trong hàm nộp bài `handleSubmitConfirm`, `handleForceSubmit` và `handleAutoSubmitOnTabViolation`: Gọi `await exitFullscreenSafe()`, chuyển `isSubmitted = true`, phát `active: false` và gỡ bỏ listener vi phạm.
+    + Sidebar và Shell hiển thị lại bình thường ở màn hình kết quả / điểm số.
+    + Cleanup khi unmount phòng thi: Gọi `exitFullscreenSafe()` và tắt cờ fullscreen.
+  - [x] **Mục tiêu 4 (Sửa lỗi hiển thị ký tự `\%` trong đề thi `20\%`, `50\%`...)**:
+    + Trong `components/ui/math-text.tsx`: Tự động thay thế `\%` thành `%` ngoài các khối công thức `$..$` / `$$..$$`.
+  - [x] **Mục tiêu 5 (Kiểm thử, nghiệm thu & commit an toàn)**:
+    + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 routes).
+    + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
+    + Cập nhật commit hash `21a9303` vào `.antigravity/plans/active.md`.
