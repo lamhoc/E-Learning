@@ -98,8 +98,8 @@ function getAttemptStatus(attempt: StudentAttempt): { label: string; className: 
 
 function ExamCard({ exam }: { exam: StudentExam }) {
   return (
-    <Card className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md border-emerald-200 dark:border-emerald-800/60 bg-white dark:bg-[#111C2D]">
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-3">
+    <Card className="h-full flex flex-col justify-between rounded-2xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md border-emerald-200 dark:border-emerald-800/60 bg-white dark:bg-[#111C2D]">
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 p-5 pb-3">
         <div className="flex flex-wrap items-center gap-1.5">
           <Badge className="border-primary/20 bg-primary/10 text-primary hover:bg-emerald-50">
             Đang mở thi
@@ -143,21 +143,23 @@ function ExamCard({ exam }: { exam: StudentExam }) {
           </span>
         )}
       </CardHeader>
-      <CardContent>
-        <h3 className="text-base font-bold text-slate-900 dark:text-white line-clamp-1">{exam.title}</h3>
-        <p className="mt-1 text-sm text-slate-500 font-medium">
-          {getRelatedName(exam.subject) || 'Môn học'}
-        </p>
-        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
-          <span className="inline-flex items-center gap-1">
-            <Clock3 aria-hidden="true" className="size-3.5" />
-            {exam.duration_minutes} phút
-          </span>
-          <span>Tối đa {exam.max_attempts} lượt</span>
+      <CardContent className="flex flex-1 flex-col justify-between p-5 pt-0">
+        <div>
+          <h3 className="text-base font-bold text-slate-900 dark:text-white line-clamp-2 min-h-[3rem]">{exam.title}</h3>
+          <p className="mt-1 text-sm text-slate-500 font-medium">
+            {getRelatedName(exam.subject) || 'Môn học'}
+          </p>
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
+            <span className="inline-flex items-center gap-1">
+              <Clock3 aria-hidden="true" className="size-3.5" />
+              {exam.duration_minutes} phút
+            </span>
+            <span>Tối đa {exam.max_attempts} lượt</span>
+          </div>
         </div>
         <Link
           href={`/student/exams/${exam.id}`}
-          className="mt-5 flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#17372e] px-3 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-[#20493e]"
+          className="mt-auto pt-4 flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#17372e] px-3 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-[#20493e]"
         >
           <span>Vào phòng thi</span>
           <ArrowRight className="size-4" />
@@ -231,7 +233,7 @@ export default async function StudentExamsPage() {
               <p className="mt-0.5 text-sm text-slate-500">Các đề thi trong lớp của bạn đang còn thời gian làm bài</p>
             </div>
             {data.openExams.length ? (
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 items-stretch">
                 {data.openExams.map((exam) => (
                   <ExamCard key={exam.id} exam={exam} />
                 ))}

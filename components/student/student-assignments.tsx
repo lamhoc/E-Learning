@@ -250,14 +250,14 @@ export function StudentAssignments({ assignments }: StudentAssignmentsProps) {
 
                   {/* Thông tin bài đã nộp */}
                   {submission && (
-                    <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg border border-slate-200 bg-slate-50/60 text-xs">
+                    <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/50 text-xs">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <FileCheck2 className="size-4 text-emerald-700 shrink-0" />
+                        <FileCheck2 className="size-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
                         <div className="min-w-0">
-                          <p className="font-semibold text-slate-800 truncate">
+                          <p className="font-semibold text-slate-800 dark:text-slate-100 truncate">
                             {submission.file_name}
                           </p>
-                          <p className="text-[11px] text-slate-500">
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400">
                             Nộp lúc: {formatDateTime(submission.submitted_at)}
                             {submission.file_size_bytes && ` · ${formatFileSize(submission.file_size_bytes)}`}
                           </p>

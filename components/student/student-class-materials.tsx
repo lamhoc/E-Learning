@@ -172,7 +172,7 @@ export function StudentClassMaterials({
 
       {/* Danh sách Tài liệu */}
       {filteredMaterials.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] py-14 text-center">
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] py-16 text-center">
           <FileCheck className="size-10 text-slate-300 dark:text-slate-600 stroke-[1.5]" />
           <p className="mt-2 text-sm font-medium text-slate-700 dark:text-slate-300">
             {classMaterials.length === 0
@@ -184,11 +184,11 @@ export function StudentClassMaterials({
           </p>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2 items-stretch">
           {filteredMaterials.map((item) => (
             <div
               key={item.id}
-              className="flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-4 transition hover:border-[#154C99]/50 hover:shadow-xs"
+              className="flex flex-col justify-between h-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-4 transition hover:border-[#154C99]/50 hover:shadow-xs"
             >
               <div className="space-y-2.5">
                 <div className="flex items-start justify-between gap-2">
@@ -208,7 +208,7 @@ export function StudentClassMaterials({
                 </div>
 
                 <div>
-                  <h4 className="font-bold text-slate-900 dark:text-white text-sm line-clamp-1">{item.title}</h4>
+                  <h4 className="font-bold text-slate-900 dark:text-white text-sm line-clamp-2 min-h-[2.5rem]">{item.title}</h4>
                   {item.description && (
                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
                       {item.description}
@@ -217,7 +217,7 @@ export function StudentClassMaterials({
                 </div>
               </div>
 
-              <div className="mt-4 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 pt-3">
+              <div className="mt-auto pt-3 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80">
                 <span className="text-[11px] text-slate-400 dark:text-slate-500">
                   {formatDate(item.createdAt)}
                 </span>

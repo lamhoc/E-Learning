@@ -634,3 +634,35 @@
     + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 routes).
     + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
     + Cập nhật commit hash `4d66a53` vào `.antigravity/plans/active.md`.
+
+- [ ] **Phase 68**: Chuẩn hóa đều 100% chiều cao thẻ, căn lề & bố cục lưới trên mọi giao diện, mọi trang (Admin, Giảng viên, Học sinh):
+  - [ ] **Mục tiêu 1 (Khắc phục nguyên nhân gốc rễ & Quy tắc chuẩn hóa Grid / Card Equalization Rules)**:
+    + Áp dụng `items-stretch` trên mọi container `grid` chứa các thẻ cùng hàng.
+    + Thẻ con trực tiếp (`<Link>`, `<button>`, `<div>`): Bắt buộc `block h-full w-full text-left`.
+    + Khối `Card`: `h-full flex flex-col justify-between` với `CardContent` có `flex-1 flex flex-col justify-between`.
+    + Chân thẻ (Buttons, Links): Bắt buộc đặt `mt-auto pt-3` hoặc `mt-auto pt-4` để căn thẳng hàng ngang 100%.
+    + Chuẩn hóa khung icon không bị chói trắng trong Dark Mode (dùng `bg-...-500/15 text-... dark:text-...`).
+  - [ ] **Mục tiêu 2 (Chuẩn hóa toàn diện Phân hệ Sinh viên `/student/**`)**:
+    + `/student/dashboard`: 4 thẻ KPI đầu trang bằng nhau 100% (`min-h-[132px]`), sửa màu nền icon Dark Mode; 5 thẻ `KHU VỰC HỌC TẬP` đều hàng, chân thẻ thẳng tắp; 3 thẻ `Đề thi đang mở` chân nút thẳng hàng.
+    + `/student/classes`: Lưới thẻ lớp học dùng `items-stretch`, `h-full`, `min-h-[3rem]` cho tiêu đề, chân nút `mt-auto`.
+    + `/student/exams`: Lưới thẻ đề thi dùng `items-stretch`, `h-full flex flex-col justify-between`, nút "Vào phòng thi" `mt-auto`.
+    + `/student/materials`: Khung tìm kiếm, chọn lớp, thẻ tài liệu đều hàng.
+    + `/student/assignments`: Thẻ bài tập học sinh, nút nộp bài, huy hiệu trạng thái.
+    + `/student/results`: 4 thẻ thống kê đầu trang, lưới thẻ kết quả đề thi `items-stretch`, cụm nút `mt-auto pt-4`.
+  - [ ] **Mục tiêu 3 (Chuẩn hóa toàn diện Phân hệ Giảng viên `/teacher/**`)**:
+    + `/teacher/dashboard`: 5 thẻ KPI đầu trang bằng nhau 100%; 8 ô `Thao tác nhanh` đều nhau (`h-full min-h-[104px]`, label `min-h-[2.5rem]`).
+    + `/teacher/subjects`: 3 thẻ KPI đầu trang, lưới thẻ môn học `items-stretch` + `CardFooter` `mt-auto`.
+    + `/teacher/classes`: 3 thẻ KPI đầu trang, lưới thẻ lớp học `items-stretch` + `mt-auto` cho cụm nút.
+    + `/teacher/exams`: 4 thẻ KPI đầu trang (`TỔNG ĐỀ THI`, `ĐÃ PHÁT HÀNH`, `BẢN NHÁP`, `ĐÃ ĐÓNG / LƯU TRỮ`) bằng nhau 100%; Lưới thẻ đề thi `items-stretch` + cụm nút chân thẻ `mt-auto pt-3`.
+    + `/teacher/materials`: 4 thẻ KPI đầu trang, thẻ tài liệu đều hàng.
+    + `/teacher/assignments`: 4 thẻ KPI đầu trang, lưới thẻ bài tập `items-stretch` + nút chấm bài `mt-auto`.
+    + `/teacher/questions` & `/teacher/ai-generator`: 4 ô phương án A, B, C, D trong lưới 2x2 dùng `items-stretch` và `h-full`.
+  - [ ] **Mục tiêu 4 (Chuẩn hóa toàn diện Phân hệ Quản trị viên `/admin/**`)**:
+    + `/admin`: Thống kê hệ thống, 2 thẻ quản trị lớn chuẩn EdTech (`items-stretch`, `h-full flex flex-col justify-between`).
+    + `/admin/teacher-access`: Thẻ KPI đầu trang bằng nhau 100%.
+    + `/admin/student-management`: 3 thẻ KPI đầu trang bằng nhau 100%.
+    + `/admin/subjects`: 3 thẻ KPI đầu trang bằng nhau 100%, thanh công cụ tìm kiếm và nút thêm mới đồng bộ chiều cao `h-10`.
+  - [ ] **Mục tiêu 5 (Kiểm thử thực tế, nghiệm thu & commit an toàn)**:
+    + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 routes).
+    + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
+    + Cập nhật commit hash vào `.antigravity/plans/active.md`.

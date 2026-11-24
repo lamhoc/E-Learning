@@ -77,10 +77,10 @@ export default async function TeacherClassesPage() {
       </div>
 
         {/* Metrics Overview */}
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
-            <CardContent className="flex items-center gap-4 p-5">
-              <div className="grid size-12 place-items-center rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+        <div className="mt-8 grid gap-4 sm:grid-cols-3 items-stretch">
+          <Card className="h-full flex flex-col justify-between rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
+            <CardContent className="h-full flex items-center gap-4 p-5">
+              <div className="grid size-12 place-items-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
                 <GraduationCap className="size-6" />
               </div>
               <div>
@@ -95,9 +95,9 @@ export default async function TeacherClassesPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
-            <CardContent className="flex items-center gap-4 p-5">
-              <div className="grid size-12 place-items-center rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400">
+          <Card className="h-full flex flex-col justify-between rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
+            <CardContent className="h-full flex items-center gap-4 p-5">
+              <div className="grid size-12 place-items-center rounded-xl bg-sky-500/15 text-sky-600 dark:text-sky-400">
                 <Users className="size-6" />
               </div>
               <div>
@@ -112,9 +112,9 @@ export default async function TeacherClassesPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
-            <CardContent className="flex items-center gap-4 p-5">
-              <div className="grid size-12 place-items-center rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+          <Card className="h-full flex flex-col justify-between rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
+            <CardContent className="h-full flex items-center gap-4 p-5">
+              <div className="grid size-12 place-items-center rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
                 <Layers className="size-6" />
               </div>
               <div>
@@ -158,7 +158,7 @@ export default async function TeacherClassesPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
               {data.classes.map((cls) => {
                 const count = studentCountMap.get(cls.id) || 0;
                 const subjectTitle = getSubjectName(cls.subject) || 'Môn học chung';
@@ -166,7 +166,7 @@ export default async function TeacherClassesPage() {
                 return (
                   <Card
                     key={cls.id}
-                    className="group flex flex-col justify-between border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] transition-all hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-md"
+                    className="group flex flex-col justify-between h-full rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] transition-all hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-md"
                   >
                     <CardHeader className="p-5 pb-3">
                       <div className="flex items-start justify-between gap-2">
@@ -184,7 +184,7 @@ export default async function TeacherClassesPage() {
                         </Badge>
                       </div>
 
-                      <CardTitle className="mt-3 text-base font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                      <CardTitle className="mt-3 text-base font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2 min-h-[3rem]">
                         {cls.name}
                       </CardTitle>
                       <CardDescription className="text-xs font-medium text-slate-600 dark:text-slate-300">
@@ -192,7 +192,7 @@ export default async function TeacherClassesPage() {
                       </CardDescription>
                     </CardHeader>
 
-                    <CardContent className="p-5 pt-0">
+                    <CardContent className="p-5 pt-0 flex-1 flex flex-col justify-between">
                       <div className="flex items-center gap-2 border-y border-slate-100 dark:border-slate-800/80 py-3 text-xs text-slate-600 dark:text-slate-300">
                         <Users className="size-4 text-emerald-600 dark:text-emerald-400" />
                         <span>
@@ -200,7 +200,7 @@ export default async function TeacherClassesPage() {
                         </span>
                       </div>
 
-                      <div className="mt-4 flex flex-wrap gap-2">
+                      <div className="mt-auto pt-4 flex flex-wrap gap-2">
                         <Link
                           href={`/teacher/classes/${cls.id}`}
                           className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition"

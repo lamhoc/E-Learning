@@ -115,47 +115,47 @@ export function StudentTableClient({
   return (
     <div className="space-y-6">
       {/* 3 Metric Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 items-stretch">
         {/* Card 1: Tổng sinh viên */}
-        <Card className="border-slate-200 dark:border-slate-800 shadow-xs bg-white dark:bg-[#111C2D]">
-          <CardContent className="p-4 sm:p-5 flex items-center justify-between">
+        <Card className="h-full flex flex-col justify-between rounded-2xl border-slate-200 dark:border-slate-800 shadow-xs bg-white dark:bg-[#111C2D]">
+          <CardContent className="h-full p-4 sm:p-5 flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Tổng sinh viên
               </p>
               <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{totalCount}</p>
             </div>
-            <div className="grid size-11 place-items-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+            <div className="grid size-11 place-items-center rounded-xl bg-slate-500/15 text-slate-700 dark:text-slate-300">
               <Users className="size-5" />
             </div>
           </CardContent>
         </Card>
 
         {/* Card 2: Đang hoạt động */}
-        <Card className="border-emerald-200/80 dark:border-emerald-800/60 shadow-xs bg-emerald-50/70 dark:bg-emerald-950/30">
-          <CardContent className="p-4 sm:p-5 flex items-center justify-between">
+        <Card className="h-full flex flex-col justify-between rounded-2xl border-emerald-200/80 dark:border-emerald-800/60 shadow-xs bg-emerald-50/70 dark:bg-emerald-950/30">
+          <CardContent className="h-full p-4 sm:p-5 flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider">
                 Đang hoạt động
               </p>
               <p className="mt-1 text-2xl font-bold text-emerald-950 dark:text-emerald-300">{activeCount}</p>
             </div>
-            <div className="grid size-11 place-items-center rounded-xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200">
+            <div className="grid size-11 place-items-center rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
               <UserCheck className="size-5" />
             </div>
           </CardContent>
         </Card>
 
         {/* Card 3: Đang bị khóa */}
-        <Card className="border-rose-200/80 dark:border-rose-800/60 shadow-xs bg-rose-50/70 dark:bg-rose-950/30">
-          <CardContent className="p-4 sm:p-5 flex items-center justify-between">
+        <Card className="h-full flex flex-col justify-between rounded-2xl border-rose-200/80 dark:border-rose-800/60 shadow-xs bg-rose-50/70 dark:bg-rose-950/30">
+          <CardContent className="h-full p-4 sm:p-5 flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-rose-800 dark:text-rose-400 uppercase tracking-wider">
                 Đang bị khóa
               </p>
               <p className="mt-1 text-2xl font-bold text-rose-950 dark:text-rose-300">{blockedCount}</p>
             </div>
-            <div className="grid size-11 place-items-center rounded-xl bg-rose-100 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200">
+            <div className="grid size-11 place-items-center rounded-xl bg-rose-500/15 text-rose-700 dark:text-rose-400">
               <UserX className="size-5" />
             </div>
           </CardContent>

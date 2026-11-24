@@ -29,24 +29,26 @@ function getRelatedName(relation: { name: string } | { name: string }[] | null |
 
 function ClassCard({ classItem }: { classItem: StudentClass }) {
   return (
-    <Card className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
-      <CardHeader className="flex flex-row items-start justify-between gap-3 pb-3">
-        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400">
+    <Card className="h-full flex flex-col justify-between rounded-2xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
+      <CardHeader className="flex flex-row items-start justify-between gap-3 p-5 pb-3">
+        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
           <BookOpen aria-hidden="true" className="size-5" />
         </span>
         <Badge variant="outline" className="border-emerald-200 dark:border-emerald-700/60 bg-emerald-50/60 dark:bg-emerald-950/40 font-mono text-emerald-800 dark:text-emerald-300 text-xs">
           {classItem.class_code}
         </Badge>
       </CardHeader>
-      <CardContent>
-        <h3 className="text-base font-bold text-slate-900 dark:text-white line-clamp-1">{classItem.name}</h3>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300 font-medium">
-          {getRelatedName(classItem.subject) || 'Môn học đại cương'}
-        </p>
-        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-          Năm học: {classItem.academic_year}
-        </p>
-        <div className="mt-5 flex items-center gap-2 border-t border-slate-100 dark:border-slate-800 pt-4">
+      <CardContent className="flex flex-1 flex-col justify-between p-5 pt-0">
+        <div>
+          <h3 className="text-base font-bold text-slate-900 dark:text-white line-clamp-2 min-h-[3rem]">{classItem.name}</h3>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300 font-medium">
+            {getRelatedName(classItem.subject) || 'Môn học đại cương'}
+          </p>
+          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+            Năm học: {classItem.academic_year}
+          </p>
+        </div>
+        <div className="mt-auto pt-4 flex items-center gap-2 border-t border-slate-100 dark:border-slate-800">
           <Link
             href="/student/materials"
             className={buttonVariants({
@@ -132,7 +134,7 @@ export default async function StudentClassesPage() {
           </section>
 
           {data.classes.length ? (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 items-stretch">
               {data.classes.map((classItem) => (
                 <ClassCard key={classItem.id} classItem={classItem} />
               ))}

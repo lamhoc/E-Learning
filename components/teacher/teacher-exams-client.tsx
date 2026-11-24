@@ -229,10 +229,10 @@ export function TeacherExamsClient({ exams }: Props) {
       )}
 
       {/* Metric Cards */}
-      <div className="grid gap-4 sm:grid-cols-4">
-        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="grid size-12 place-items-center rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+      <div className="grid gap-4 sm:grid-cols-4 items-stretch">
+        <Card className="h-full flex flex-col justify-between rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
+          <CardContent className="h-full flex items-center gap-4 p-5">
+            <div className="grid size-12 place-items-center rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400">
               <FileCheck className="size-6" />
             </div>
             <div>
@@ -245,9 +245,9 @@ export function TeacherExamsClient({ exams }: Props) {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="grid size-12 place-items-center rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+        <Card className="h-full flex flex-col justify-between rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
+          <CardContent className="h-full flex items-center gap-4 p-5">
+            <div className="grid size-12 place-items-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
               <FileCheck className="size-6" />
             </div>
             <div>
@@ -427,11 +427,11 @@ export function TeacherExamsClient({ exams }: Props) {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
           {filteredExams.map((exam) => (
             <Card
               key={exam.id}
-              className="group flex flex-col justify-between border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] transition-all hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-md"
+              className="group flex flex-col justify-between h-full rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] transition-all hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-md"
             >
               <CardHeader className="p-5 pb-3">
                 <div className="flex items-start justify-between gap-2">
@@ -477,7 +477,7 @@ export function TeacherExamsClient({ exams }: Props) {
                   {getStatusBadge(exam.status)}
                 </div>
 
-                <CardTitle className="mt-3 text-base font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
+                <CardTitle className="mt-3 text-base font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2 min-h-[3rem]">
                   {exam.title}
                 </CardTitle>
                 <CardDescription className="text-xs text-slate-600 dark:text-slate-300">
@@ -485,7 +485,7 @@ export function TeacherExamsClient({ exams }: Props) {
                 </CardDescription>
               </CardHeader>
 
-              <CardContent className="p-5 pt-0">
+              <CardContent className="p-5 pt-0 flex-1 flex flex-col justify-between">
                 <div className="space-y-2 border-y border-slate-100 dark:border-slate-800/80 py-3 text-xs text-slate-600 dark:text-slate-300">
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-1.5">
@@ -520,7 +520,7 @@ export function TeacherExamsClient({ exams }: Props) {
 
                 {/* Khu vực nút thao tác: Tùy biến linh hoạt cho Bản nháp vs Đã phát hành */}
                 {exam.status === 'draft' ? (
-                  <div className="mt-4 space-y-2">
+                  <div className="mt-auto pt-4 space-y-2">
                     <div className="flex items-center gap-2">
                       <Link
                         href={`/teacher/exams/create?editId=${exam.id}`}
@@ -572,7 +572,7 @@ export function TeacherExamsClient({ exams }: Props) {
                     </div>
                   </div>
                 ) : (
-                  <div className="mt-4 flex items-center gap-2">
+                  <div className="mt-auto pt-4 flex items-center gap-2">
                     <Link
                       href={`/teacher/exams/${exam.id}`}
                       className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition"

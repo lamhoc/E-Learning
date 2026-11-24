@@ -101,9 +101,9 @@ export default async function TeacherSubjectsPage() {
           )}
 
           {/* Quick Metrics Bar */}
-          <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Card className="rounded-2xl border-border bg-card dark:bg-[#111C2D] shadow-xs">
-              <CardContent className="flex items-center gap-4 p-5">
+          <section className="grid grid-cols-1 gap-4 sm:grid-cols-3 items-stretch">
+            <Card className="rounded-2xl border-border bg-card dark:bg-[#111C2D] shadow-xs h-full flex flex-col justify-between">
+              <CardContent className="flex items-center gap-4 p-5 h-full">
                 <span className="grid size-11 place-items-center rounded-xl bg-primary/10 text-primary">
                   <BookOpen className="size-5" />
                 </span>
@@ -116,8 +116,8 @@ export default async function TeacherSubjectsPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border-border bg-card dark:bg-[#111C2D] shadow-xs">
-              <CardContent className="flex items-center gap-4 p-5">
+            <Card className="rounded-2xl border-border bg-card dark:bg-[#111C2D] shadow-xs h-full flex flex-col justify-between">
+              <CardContent className="flex items-center gap-4 p-5 h-full">
                 <span className="grid size-11 place-items-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
                   <Users className="size-5" />
                 </span>
@@ -130,8 +130,8 @@ export default async function TeacherSubjectsPage() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border-border bg-card dark:bg-[#111C2D] shadow-xs">
-              <CardContent className="flex items-center gap-4 p-5">
+            <Card className="rounded-2xl border-border bg-card dark:bg-[#111C2D] shadow-xs h-full flex flex-col justify-between">
+              <CardContent className="flex items-center gap-4 p-5 h-full">
                 <span className="grid size-11 place-items-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
                   <LibraryBig className="size-5" />
                 </span>
@@ -168,11 +168,11 @@ export default async function TeacherSubjectsPage() {
               </div>
             </Card>
           ) : (
-            <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+            <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 items-stretch">
               {data.subjects.map((subject) => (
                 <Card
                   key={subject.id}
-                  className="flex flex-col justify-between rounded-2xl border-border bg-card dark:bg-[#111C2D] shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:shadow-md"
+                  className="flex flex-col justify-between h-full rounded-2xl border-border bg-card dark:bg-[#111C2D] shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:shadow-md"
                 >
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between gap-2">
@@ -191,7 +191,7 @@ export default async function TeacherSubjectsPage() {
                     </CardDescription>
                   </CardHeader>
 
-                  <CardContent className="space-y-4 pt-0">
+                  <CardContent className="space-y-4 pt-0 flex-1 flex flex-col justify-between">
                     <div className="grid grid-cols-3 gap-2 rounded-xl bg-muted/40 p-3 text-center border border-border/60">
                       <div>
                         <p className="text-[11px] font-medium text-muted-foreground">Lớp học</p>
@@ -232,7 +232,7 @@ export default async function TeacherSubjectsPage() {
                     )}
                   </CardContent>
 
-                  <CardFooter className="flex flex-col gap-2 border-t border-border pt-4">
+                  <CardFooter className="flex flex-col gap-2 border-t border-border pt-4 mt-auto">
                     <Link
                       href={`/teacher/questions?subject=${subject.id}`}
                       className={buttonVariants({

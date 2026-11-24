@@ -311,10 +311,10 @@ export function SubjectsManagerClient({
       )}
 
       {/* Metric Cards Banner */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 items-stretch">
         {/* Metric 1: Tổng số môn học */}
-        <Card className="border border-border/80 shadow-xs bg-card dark:bg-[#111C2D]">
-          <CardContent className="p-5 flex items-center justify-between">
+        <Card className="h-full flex flex-col justify-between rounded-2xl border border-border/80 shadow-xs bg-card dark:bg-[#111C2D]">
+          <CardContent className="h-full p-5 flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Tổng số môn học
@@ -335,8 +335,8 @@ export function SubjectsManagerClient({
         </Card>
 
         {/* Metric 2: Giảng viên được phân môn */}
-        <Card className="border border-border/80 shadow-xs bg-card dark:bg-[#111C2D]">
-          <CardContent className="p-5 flex items-center justify-between">
+        <Card className="h-full flex flex-col justify-between rounded-2xl border border-border/80 shadow-xs bg-card dark:bg-[#111C2D]">
+          <CardContent className="h-full p-5 flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 GV đã phân môn
@@ -357,8 +357,8 @@ export function SubjectsManagerClient({
         </Card>
 
         {/* Metric 3: Tổng số lớp đang mở */}
-        <Card className="border border-border/80 shadow-xs bg-card dark:bg-[#111C2D]">
-          <CardContent className="p-5 flex items-center justify-between">
+        <Card className="h-full flex flex-col justify-between rounded-2xl border border-border/80 shadow-xs bg-card dark:bg-[#111C2D]">
+          <CardContent className="h-full p-5 flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Tổng lớp học đang mở

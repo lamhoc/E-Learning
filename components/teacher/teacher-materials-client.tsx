@@ -207,10 +207,10 @@ export function TeacherMaterialsClient({
   return (
     <div className="space-y-6">
       {/* ── 1. THẺ THỐNG KÊ ĐẦU TRANG ── */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs">
-          <CardContent className="flex items-center gap-3.5 p-4 sm:p-5">
-            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-blue-50 text-[#154C99] dark:bg-blue-950/40 dark:text-blue-400">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
+        <Card className="h-full flex flex-col justify-between rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs">
+          <CardContent className="h-full flex items-center gap-3.5 p-4 sm:p-5">
+            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400">
               <FileText className="size-5" />
             </span>
             <div>
@@ -224,9 +224,9 @@ export function TeacherMaterialsClient({
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs">
-          <CardContent className="flex items-center gap-3.5 p-4 sm:p-5">
-            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
+        <Card className="h-full flex flex-col justify-between rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs">
+          <CardContent className="h-full flex items-center gap-3.5 p-4 sm:p-5">
+            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
               <GraduationCap className="size-5" />
             </span>
             <div>
@@ -240,9 +240,9 @@ export function TeacherMaterialsClient({
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs">
-          <CardContent className="flex items-center gap-3.5 p-4 sm:p-5">
-            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400">
+        <Card className="h-full flex flex-col justify-between rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs">
+          <CardContent className="h-full flex items-center gap-3.5 p-4 sm:p-5">
+            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400">
               <FileUp className="size-5" />
             </span>
             <div>
@@ -256,9 +256,9 @@ export function TeacherMaterialsClient({
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs">
-          <CardContent className="flex items-center gap-3.5 p-4 sm:p-5">
-            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400">
+        <Card className="h-full flex flex-col justify-between rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs">
+          <CardContent className="h-full flex items-center gap-3.5 p-4 sm:p-5">
+            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
               <Video className="size-5" />
             </span>
             <div>

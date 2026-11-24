@@ -103,10 +103,10 @@ function MetricCard({
   tone: 'green' | 'orange' | 'blue' | 'yellow';
 }) {
   const toneClasses = {
-    green: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300',
-    orange: 'bg-orange-50 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300',
-    blue: 'bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300',
-    yellow: 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300',
+    green: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
+    orange: 'bg-orange-500/15 text-orange-600 dark:text-orange-400',
+    blue: 'bg-sky-500/15 text-sky-600 dark:text-sky-400',
+    yellow: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
   };
   const valueTone = {
     green: 'text-emerald-700 dark:text-emerald-400',
@@ -116,8 +116,8 @@ function MetricCard({
   };
 
   return (
-    <Card className="group h-full border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-      <CardContent className="flex h-full flex-col justify-between p-5">
+    <Card className="group h-full flex flex-col justify-between rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+      <CardContent className="flex min-h-[132px] h-full flex-col justify-between p-5">
         <div className="flex items-start justify-between gap-3">
           <p className="text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-200 leading-snug">
             {label}
@@ -128,11 +128,11 @@ function MetricCard({
             <Icon aria-hidden="true" className="size-5" />
           </span>
         </div>
-        <div className="mt-3">
+        <div className="mt-auto pt-2">
           <p className={`text-3xl font-bold tabular-nums tracking-tight ${valueTone[tone]}`}>
             {value}
           </p>
-          <p className="mt-1 text-xs leading-4 text-slate-600 dark:text-slate-300 line-clamp-2 min-h-[32px] flex items-center">
+          <p className="mt-1 text-xs leading-4 text-slate-600 dark:text-slate-300 line-clamp-2">
             {detail}
           </p>
         </div>
@@ -279,7 +279,7 @@ async function TeacherDashboardDataContent() {
 
       {/* ── Metric cards (Bento Grid) ── */}
       <section aria-label="Chỉ số giảng dạy" className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 items-stretch">
-        <Link href="/teacher/classes" className="block h-full transition hover:opacity-95">
+        <Link href="/teacher/classes" className="block h-full w-full text-left transition hover:opacity-95">
           <MetricCard
             label="Lớp đang phụ trách"
             value={data.classCount.toLocaleString('vi-VN')}
@@ -288,14 +288,16 @@ async function TeacherDashboardDataContent() {
             tone="green"
           />
         </Link>
-        <MetricCard
-          label="Lượt ghi danh"
-          value={data.enrollmentCount.toLocaleString('vi-VN')}
-          detail="Trên các lớp của bạn"
-          icon={Users}
-          tone="orange"
-        />
-        <Link href="/teacher/questions" className="block h-full transition hover:opacity-95">
+        <div className="h-full w-full">
+          <MetricCard
+            label="Lượt ghi danh"
+            value={data.enrollmentCount.toLocaleString('vi-VN')}
+            detail="Trên các lớp của bạn"
+            icon={Users}
+            tone="orange"
+          />
+        </div>
+        <Link href="/teacher/questions" className="block h-full w-full text-left transition hover:opacity-95">
           <MetricCard
             label="Câu hỏi trong kho"
             value={data.questionCount.toLocaleString('vi-VN')}
@@ -304,7 +306,7 @@ async function TeacherDashboardDataContent() {
             tone="blue"
           />
         </Link>
-        <Link href="/teacher/exams" className="block h-full transition hover:opacity-95">
+        <Link href="/teacher/exams" className="block h-full w-full text-left transition hover:opacity-95">
           <MetricCard
             label="Đề đã phát hành"
             value={data.publishedExamCount.toLocaleString('vi-VN')}
@@ -313,7 +315,7 @@ async function TeacherDashboardDataContent() {
             tone="yellow"
           />
         </Link>
-        <Link href="/teacher/grading" className="block h-full transition hover:opacity-95">
+        <Link href="/teacher/grading" className="block h-full w-full text-left transition hover:opacity-95">
           <MetricCard
             label="Bài chờ chấm"
             value={data.pendingGradingCount.toLocaleString('vi-VN')}
@@ -746,23 +748,23 @@ export default async function TeacherDashboardPage() {
             <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-400">
               Thao tác nhanh
             </p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-8">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-8 items-stretch">
               {QUICK_ACTIONS.map((action) => {
                 const Icon = action.icon;
                 return (
                   <Link
                     key={action.label}
                     href={action.href}
-                    className={`group flex flex-col items-center gap-2.5 rounded-2xl border p-4 text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm ${action.color}`}
+                    className={`group flex flex-col items-center justify-between h-full min-h-[104px] rounded-2xl border p-4 text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm ${action.color}`}
                   >
                     <span
                       className={`grid size-9 place-items-center rounded-xl shadow-sm transition-transform group-hover:scale-105 ${action.iconBg}`}
                     >
                       <Icon className="size-4" />
                     </span>
-                    <span>
-                      <span className="block text-sm font-bold text-slate-900 dark:text-white">{action.label}</span>
-                      <span className="mt-0.5 block text-xs font-medium text-slate-600 dark:text-slate-300">{action.desc}</span>
+                    <span className="flex-1 flex flex-col justify-center">
+                      <span className="block text-sm font-bold text-slate-900 dark:text-white line-clamp-1">{action.label}</span>
+                      <span className="mt-0.5 block text-xs font-medium text-slate-600 dark:text-slate-300 line-clamp-1">{action.desc}</span>
                     </span>
                   </Link>
                 );

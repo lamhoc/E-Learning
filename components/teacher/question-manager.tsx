@@ -504,13 +504,13 @@ export function QuestionManager({
 
                   {/* Multiple Choice Options List */}
                   {isMC && q.options && q.options.length > 0 && (
-                    <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="grid gap-2 sm:grid-cols-2 items-stretch">
                       {q.options.map((opt) => {
                         const isCorrect = opt.option_key === correctKey;
                         return (
                           <div
                             key={opt.option_key}
-                            className={`flex items-start gap-2.5 rounded-lg border p-2.5 text-xs transition ${
+                            className={`flex h-full items-start gap-2.5 rounded-lg border p-2.5 text-xs transition ${
                               isCorrect
                                 ? 'border-[#246348] dark:border-emerald-700 bg-[#eef6f1] dark:bg-emerald-950/50 text-[#1b4e38] dark:text-emerald-200'
                                 : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-200'

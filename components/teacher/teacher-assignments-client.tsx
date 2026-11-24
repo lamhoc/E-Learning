@@ -213,10 +213,10 @@ export function TeacherAssignmentsClient({
   return (
     <div className="space-y-6">
       {/* ── 1. THỐNG KÊ ĐẦU TRANG ── */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs">
-          <CardContent className="flex items-center gap-3.5 p-4 sm:p-5">
-            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-blue-50 text-[#154C99] dark:bg-blue-950/40 dark:text-blue-400">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
+        <Card className="h-full flex flex-col justify-between rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs">
+          <CardContent className="h-full flex items-center gap-3.5 p-4 sm:p-5">
+            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400">
               <ClipboardList className="size-5" />
             </span>
             <div>
@@ -230,9 +230,9 @@ export function TeacherAssignmentsClient({
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs">
-          <CardContent className="flex items-center gap-3.5 p-4 sm:p-5">
-            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400">
+        <Card className="h-full flex flex-col justify-between rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs">
+          <CardContent className="h-full flex items-center gap-3.5 p-4 sm:p-5">
+            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
               <PenTool className="size-5" />
             </span>
             <div>
@@ -246,9 +246,9 @@ export function TeacherAssignmentsClient({
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs">
-          <CardContent className="flex items-center gap-3.5 p-4 sm:p-5">
-            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
+        <Card className="h-full flex flex-col justify-between rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs">
+          <CardContent className="h-full flex items-center gap-3.5 p-4 sm:p-5">
+            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="size-5" />
             </span>
             <div>
@@ -262,9 +262,9 @@ export function TeacherAssignmentsClient({
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs">
-          <CardContent className="flex items-center gap-3.5 p-4 sm:p-5">
-            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400">
+        <Card className="h-full flex flex-col justify-between rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs">
+          <CardContent className="h-full flex items-center gap-3.5 p-4 sm:p-5">
+            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400">
               <Users className="size-5" />
             </span>
             <div>
@@ -353,15 +353,15 @@ export function TeacherAssignmentsClient({
           </p>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
           {filteredAssignments.map((a) => {
             const isDuePassed = new Date() > new Date(a.due_date);
             return (
               <Card
                 key={a.id}
-                className="flex flex-col justify-between border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] text-slate-900 dark:text-slate-100 shadow-xs transition hover:border-[#154C99]/40 hover:shadow-md"
+                className="flex flex-col justify-between h-full rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] text-slate-900 dark:text-slate-100 shadow-xs transition hover:border-[#154C99]/40 hover:shadow-md"
               >
-                <CardContent className="p-5 space-y-4">
+                <CardContent className="p-5 flex-1 flex flex-col justify-between space-y-4">
                   {/* Top Badges */}
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <Badge variant="outline" className="border-blue-200 dark:border-blue-800/60 bg-blue-50 dark:bg-blue-950/40 text-[#154C99] dark:text-blue-300 text-[10px] font-bold">
@@ -375,10 +375,10 @@ export function TeacherAssignmentsClient({
 
                   {/* Title & Description */}
                   <div>
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white line-clamp-1">
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white line-clamp-2 min-h-[3rem]">
                       {a.title}
                     </h3>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2 min-h-[2.5rem] leading-relaxed">
                       {a.description || 'Không có mô tả chi tiết cho bài tập này.'}
                     </p>
                   </div>
@@ -426,7 +426,7 @@ export function TeacherAssignmentsClient({
                   {/* Action Button */}
                   <Button
                     onClick={() => handleOpenGrading(a)}
-                    className="w-full gap-2 rounded-xl bg-[#154C99] text-white hover:bg-[#103E7E] dark:bg-[#1E5BBB] dark:hover:bg-[#154C99] shadow-xs text-xs"
+                    className="w-full gap-2 rounded-xl bg-[#154C99] text-white hover:bg-[#103E7E] dark:bg-[#1E5BBB] dark:hover:bg-[#154C99] shadow-xs text-xs mt-auto pt-4"
                   >
                     <PenTool className="size-3.5" />
                     <span>Xem & Chấm bài ({a.submission_count})</span>

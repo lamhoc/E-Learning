@@ -111,10 +111,10 @@ export function StudentResultsClient({ examResults, assignmentResults }: Props) 
   return (
     <div className="space-y-6">
       {/* Metric Cards Tổng quan */}
-      <div className="grid gap-4 sm:grid-cols-4">
-        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="grid size-12 place-items-center rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
+      <div className="grid gap-4 sm:grid-cols-4 items-stretch">
+        <Card className="h-full flex flex-col justify-between rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
+          <CardContent className="flex items-center gap-4 p-5 h-full">
+            <div className="grid size-12 place-items-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
               <Trophy className="size-6" />
             </div>
             <div>
@@ -131,9 +131,9 @@ export function StudentResultsClient({ examResults, assignmentResults }: Props) 
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="grid size-12 place-items-center rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+        <Card className="h-full flex flex-col justify-between rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
+          <CardContent className="flex items-center gap-4 p-5 h-full">
+            <div className="grid size-12 place-items-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="size-6" />
             </div>
             <div>
@@ -150,9 +150,9 @@ export function StudentResultsClient({ examResults, assignmentResults }: Props) 
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="grid size-12 place-items-center rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400">
+        <Card className="h-full flex flex-col justify-between rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
+          <CardContent className="flex items-center gap-4 p-5 h-full">
+            <div className="grid size-12 place-items-center rounded-xl bg-sky-500/15 text-sky-600 dark:text-sky-400">
               <FileCheck2 className="size-6" />
             </div>
             <div>
@@ -167,9 +167,9 @@ export function StudentResultsClient({ examResults, assignmentResults }: Props) 
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="grid size-12 place-items-center rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+        <Card className="h-full flex flex-col justify-between rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
+          <CardContent className="flex items-center gap-4 p-5 h-full">
+            <div className="grid size-12 place-items-center rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400">
               <GraduationCap className="size-6" />
             </div>
             <div>
@@ -289,14 +289,14 @@ export function StudentResultsClient({ examResults, assignmentResults }: Props) 
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
               {filteredExams.map((item) => {
                 const hasScore = item.status === 'completed' && item.totalScore !== null;
 
                 return (
                   <Card
                     key={item.id}
-                    className="flex flex-col justify-between border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] transition hover:shadow-md"
+                    className="flex flex-col justify-between h-full rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] transition hover:shadow-md"
                   >
                     <CardHeader className="p-5 pb-3">
                       <div className="flex items-start justify-between gap-2">
@@ -314,7 +314,7 @@ export function StudentResultsClient({ examResults, assignmentResults }: Props) 
                         </Badge>
                       </div>
 
-                      <CardTitle className="mt-3 text-base font-bold text-slate-900 dark:text-white line-clamp-2">
+                      <CardTitle className="mt-3 text-base font-bold text-slate-900 dark:text-white line-clamp-2 min-h-[3rem]">
                         {item.examTitle}
                       </CardTitle>
                       <CardDescription className="text-xs text-slate-600 dark:text-slate-300">
@@ -322,63 +322,65 @@ export function StudentResultsClient({ examResults, assignmentResults }: Props) 
                       </CardDescription>
                     </CardHeader>
 
-                    <CardContent className="p-5 pt-0">
-                      <div className="rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/60 dark:bg-slate-900/40 p-4">
-                        {item.status === 'pending_grading' ? (
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
-                              Đang chờ giảng viên chấm
-                            </span>
-                            <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 text-xs">
-                              Chờ chấm
-                            </Badge>
-                          </div>
-                        ) : hasScore ? (
-                          <div>
-                            <div className="flex items-baseline justify-between">
-                              <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                                Tổng điểm:
+                    <CardContent className="p-5 pt-0 flex flex-1 flex-col justify-between">
+                      <div>
+                        <div className="rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/60 dark:bg-slate-900/40 p-4">
+                          {item.status === 'pending_grading' ? (
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                                Đang chờ giảng viên chấm
                               </span>
-                              <div className="flex items-baseline gap-1">
-                                <span
-                                  className={`text-2xl font-bold ${
-                                    item.isPassed
-                                      ? 'text-emerald-600 dark:text-emerald-400'
-                                      : 'text-rose-600 dark:text-rose-400'
-                                  }`}
-                                >
-                                  {Number(item.totalScore).toFixed(2)}
-                                </span>
-                                <span className="text-xs text-slate-500">/ 10</span>
-                              </div>
-                            </div>
-
-                            <div className="mt-2 flex items-center justify-between border-t border-slate-200/60 dark:border-slate-800/60 pt-2 text-[11px] text-slate-600 dark:text-slate-300">
-                              <span>Trắc nghiệm: {item.objectiveScore ?? 0}</span>
-                              <span>Tự luận: {item.subjectiveScore ?? 0}</span>
-                              <Badge
-                                className={`text-[10px] ${
-                                  item.isPassed
-                                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
-                                    : 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30'
-                                }`}
-                              >
-                                {item.isPassed ? 'ĐẠT' : 'CHƯA ĐẠT'}
+                              <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 text-xs">
+                                Chờ chấm
                               </Badge>
                             </div>
-                          </div>
-                        ) : (
-                          <p className="text-xs text-slate-500">Chưa có điểm</p>
+                          ) : hasScore ? (
+                            <div>
+                              <div className="flex items-baseline justify-between">
+                                <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                                  Tổng điểm:
+                                </span>
+                                <div className="flex items-baseline gap-1">
+                                  <span
+                                    className={`text-2xl font-bold ${
+                                      item.isPassed
+                                        ? 'text-emerald-600 dark:text-emerald-400'
+                                        : 'text-rose-600 dark:text-rose-400'
+                                    }`}
+                                  >
+                                    {Number(item.totalScore).toFixed(2)}
+                                  </span>
+                                  <span className="text-xs text-slate-500">/ 10</span>
+                                </div>
+                              </div>
+
+                              <div className="mt-2 flex items-center justify-between border-t border-slate-200/60 dark:border-slate-800/60 pt-2 text-[11px] text-slate-600 dark:text-slate-300">
+                                <span>Trắc nghiệm: {item.objectiveScore ?? 0}</span>
+                                <span>Tự luận: {item.subjectiveScore ?? 0}</span>
+                                <Badge
+                                  className={`text-[10px] ${
+                                    item.isPassed
+                                      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                                      : 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30'
+                                  }`}
+                                >
+                                  {item.isPassed ? 'ĐẠT' : 'CHƯA ĐẠT'}
+                                </Badge>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-slate-500">Chưa có điểm</p>
+                          )}
+                        </div>
+
+                        {item.feedback && (
+                          <p className="mt-3 text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
+                            <strong>Nhận xét:</strong> {item.feedback}
+                          </p>
                         )}
                       </div>
 
-                      {item.feedback && (
-                        <p className="mt-3 text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
-                          <strong>Nhận xét:</strong> {item.feedback}
-                        </p>
-                      )}
-
-                      <div className="mt-4 flex flex-col gap-2">
+                      <div className="mt-auto pt-4 flex flex-col gap-2">
                         <div className="flex items-center gap-2">
                           {(item.status === 'completed' || item.status === 'pending_grading') && (
                             item.showAnswersAfterSubmit !== false ? (
@@ -454,11 +456,11 @@ export function StudentResultsClient({ examResults, assignmentResults }: Props) 
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
               {assignmentResults.map((sub) => (
                 <Card
                   key={sub.id}
-                  className="flex flex-col justify-between border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] transition hover:shadow-md"
+                  className="flex flex-col justify-between h-full rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] transition hover:shadow-md"
                 >
                   <CardHeader className="p-5 pb-3">
                     <div className="flex items-start justify-between gap-2">
@@ -476,7 +478,7 @@ export function StudentResultsClient({ examResults, assignmentResults }: Props) 
                       </Badge>
                     </div>
 
-                    <CardTitle className="mt-3 text-base font-bold text-slate-900 dark:text-white line-clamp-2">
+                    <CardTitle className="mt-3 text-base font-bold text-slate-900 dark:text-white line-clamp-2 min-h-[3rem]">
                       {sub.assignmentTitle}
                     </CardTitle>
                     <CardDescription className="text-xs text-slate-600 dark:text-slate-300">
@@ -484,39 +486,41 @@ export function StudentResultsClient({ examResults, assignmentResults }: Props) 
                     </CardDescription>
                   </CardHeader>
 
-                  <CardContent className="p-5 pt-0">
-                    <div className="rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/60 dark:bg-slate-900/40 p-4">
-                      {sub.grade !== null ? (
-                        <div className="flex items-baseline justify-between">
-                          <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                            Điểm số:
-                          </span>
-                          <div className="flex items-baseline gap-1">
-                            <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                              {sub.grade}
+                  <CardContent className="p-5 pt-0 flex flex-1 flex-col justify-between">
+                    <div>
+                      <div className="rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/60 dark:bg-slate-900/40 p-4">
+                        {sub.grade !== null ? (
+                          <div className="flex items-baseline justify-between">
+                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                              Điểm số:
                             </span>
-                            <span className="text-xs text-slate-500">/ {sub.maxScore}</span>
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                {sub.grade}
+                              </span>
+                              <span className="text-xs text-slate-500">/ {sub.maxScore}</span>
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
-                            Chờ giảng viên chấm điểm
-                          </span>
-                          <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 text-xs">
-                            Đang đợi điểm
-                          </Badge>
-                        </div>
+                        ) : (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                              Chờ giảng viên chấm điểm
+                            </span>
+                            <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 text-xs">
+                              Đang đợi điểm
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+
+                      {sub.feedback && (
+                        <p className="mt-3 text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
+                          <strong>Lời phê:</strong> {sub.feedback}
+                        </p>
                       )}
                     </div>
 
-                    {sub.feedback && (
-                      <p className="mt-3 text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
-                        <strong>Lời phê:</strong> {sub.feedback}
-                      </p>
-                    )}
-
-                    <div className="mt-4">
+                    <div className="mt-auto pt-4">
                       <Link
                         href="/student/assignments"
                         className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-800 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition"
