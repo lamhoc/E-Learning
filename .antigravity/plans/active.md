@@ -667,8 +667,8 @@
     + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
     + Cập nhật commit hash vào `.antigravity/plans/active.md`.
 
-- [ ] **Phase 69**: Sửa triệt để lỗi ký tự LaTeX nhiều dòng (`$$...$$`), căn lề trái khung Chat AI, nâng cấp toàn diện `<MathText />` & tổng rà soát lỗi ký tự toàn bộ website (Admin, Giảng viên, Học sinh):
-  - [ ] **Mục tiêu 1 (Nâng cấp toàn diện `components/ui/math-text.tsx` xử lý triệt để mọi cú pháp LaTeX & ký tự lỗi)**:
+- [x] **Phase 69 (Commit `078a896`)**: Sửa triệt để lỗi ký tự LaTeX nhiều dòng (`$$...$$`), căn lề trái khung Chat AI, nâng cấp toàn diện `<MathText />` & tổng rà soát lỗi ký tự toàn bộ website (Admin, Giảng viên, Học sinh):
+  - [x] **Mục tiêu 1 (Nâng cấp toàn diện `components/ui/math-text.tsx` xử lý triệt để mọi cú pháp LaTeX & ký tự lỗi)**:
     + Chuẩn hóa cú pháp LaTeX: `$$...$$` (nhiều dòng & 1 dòng), `\[...\]` / `\\\[...\\\]` -> Display KaTeX, `\(...\)` / `\\\(...\\\) -> $...$` Inline KaTeX.
     + Khử dấu escape kép dư thừa (`\\\\frac` -> `\frac`, `\\\\sqrt` -> `\sqrt`, `\\\\overline` -> `\overline`).
     + Tự động làm sạch các ký tự thoát thừa ngoài khối toán: `\%` -> `%`, `\_` -> `_`, `\&` -> `&`, `\$` -> `$`.
@@ -678,16 +678,16 @@
     + Chuẩn hóa tiếng Việt Unicode NFC (`text.normalize('NFC')`).
     + Nhận diện các biểu thức LaTeX trần ngoài khối `$`: `\frac{...}{...}`, `\sqrt{...}`, `\overline{...}`, `P(S\mid F)`, `\angle`, `\le`, `\ge`, `\neq`, `\times`, `\cdot` và bọc lại vào `$...$`.
     + Đảm bảo inline KaTeX không bị thanh cuộn mini (`overflow: visible !important`).
-  - [ ] **Mục tiêu 2 (Nâng cấp Block Tokenizer trong `components/chat/ChatMessageRenderer.tsx`)**:
+  - [x] **Mục tiêu 2 (Nâng cấp Block Tokenizer trong `components/chat/ChatMessageRenderer.tsx`)**:
     + Gom khối Code Blocks và Display Math Blocks (`$$...$$`, `\[...\]`) TRƯỚC khi tách dòng Markdown (`split('\n')`), bất kể bên trong có chứa xuống dòng `\n`, khoảng trắng, `\mid`, `\frac`, `\overline`, `\,`, `cases`.
     + Khai báo block `math-block` trong `BlockItem` và render bằng `katex.renderToString(expr, { displayMode: true, throwOnError: false, strict: false })` trong `<div className="my-3 w-full overflow-x-auto overflow-y-hidden py-1.5 text-left" />`.
     + Sửa triệt để lỗi căn lề dạt phải & dấu `-` đứng lẻ: Container bong bóng chat dùng `text-left`, danh sách `list-item` dùng `flex items-start gap-2.5 py-1 px-1 text-left` với bullet sát lề trái và văn bản thẳng hàng.
     + Làm sạch triệt để các dấu `**` hoặc `*` mồ côi trong `tokenizeInline`.
-  - [ ] **Mục tiêu 3 (Rà soát & Đồng bộ các màn hình Giảng viên, Sinh viên, Admin)**:
+  - [x] **Mục tiêu 3 (Rà soát & Đồng bộ các màn hình Giảng viên, Sinh viên, Admin)**:
     + Sinh viên: Ngăn kéo Gia sư AI chữa đề (`exam-tutor-drawer.tsx`), Phòng thi (`/student/exams/[examId]`), Modal Xem đáp án, Gia sư AI Sinh viên (`/student/ai-tutor`).
     + Giảng viên: Gia sư AI Giảng viên (`/teacher/ai-tutor`), Bóc tách câu hỏi DOCX/PDF (`lib/document-parser.ts`), Sinh câu hỏi AI (`ai-generator-standalone.tsx`), Xuất file CSV/Excel kèm UTF-8 BOM (`roster-manager.tsx`, `lib/excel-export.ts`).
     + Admin: Rà soát hiển thị tên môn học, giảng viên, sinh viên, thông báo, nhãn trạng thái chuẩn Unicode NFC.
-  - [ ] **Mục tiêu 4 (Kiểm thử thực tế, nghiệm thu & commit an toàn)**:
+  - [x] **Mục tiêu 4 (Kiểm thử thực tế, nghiệm thu & commit an toàn)**:
     + Test kịch bản công thức Định lý Bayes nhiều dòng `$$ ... $$` với `\frac`, `\mid`, `\overline{S}`, `\,` render chuẩn đẹp KaTeX, căn lề trái ngay ngắn.
     + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 routes).
     + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
