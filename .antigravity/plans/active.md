@@ -667,28 +667,28 @@
     + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
     + Cập nhật commit hash vào `.antigravity/plans/active.md`.
 
-- [x] **Phase 69 (Commit `078a896`)**: Sửa triệt để lỗi ký tự LaTeX nhiều dòng (`$$...$$`), căn lề trái khung Chat AI, nâng cấp toàn diện `<MathText />` & tổng rà soát lỗi ký tự toàn bộ website (Admin, Giảng viên, Học sinh):
-  - [x] **Mục tiêu 1 (Nâng cấp toàn diện `components/ui/math-text.tsx` xử lý triệt để mọi cú pháp LaTeX & ký tự lỗi)**:
-    + Chuẩn hóa cú pháp LaTeX: `$$...$$` (nhiều dòng & 1 dòng), `\[...\]` / `\\\[...\\\]` -> Display KaTeX, `\(...\)` / `\\\(...\\\) -> $...$` Inline KaTeX.
-    + Khử dấu escape kép dư thừa (`\\\\frac` -> `\frac`, `\\\\sqrt` -> `\sqrt`, `\\\\overline` -> `\overline`).
-    + Tự động làm sạch các ký tự thoát thừa ngoài khối toán: `\%` -> `%`, `\_` -> `_`, `\&` -> `&`, `\$` -> `$`.
-    + Giải mã triệt để HTML entities còn sót: `&amp;` -> `&`, `&lt;` -> `<`, `&gt;` -> `>`, `&quot;` -> `"`, `&#39;` -> `'`, `&nbsp;` -> ` `.
-    + Chuyển chuỗi literal `\\n` thành `\n`.
-    + Xóa ký tự rác `[\u0000\ufffd]`, thẻ reasoning `<think>[\s\S]*?</think>`, và lọc sạch các tag cấu hình nội bộ (`[CAMERA_REQUIRED]`, `[AUTO_GRADE_ESSAY]`, `[SHOW_ANSWERS]`).
-    + Chuẩn hóa tiếng Việt Unicode NFC (`text.normalize('NFC')`).
-    + Nhận diện các biểu thức LaTeX trần ngoài khối `$`: `\frac{...}{...}`, `\sqrt{...}`, `\overline{...}`, `P(S\mid F)`, `\angle`, `\le`, `\ge`, `\neq`, `\times`, `\cdot` và bọc lại vào `$...$`.
-    + Đảm bảo inline KaTeX không bị thanh cuộn mini (`overflow: visible !important`).
-  - [x] **Mục tiêu 2 (Nâng cấp Block Tokenizer trong `components/chat/ChatMessageRenderer.tsx`)**:
-    + Gom khối Code Blocks và Display Math Blocks (`$$...$$`, `\[...\]`) TRƯỚC khi tách dòng Markdown (`split('\n')`), bất kể bên trong có chứa xuống dòng `\n`, khoảng trắng, `\mid`, `\frac`, `\overline`, `\,`, `cases`.
-    + Khai báo block `math-block` trong `BlockItem` và render bằng `katex.renderToString(expr, { displayMode: true, throwOnError: false, strict: false })` trong `<div className="my-3 w-full overflow-x-auto overflow-y-hidden py-1.5 text-left" />`.
-    + Sửa triệt để lỗi căn lề dạt phải & dấu `-` đứng lẻ: Container bong bóng chat dùng `text-left`, danh sách `list-item` dùng `flex items-start gap-2.5 py-1 px-1 text-left` với bullet sát lề trái và văn bản thẳng hàng.
-    + Làm sạch triệt để các dấu `**` hoặc `*` mồ côi trong `tokenizeInline`.
-  - [x] **Mục tiêu 3 (Rà soát & Đồng bộ các màn hình Giảng viên, Sinh viên, Admin)**:
-    + Sinh viên: Ngăn kéo Gia sư AI chữa đề (`exam-tutor-drawer.tsx`), Phòng thi (`/student/exams/[examId]`), Modal Xem đáp án, Gia sư AI Sinh viên (`/student/ai-tutor`).
-    + Giảng viên: Gia sư AI Giảng viên (`/teacher/ai-tutor`), Bóc tách câu hỏi DOCX/PDF (`lib/document-parser.ts`), Sinh câu hỏi AI (`ai-generator-standalone.tsx`), Xuất file CSV/Excel kèm UTF-8 BOM (`roster-manager.tsx`, `lib/excel-export.ts`).
-    + Admin: Rà soát hiển thị tên môn học, giảng viên, sinh viên, thông báo, nhãn trạng thái chuẩn Unicode NFC.
-  - [x] **Mục tiêu 4 (Kiểm thử thực tế, nghiệm thu & commit an toàn)**:
-    + Test kịch bản công thức Định lý Bayes nhiều dòng `$$ ... $$` với `\frac`, `\mid`, `\overline{S}`, `\,` render chuẩn đẹp KaTeX, căn lề trái ngay ngắn.
+- [x] **Phase 69 (Commit `078a896` & `48693a9`)**: Sửa triệt để lỗi ký tự LaTeX nhiều dòng (`$$...$$`), căn lề trái khung Chat AI, nâng cấp toàn diện `<MathText />` & tổng rà soát lỗi ký tự toàn bộ website (Admin, Giảng viên, Học sinh).
+
+- [x] **Phase 70 (Commit `de8e83e`)**: Sửa lỗi 404 nút Tài liệu / Bài tập trên thẻ Lớp học & Tổng rà soát, kiểm thử toàn bộ Button / Link / Route trên cả 3 giao diện (Admin, Giảng viên, Học sinh):
+  - [x] **Mục tiêu 1 (Sửa lỗi 404 thẻ Lớp học & Tạo Route Redirect an toàn phía Giảng viên)**:
+    + Cập nhật `app/teacher/classes/page.tsx`: Nút Tài liệu dẫn về `/teacher/materials?classId=${cls.id}` + `title`/`aria-label` rõ ràng; Nút Bài tập dẫn về `/teacher/assignments?classId=${cls.id}` + `title`/`aria-label` rõ ràng; Nút `DS Sinh viên` dẫn chuẩn về `/teacher/classes/${cls.id}`.
+    + Tạo route redirect phòng thủ `app/teacher/classes/[classId]/materials/page.tsx` -> `redirect(\`/teacher/materials?classId=${classId}\`)`.
+    + Tạo route redirect phòng thủ `app/teacher/classes/[classId]/assignments/page.tsx` -> `redirect(\`/teacher/assignments?classId=${classId}\`)`.
+  - [x] **Mục tiêu 2 (Hỗ trợ tự động lọc theo `classId` tại `/teacher/materials` và `/teacher/assignments`)**:
+    + Nâng cấp `app/teacher/materials/page.tsx` & `components/teacher/teacher-materials-client.tsx`: Nhận query param `classId`, tự động lọc danh sách tài liệu theo lớp đó, điền sẵn lớp trong modal đăng tải, hiển thị banner/nút "Xem tất cả lớp" để bỏ lọc.
+    + Nâng cấp `app/teacher/assignments/page.tsx` & `components/teacher/teacher-assignments-client.tsx`: Nhận query param `classId`, tự động lọc danh sách bài tập theo lớp đó, điền sẵn lớp trong modal tạo bài, hiển thị dropdown/banner và nút "Xem tất cả lớp" để bỏ lọc.
+  - [x] **Mục tiêu 3 (Đồng bộ phân hệ Sinh viên & Tạo Route Redirect phòng thủ)**:
+    + Cập nhật `app/student/classes/page.tsx`: Nút Tài liệu dẫn về `/student/materials?classId=${classItem.id}`, nút Bài tập dẫn về `/student/assignments?classId=${classItem.id}`.
+    + Nâng cấp `app/student/materials/page.tsx` & `components/student/student-class-materials.tsx`: Hỗ trợ đọc `?classId=...` và lọc sẵn theo lớp.
+    + Nâng cấp `app/student/assignments/page.tsx` & `components/student/student-assignments.tsx`: Hỗ trợ đọc `?classId=...` và lọc sẵn bài tập của lớp đó.
+    + Tạo route redirect phòng thủ `app/student/classes/[classId]/materials/page.tsx` -> `redirect(\`/student/materials?classId=${classId}\`)`.
+    + Tạo route redirect phòng thủ `app/student/classes/[classId]/assignments/page.tsx` -> `redirect(\`/student/assignments?classId=${classId}\`)`.
+  - [x] **Mục tiêu 4 (Quét tĩnh toàn bộ hệ thống phát hiện 100% Link chết 404 & Button lỗi)**:
+    + Viết script quét đối chiếu toàn bộ `page.tsx` với mọi `href`, `router.push`, `redirect` trong `app/` và `components/`.
+    + Kiểm tra mọi thẻ `<button>` (thiếu `onClick`, button lồng `<Link>`, lồng sai cú pháp HTML, kẹt `disabled`).
+    + Rà soát toàn bộ các nút bấm và liên kết trên cả 3 phân hệ (Admin, Giảng viên, Học sinh).
+  - [x] **Mục tiêu 5 (Kiểm thử thực tế, nghiệm thu & commit an toàn)**:
+    + Kiểm tra trực tiếp chuyển hướng từ thẻ lớp 10A1 sang `/teacher/materials?classId=...` và `/teacher/assignments?classId=...` lọc chuẩn xác.
     + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 routes).
     + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
-    + Cập nhật commit hash vào `.antigravity/plans/active.md`.
+    + Cập nhật commit hash `de8e83e` vào `.antigravity/plans/active.md`.
