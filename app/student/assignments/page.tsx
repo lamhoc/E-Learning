@@ -17,7 +17,12 @@ export const metadata = {
   description: 'Nộp bài tập tự luận, bài tập nhóm, đồ án và theo dõi kết quả chấm điểm',
 };
 
-export default async function StudentAssignmentsPage() {
+export default async function StudentAssignmentsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ classId?: string }>;
+}) {
+  const { classId } = searchParams ? await searchParams : { classId: undefined };
   const data = await getStudentDashboardData();
   const initials = data.studentName
     .split(/[\s@.]+/)
@@ -81,7 +86,7 @@ export default async function StudentAssignmentsPage() {
             
           </section>
 
-          <StudentAssignments assignments={data.assignments} />
+          <StudentAssignments assignments={data.assignments} initialClassId={classId} />
         </div>
       </div>
     </div>

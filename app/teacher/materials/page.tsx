@@ -18,7 +18,12 @@ export const metadata: Metadata = {
   description: 'Quản lý tài liệu học tập, bài giảng slide, PDF/Word và video các lớp phụ trách',
 };
 
-export default async function TeacherMaterialsPage() {
+type TeacherMaterialsPageProps = {
+  searchParams: Promise<{ classId?: string }>;
+};
+
+export default async function TeacherMaterialsPage({ searchParams }: TeacherMaterialsPageProps) {
+  const { classId } = await searchParams;
   const data = await getTeacherMaterialsData();
 
   const initials = data.teacherName
@@ -99,6 +104,7 @@ export default async function TeacherMaterialsPage() {
             classes={data.classes}
             materials={data.materials}
             stats={data.stats}
+            initialClassId={classId}
           />
         </div>
       </div>

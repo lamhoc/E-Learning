@@ -44,24 +44,30 @@ interface TeacherMaterialsClientProps {
     videoCount: number;
     linkCount: number;
   };
+  initialClassId?: string;
 }
 
 export function TeacherMaterialsClient({
   classes,
   materials,
   stats,
+  initialClassId,
 }: TeacherMaterialsClientProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
 
   // Filter states
-  const [selectedClassId, setSelectedClassId] = useState<string>('all');
+  const [selectedClassId, setSelectedClassId] = useState<string>(initialClassId || 'all');
   const [selectedWeek, setSelectedWeek] = useState<number | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Modal states
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [targetClassId, setTargetClassId] = useState<string>(classes[0]?.id || '');
+  const [targetClassId, setTargetClassId] = useState<string>(
+    initialClassId && initialClassId !== 'all' && classes.some((c) => c.id === initialClassId)
+      ? initialClassId
+      : classes[0]?.id || ''
+  );
   const [materialType, setMaterialType] = useState<'document' | 'video' | 'link'>('document');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [weekNumber, setWeekNumber] = useState<number>(1);
@@ -317,6 +323,25 @@ export function TeacherMaterialsClient({
           <span>Đăng tải tài liệu mới</span>
         </Button>
       </div>
+
+      {/* ── BANNER ĐANG LỌC THEO LỚP ── */}
+      {selectedClassId !== 'all' && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/70 dark:bg-blue-950/40 p-3.5 text-xs text-blue-900 dark:text-blue-200">
+          <div className="flex items-center gap-2">
+            <Layers className="size-4 text-blue-600 dark:text-blue-400" />
+            <span>
+              Đang lọc theo lớp: <strong>{classes.find((c) => c.id === selectedClassId)?.name || selectedClassId}</strong>
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSelectedClassId('all')}
+            className="rounded-lg bg-white dark:bg-slate-800 border border-blue-300 dark:border-blue-700 px-3 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-slate-700 transition"
+          >
+            Xem tất cả các lớp
+          </button>
+        </div>
+      )}
 
       {/* ── 3. DANH SÁCH LỌC THEO TUẦN ── */}
       {availableWeeks.length > 0 && (

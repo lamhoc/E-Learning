@@ -50,7 +50,9 @@ function ClassCard({ classItem }: { classItem: StudentClass }) {
         </div>
         <div className="mt-auto pt-4 flex items-center gap-2 border-t border-slate-100 dark:border-slate-800">
           <Link
-            href="/student/materials"
+            href={`/student/materials?classId=${encodeURIComponent(classItem.id)}`}
+            title="Tài liệu lớp học"
+            aria-label="Tài liệu lớp học"
             className={buttonVariants({
               variant: 'outline',
               size: 'sm',
@@ -61,7 +63,9 @@ function ClassCard({ classItem }: { classItem: StudentClass }) {
             <span>Tài liệu</span>
           </Link>
           <Link
-            href="/student/assignments"
+            href={`/student/assignments?classId=${encodeURIComponent(classItem.id)}`}
+            title="Bài tập lớp học"
+            aria-label="Bài tập lớp học"
             className={buttonVariants({
               variant: 'outline',
               size: 'sm',

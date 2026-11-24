@@ -17,7 +17,12 @@ export const metadata = {
   description: 'Tài liệu học tập theo tuần, bài giảng slide, PDF và video học tập',
 };
 
-export default async function StudentMaterialsPage() {
+export default async function StudentMaterialsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ classId?: string }>;
+}) {
+  const { classId } = searchParams ? await searchParams : { classId: undefined };
   const data = await getStudentDashboardData();
   const initials = data.studentName
     .split(/[\s@.]+/)
@@ -73,7 +78,11 @@ export default async function StudentMaterialsPage() {
             
           </section>
 
-          <StudentClassMaterials classes={data.classes} materials={data.materials} />
+          <StudentClassMaterials
+            classes={data.classes}
+            materials={data.materials}
+            initialClassId={classId}
+          />
         </div>
       </div>
     </div>

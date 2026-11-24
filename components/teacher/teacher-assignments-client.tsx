@@ -50,24 +50,30 @@ interface TeacherAssignmentsClientProps {
     pendingGradingCount: number;
     gradedCount: number;
   };
+  initialClassId?: string;
 }
 
 export function TeacherAssignmentsClient({
   classes,
   assignments,
   stats,
+  initialClassId,
 }: TeacherAssignmentsClientProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
 
   // Filters
-  const [selectedClassId, setSelectedClassId] = useState<string>('all');
+  const [selectedClassId, setSelectedClassId] = useState<string>(initialClassId || 'all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'graded'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Create Assignment Modal
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [createClassId, setCreateClassId] = useState<string>(classes[0]?.id || '');
+  const [createClassId, setCreateClassId] = useState<string>(
+    initialClassId && initialClassId !== 'all' && classes.some((c) => c.id === initialClassId)
+      ? initialClassId
+      : classes[0]?.id || ''
+  );
   const [isSubmittingCreate, setIsSubmittingCreate] = useState(false);
   const [createMsg, setCreateMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const createFormRef = useRef<HTMLFormElement>(null);
@@ -336,6 +342,25 @@ export function TeacherAssignmentsClient({
           <span>Giao bài tập mới</span>
         </Button>
       </div>
+
+      {/* ── BANNER ĐANG LỌC THEO LỚP ── */}
+      {selectedClassId !== 'all' && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/70 dark:bg-blue-950/40 p-3.5 text-xs text-blue-900 dark:text-blue-200">
+          <div className="flex items-center gap-2">
+            <Layers className="size-4 text-blue-600 dark:text-blue-400" />
+            <span>
+              Đang lọc theo lớp: <strong>{classes.find((c) => c.id === selectedClassId)?.name || selectedClassId}</strong>
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSelectedClassId('all')}
+            className="rounded-lg bg-white dark:bg-slate-800 border border-blue-300 dark:border-blue-700 px-3 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-slate-700 transition"
+          >
+            Xem tất cả các lớp
+          </button>
+        </div>
+      )}
 
       {/* ── 3. DANH SÁCH BÀI TẬP ĐÃ GIAO ── */}
       {filteredAssignments.length === 0 ? (

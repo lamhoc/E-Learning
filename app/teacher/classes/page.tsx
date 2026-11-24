@@ -209,16 +209,18 @@ export default async function TeacherClassesPage() {
                           <span>DS Sinh viên</span>
                         </Link>
                         <Link
-                          href={`/teacher/classes/${cls.id}/materials`}
+                          href={`/teacher/materials?classId=${cls.id}`}
                           className="inline-flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 p-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                          title="Tài liệu lớp"
+                          title="Tài liệu lớp học"
+                          aria-label="Tài liệu lớp học"
                         >
                           <FileText className="size-3.5" />
                         </Link>
                         <Link
-                          href={`/teacher/classes/${cls.id}/assignments`}
+                          href={`/teacher/assignments?classId=${cls.id}`}
                           className="inline-flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 p-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                          title="Bài tập lớp"
+                          title="Bài tập lớp học"
+                          aria-label="Bài tập lớp học"
                         >
                           <ClipboardList className="size-3.5" />
                         </Link>

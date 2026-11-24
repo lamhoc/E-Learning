@@ -13,6 +13,7 @@ import {
   FileCheck2,
   FileText,
   FileUp,
+  Layers,
   Loader2,
   Send,
   Upload,
@@ -29,6 +30,7 @@ import { submitAssignmentAction } from '@/app/teacher/classes/[classId]/assignme
 
 interface StudentAssignmentsProps {
   assignments: StudentAssignmentItem[];
+  initialClassId?: string;
 }
 
 function formatDateTime(isoString: string) {
@@ -50,12 +52,25 @@ function formatFileSize(bytes: number | null) {
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
-export function StudentAssignments({ assignments }: StudentAssignmentsProps) {
+export function StudentAssignments({ assignments, initialClassId }: StudentAssignmentsProps) {
   const [filter, setFilter] = useState<'all' | 'pending' | 'submitted' | 'graded'>('all');
+  const [selectedClassId, setSelectedClassId] = useState<string>(initialClassId || 'all');
   const [activeUploadId, setActiveUploadId] = useState<string | null>(null);
+
+  const uniqueClasses = useMemo(() => {
+    const map = new Map<string, string>();
+    assignments.forEach((a) => {
+      if (a.class_id && a.class_name) {
+        map.set(a.class_id, a.class_name);
+      }
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [assignments]);
 
   const filteredAssignments = useMemo(() => {
     return assignments.filter((a) => {
+      if (selectedClassId !== 'all' && a.class_id !== selectedClassId) return false;
+
       const hasSubmitted = !!a.submission;
       const isGraded = a.submission?.score !== null && a.submission?.score !== undefined;
 
@@ -64,13 +79,32 @@ export function StudentAssignments({ assignments }: StudentAssignmentsProps) {
       if (filter === 'graded') return isGraded;
       return true;
     });
-  }, [assignments, filter]);
+  }, [assignments, filter, selectedClassId]);
 
   const pendingCount = assignments.filter((a) => !a.submission).length;
   const gradedCount = assignments.filter((a) => a.submission?.score !== null && a.submission?.score !== undefined).length;
 
   return (
     <div className="space-y-4">
+      {/* Banner đang lọc theo lớp học */}
+      {selectedClassId !== 'all' && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/70 dark:bg-blue-950/40 p-3.5 text-xs text-blue-900 dark:text-blue-200">
+          <div className="flex items-center gap-2">
+            <Layers className="size-4 text-blue-600 dark:text-blue-400" />
+            <span>
+              Đang lọc bài tập theo lớp: <strong>{uniqueClasses.find((c) => c.id === selectedClassId)?.name || selectedClassId}</strong>
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSelectedClassId('all')}
+            className="rounded-lg bg-white dark:bg-slate-800 border border-blue-300 dark:border-blue-700 px-3 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-slate-700 transition"
+          >
+            Xem tất cả các lớp
+          </button>
+        </div>
+      )}
+
       {/* Thanh lọc trạng thái */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-[#111C2D] p-3 rounded-xl border border-slate-200 dark:border-slate-800">
         <div className="flex flex-wrap items-center gap-1.5">
@@ -120,8 +154,27 @@ export function StudentAssignments({ assignments }: StudentAssignmentsProps) {
           </button>
         </div>
 
-        <div className="text-xs text-slate-500 font-medium">
-          Đã hoàn thành <strong>{assignments.length - pendingCount}</strong> / {assignments.length} bài
+        <div className="flex flex-wrap items-center gap-3">
+          {uniqueClasses.length > 1 && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-slate-500 font-medium">Lớp:</span>
+              <select
+                value={selectedClassId}
+                onChange={(e) => setSelectedClassId(e.target.value)}
+                className="h-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-0.5 text-xs text-slate-800 dark:text-slate-200 shadow-2xs focus:border-[#154C99] focus:outline-none"
+              >
+                <option value="all">Tất cả lớp ({uniqueClasses.length})</option>
+                {uniqueClasses.map((cls) => (
+                  <option key={cls.id} value={cls.id}>
+                    {cls.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div className="text-xs text-slate-500 font-medium">
+            Đã hoàn thành <strong>{assignments.length - pendingCount}</strong> / {assignments.length} bài
+          </div>
         </div>
       </div>
 

@@ -38,12 +38,16 @@ function formatFileSize(bytes?: number | null) {
 export function StudentClassMaterials({
   classes,
   materials,
+  initialClassId,
 }: {
   classes: StudentClass[];
   materials: ClassMaterialItem[];
+  initialClassId?: string;
 }) {
   const [selectedClassId, setSelectedClassId] = useState<string>(
-    classes[0]?.id || ''
+    initialClassId && classes.some((c) => c.id === initialClassId)
+      ? initialClassId
+      : classes[0]?.id || ''
   );
   const [selectedWeek, setSelectedWeek] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');

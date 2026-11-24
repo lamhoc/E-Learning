@@ -18,7 +18,12 @@ export const metadata: Metadata = {
   description: 'Quản lý bài tập về nhà, theo dõi bài nộp và chấm điểm sinh viên các lớp phụ trách',
 };
 
-export default async function TeacherAssignmentsPage() {
+type TeacherAssignmentsPageProps = {
+  searchParams: Promise<{ classId?: string }>;
+};
+
+export default async function TeacherAssignmentsPage({ searchParams }: TeacherAssignmentsPageProps) {
+  const { classId } = await searchParams;
   const data = await getTeacherAllAssignmentsData();
 
   const initials = data.teacherName
@@ -99,6 +104,7 @@ export default async function TeacherAssignmentsPage() {
             classes={data.classes}
             assignments={data.assignments}
             stats={data.stats}
+            initialClassId={classId}
           />
         </div>
       </div>
