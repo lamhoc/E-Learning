@@ -188,7 +188,7 @@ export function RosterManager({ classId, students }: { classId: string; students
             <p className="mt-1 text-sm text-muted-foreground">Tải mẫu, điền mã hoặc email sinh viên đã có tài khoản, rồi xem trước trước khi ghi danh.</p>
           </div>
           <a
-            href={`data:text/csv;charset=utf-8,${encodeURIComponent(csvTemplate)}`}
+            href={`data:text/csv;charset=utf-8,${encodeURIComponent('\uFEFF' + csvTemplate)}`}
             download="danh-sach-sinh-vien.csv"
             className="inline-flex h-8 items-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium transition hover:bg-muted"
           >

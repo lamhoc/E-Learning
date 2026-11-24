@@ -24,6 +24,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getStudentExamPageData } from '@/lib/student-exam';
 import { isCameraRequired, isAutoGradeEssay, cleanExamInstructions } from '@/lib/exam-auto-grade';
+import { MathText } from '@/components/ui/math-text';
 import { ExamTakingClient } from '@/components/student/exam-taking-client';
 import { StartExamButton } from '@/components/student/start-exam-button';
 import { ExamTutorDrawer } from '@/components/student/exam-tutor-drawer';
@@ -134,9 +135,10 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
           </h1>
 
           {cleanExamInstructions(exam.instructions) && (
-            <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-              {cleanExamInstructions(exam.instructions)}
-            </p>
+            <MathText
+              content={cleanExamInstructions(exam.instructions)}
+              className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300"
+            />
           )}
 
           {/* Quick Stats Grid */}

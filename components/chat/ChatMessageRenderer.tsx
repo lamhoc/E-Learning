@@ -2,8 +2,12 @@
 
 import React, { useMemo, useState } from 'react';
 import katex from 'katex';
-import { Check, Copy, Sparkles } from 'lucide-react';
-import { normalizeMathInput } from '@/components/ui/math-text';
+import { Check, Copy } from 'lucide-react';
+import {
+  decodeHtmlEntities,
+  cleanInternalConfigTags,
+  normalizeMathInput,
+} from '@/components/ui/math-text';
 import { convertMarkdownTablesToLines } from '@/lib/anti-table-processor';
 
 type ChatMessageRendererProps = {
@@ -19,9 +23,20 @@ type InlineToken =
   | { type: 'italic'; value: string }
   | { type: 'text'; value: string };
 
+type BlockItem =
+  | { type: 'code-block'; language: string; content: string }
+  | { type: 'math-block'; content: string }
+  | { type: 'heading'; level: number; text: string }
+  | { type: 'horizontal-rule' }
+  | { type: 'option-item'; optKey: string; text: string }
+  | { type: 'answer-item'; label: string; text: string }
+  | { type: 'explain-item'; text: string }
+  | { type: 'list-item'; prefix?: string; text: string }
+  | { type: 'paragraph'; text: string };
+
 /**
  * Tokenize một dòng văn bản thành các token định dạng (Toán KaTeX, In đậm, Code, In nghiêng, Text)
- * và làm sạch triệt để mọi dấu ** thô mồ côi.
+ * và loại bỏ triệt để mọi dấu ** mồ côi.
  */
 function tokenizeInline(text: string): InlineToken[] {
   const tokens: InlineToken[] = [];
@@ -47,9 +62,9 @@ function tokenizeInline(text: string): InlineToken[] {
     }
 
     if (match[1] !== undefined) {
-      tokens.push({ type: 'math-block', value: match[1] });
+      tokens.push({ type: 'math-block', value: match[1].trim() });
     } else if (match[2] !== undefined) {
-      tokens.push({ type: 'math-inline', value: match[2] });
+      tokens.push({ type: 'math-inline', value: match[2].trim() });
     } else if (match[3] !== undefined) {
       tokens.push({ type: 'code-inline', value: match[3] });
     } else if (match[4] !== undefined) {
@@ -83,11 +98,12 @@ function renderInlineTokens(tokens: InlineToken[]): React.ReactNode {
           const html = katex.renderToString(token.value, {
             displayMode: true,
             throwOnError: false,
+            strict: false,
           });
           return (
             <span
               key={index}
-              className="my-2 block max-w-full overflow-x-auto overflow-y-hidden py-1 text-center"
+              className="my-2 block max-w-full overflow-x-auto overflow-y-hidden py-1 text-left"
               dangerouslySetInnerHTML={{ __html: html }}
             />
           );
@@ -105,11 +121,12 @@ function renderInlineTokens(tokens: InlineToken[]): React.ReactNode {
           const html = katex.renderToString(token.value, {
             displayMode: false,
             throwOnError: false,
+            strict: false,
           });
           return (
             <span
               key={index}
-              className="inline-block px-0.5 align-middle leading-normal"
+              className="inline-block px-0.5 align-middle leading-normal overflow-visible"
               dangerouslySetInnerHTML={{ __html: html }}
             />
           );
@@ -172,7 +189,7 @@ function CodeBlockView({ language, content }: { language: string; content: strin
   };
 
   return (
-    <div className="my-3 overflow-hidden rounded-xl border border-slate-800 bg-slate-900 shadow-md">
+    <div className="my-3 overflow-hidden rounded-xl border border-slate-800 bg-slate-900 shadow-md text-left">
       <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950/60 px-3 py-1.5 text-[11px] font-mono text-slate-400">
         <span>{language || 'code'}</span>
         <button
@@ -194,68 +211,188 @@ function CodeBlockView({ language, content }: { language: string; content: strin
           )}
         </button>
       </div>
-      <pre className="p-3.5 overflow-x-auto text-xs font-mono text-slate-100 leading-normal">
+      <pre className="p-3.5 overflow-x-auto text-xs font-mono text-slate-100 leading-normal text-left">
         <code>{content}</code>
       </pre>
     </div>
   );
 }
 
-type BlockItem =
-  | { type: 'code-block'; language: string; content: string }
-  | { type: 'heading'; level: number; text: string }
-  | { type: 'horizontal-rule' }
-  | { type: 'option-item'; optKey: string; text: string }
-  | { type: 'answer-item'; label: string; text: string }
-  | { type: 'explain-item'; text: string }
-  | { type: 'list-item'; prefix?: string; text: string }
-  | { type: 'paragraph'; text: string };
-
 /**
- * Phân tích nội dung Markdown nhiều dòng thành danh sách các khối (Blocks) chuyên biệt
+ * Phân tích nội dung Markdown nhiều dòng thành danh sách các khối (Blocks) chuyên biệt.
+ * QUY TRÌNH BẢO VỆ CỐT LÕI:
+ * 1. Tiền xử lý: Làm sạch rác, tag nội bộ, giải mã entities, chặn bảng.
+ * 2. Gom toàn bộ Code Block (```...```) và Display Math Block ($$...$$, \[...\]) TRƯỚC KHI split('\n').
+ * 3. Sau khi gom khối xong mới tách dòng markdown và tái cấu trúc các khối hiển thị.
  */
 function parseBlocks(rawText: string): BlockItem[] {
   const blocks: BlockItem[] = [];
-  const lines = rawText.split('\n');
+  if (!rawText) return blocks;
 
-  let inCodeBlock = false;
-  let codeBlockLang = '';
-  let codeBlockLines: string[] = [];
+  // ── BƯỚC 1: TIỀN XỬ LÝ CHUỖI TOÀN DIỆN ──
+  let text = String(rawText);
+
+  // Chuẩn hóa xuống dòng
+  text = text.replace(/\r\n/g, '\n');
+
+  // Làm sạch ký tự rác / null byte / replacement char
+  text = text.replace(/[\u0000\ufffd]/g, '');
+
+  // Loại bỏ thẻ suy luận <think>...</think>
+  text = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
+
+  // Chuyển chuỗi literal \n nếu bị escape 2 lần
+  text = text.replace(/\\n/g, '\n');
+
+  // Lọc sạch tag nội bộ
+  text = cleanInternalConfigTags(text);
+
+  // Giải mã HTML entities
+  text = decodeHtmlEntities(text);
+
+  // Chuẩn hóa Unicode NFC
+  text = text.normalize('NFC');
+
+  // Chặn 100% bảng Markdown bằng Anti-Table Post-Processor
+  text = convertMarkdownTablesToLines(text);
+
+  // Khử escape kép dư thừa cho các lệnh LaTeX phổ biến (\\\\frac -> \frac)
+  text = text.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
+
+  // ── BƯỚC 2: GOM KHỐI CODE & KHỐI MATH NHIỀU DÒNG TRƯỚC KHI TÁCH DÒNG ──
+  const codeBlocks: { language: string; content: string }[] = [];
+  text = text.replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, (_, lang, content) => {
+    const id = codeBlocks.length;
+    codeBlocks.push({ language: lang.trim(), content: content.trimEnd() });
+    return `\n\n__CODE_BLOCK_${id}__\n\n`;
+  });
+
+  const mathBlocks: string[] = [];
+
+  // Gom toàn bộ khối $$...$$ nhiều dòng hoặc 1 dòng
+  text = text.replace(/\$\$([\s\S]+?)\$\$/g, (_, mathExpr) => {
+    const id = mathBlocks.length;
+    let expr = mathExpr.replace(/\\\\([a-zA-Z]+)/g, '\\$1').trim();
+    mathBlocks.push(expr);
+    return `\n\n__MATH_BLOCK_${id}__\n\n`;
+  });
+
+  // Gom toàn bộ khối \[...\] hoặc \\\[...\\\] nhiều dòng hoặc 1 dòng
+  text = text.replace(/(?:\\{1,2}\[)([\s\S]+?)(?:\\{1,2}\])/g, (_, mathExpr) => {
+    const id = mathBlocks.length;
+    let expr = mathExpr.replace(/\\\\([a-zA-Z]+)/g, '\\$1').trim();
+    mathBlocks.push(expr);
+    return `\n\n__MATH_BLOCK_${id}__\n\n`;
+  });
+
+  // Chuyển đổi \(...\) sang $...$
+  text = text.replace(/(?:\\{1,2}\()([\s\S]+?)(?:\\{1,2}\))/g, (_, p1) => `$${p1.trim()}$`);
+
+  // Nếu AI xuống dòng bên trong cặp $...$ ngắn (dưới 200 ký tự), gom lại trên 1 dòng
+  text = text.replace(/\$([^\$\n]{1,120}\n[^\$\n]{1,120})\$/g, (_, inner) => {
+    return `$${inner.replace(/\n+/g, ' ')}$`;
+  });
+
+  // ── BƯỚC 3: LÀM SẠCH KÝ TỰ THOÁT VÀ BỌC TOÁN TRẦN NGOÀI KHỐI TOÁN ──
+  const parts = text.split(/(__MATH_BLOCK_\d+__|__CODE_BLOCK_\d+__|\$[^\$\n]+?\$)/g);
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (
+      !part.startsWith('__MATH_BLOCK_') &&
+      !part.startsWith('__CODE_BLOCK_') &&
+      !part.startsWith('$')
+    ) {
+      let segment = part;
+      // Khử escape \% -> %, \_ -> _, \& -> &, \$ -> $
+      segment = segment.replace(/\\%/g, '%');
+      segment = segment.replace(/\\_/g, '_');
+      segment = segment.replace(/\\&/g, '&');
+      segment = segment.replace(/\\\$/g, '$');
+
+      // Tự động bọc biểu thức \frac trần
+      segment = segment.replace(/(\\frac\{(?:[^{}]|\{[^{}]*\})*\}\{(?:[^{}]|\{[^{}]*\})*\})/g, (_, p1) => `$${p1}$`);
+      // Tự động bọc \sqrt trần
+      segment = segment.replace(/(\\sqrt(?:\[[^\]]*\])?\{(?:[^{}]|\{[^{}]*\})*\})/g, (_, p1) => `$${p1}$`);
+      // Tự động bọc \overline trần
+      segment = segment.replace(/(\\overline\{[^{}]*\})/g, (_, p1) => `$${p1}$`);
+      // Tự động bọc xác suất điều kiện P(S\mid F)
+      segment = segment.replace(/(\b[A-Za-z]\s*\([A-Za-z0-9_+\-*\/|\\]+\\mid[A-Za-z0-9_+\-*\/|\\]+\))/g, (_, p1) => `$${p1}$`);
+      // Tự động bọc góc độ 30^\circ
+      segment = segment.replace(/(\b\d+\s*\^\s*(?:\\circ|\{?\\circ\}?))/g, (_, p1) => `$${p1}$`);
+
+      parts[i] = segment;
+    }
+  }
+  text = parts.join('');
+
+  // ── BƯỚC 4: TÁCH DÒNG VÀ PHÂN TÍCH TỪNG KHỐI ──
+  const lines = text.split('\n');
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const trimmed = line.trim();
 
-    // 1. Code Block
-    if (trimmed.startsWith('```')) {
-      if (!inCodeBlock) {
-        inCodeBlock = true;
-        codeBlockLang = trimmed.slice(3).trim();
-        codeBlockLines = [];
-        continue;
-      } else {
-        inCodeBlock = false;
-        blocks.push({
-          type: 'code-block',
-          language: codeBlockLang,
-          content: codeBlockLines.join('\n'),
-        });
-        continue;
-      }
-    }
+    if (!trimmed) continue;
 
-    if (inCodeBlock) {
-      codeBlockLines.push(line);
+    // 1. Kiểm tra placeholder MATH_BLOCK
+    const mathMatch = trimmed.match(/^__MATH_BLOCK_(\d+)__$/);
+    if (mathMatch) {
+      const id = Number(mathMatch[1]);
+      if (mathBlocks[id] !== undefined) {
+        blocks.push({
+          type: 'math-block',
+          content: mathBlocks[id],
+        });
+      }
       continue;
     }
 
-    // 2. Dòng kẻ ngang (--- hoặc *** hoặc ___ hoặc ----)
+    // Nếu dòng chứa __MATH_BLOCK__ cùng văn bản (ví dụ "- Công thức: __MATH_BLOCK_0__")
+    if (trimmed.includes('__MATH_BLOCK_')) {
+      const inlineMathParts = trimmed.split(/(__MATH_BLOCK_\d+__)/g);
+      for (const p of inlineMathParts) {
+        const pTrim = p.trim();
+        if (!pTrim) continue;
+        const subMathMatch = pTrim.match(/^__MATH_BLOCK_(\d+)__$/);
+        if (subMathMatch) {
+          const id = Number(subMathMatch[1]);
+          if (mathBlocks[id] !== undefined) {
+            blocks.push({ type: 'math-block', content: mathBlocks[id] });
+          }
+        } else {
+          // Xử lý tiền tố danh sách nếu có
+          const listM = pTrim.match(/^(\s*)([-*+]|\d+\.)\s+(.*)$/);
+          if (listM) {
+            blocks.push({ type: 'list-item', prefix: listM[2], text: listM[3] });
+          } else {
+            blocks.push({ type: 'paragraph', text: pTrim });
+          }
+        }
+      }
+      continue;
+    }
+
+    // 2. Kiểm tra placeholder CODE_BLOCK
+    const codeMatch = trimmed.match(/^__CODE_BLOCK_(\d+)__$/);
+    if (codeMatch) {
+      const id = Number(codeMatch[1]);
+      if (codeBlocks[id] !== undefined) {
+        blocks.push({
+          type: 'code-block',
+          language: codeBlocks[id].language,
+          content: codeBlocks[id].content,
+        });
+      }
+      continue;
+    }
+
+    // 3. Dòng kẻ ngang (--- hoặc *** hoặc ___ hoặc ----)
     if (/^([-*_])(?:\s*\1){2,}$/.test(trimmed)) {
       blocks.push({ type: 'horizontal-rule' });
       continue;
     }
 
-    // 3. Tiêu đề Markdown (Heading #, ##, ###)
+    // 4. Tiêu đề Markdown (Heading #, ##, ###)
     const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
     if (headingMatch) {
       const level = headingMatch[1].length;
@@ -265,7 +402,7 @@ function parseBlocks(rawText: string): BlockItem[] {
       continue;
     }
 
-    // 4. Tiêu đề Câu hỏi độc lập (dạng "**Câu 1: ...**" hoặc "Câu 1: ...")
+    // 5. Tiêu đề Câu hỏi độc lập (dạng "**Câu 1: ...**" hoặc "Câu 1: ...")
     const questionHeadingMatch = line.match(/^(?:\*\*)?(câu|bài|question)\s*(\d+)[:.]?(?:\*\*)?\s*(.*)$/i);
     if (questionHeadingMatch) {
       const qNum = questionHeadingMatch[2];
@@ -278,7 +415,7 @@ function parseBlocks(rawText: string): BlockItem[] {
       continue;
     }
 
-    // 5. Khối Dòng Đáp án đúng (ví dụ: "**Đáp án đúng:** C" hoặc "👉 Đáp án đúng: C")
+    // 6. Khối Dòng Đáp án đúng (ví dụ: "**Đáp án đúng:** C" hoặc "👉 Đáp án đúng: C")
     const answerMatch = line.match(/^(?:👉\s*)?(?:\*\*)?(?:đáp án|đáp án đúng|answer)[:\s]*(?:\*\*)?\s*([A-D])(?:\b|[\.\)\s])(.*)$/i);
     if (answerMatch) {
       const optKey = answerMatch[1].toUpperCase();
@@ -291,7 +428,7 @@ function parseBlocks(rawText: string): BlockItem[] {
       continue;
     }
 
-    // 6. Khối Dòng Giải thích chi tiết (ví dụ: "**Giải thích chi tiết:** ..." hoặc "💡 Giải thích: ...")
+    // 7. Khối Dòng Giải thích chi tiết (ví dụ: "**Giải thích chi tiết:** ..." hoặc "💡 Giải thích: ...")
     const explainMatch = line.match(/^(?:💡\s*)?(?:\*\*)?(?:giải thích|giải thích chi tiết|hướng dẫn giải|explanation)[:\s]*(?:\*\*)?\s*(.*)$/i);
     if (explainMatch) {
       const explainText = explainMatch[1].replace(/^\*\*/, '').trim();
@@ -302,12 +439,11 @@ function parseBlocks(rawText: string): BlockItem[] {
       continue;
     }
 
-    // 7. Lựa chọn trắc nghiệm độc lập (A. ..., B. ..., **A.** ..., - **A.** ...)
+    // 8. Lựa chọn trắc nghiệm độc lập (A. ..., B. ..., **A.** ..., - **A.** ...)
     const optionMatch = line.match(/^(\s*)(?:[-*+]\s+)?(?:\*\*)?([A-D])(?:\.|\)|\:|\-)(?:\*\*)?\s+(.*)$/i);
     if (optionMatch) {
       const optKey = optionMatch[2].toUpperCase();
       let optText = optionMatch[3].trim();
-      // Làm sạch dấu ** thừa ở đầu/cuối của nội dung phương án
       optText = optText.replace(/^\*\*/, '').replace(/\*\*$/, '').trim();
       blocks.push({
         type: 'option-item',
@@ -317,7 +453,7 @@ function parseBlocks(rawText: string): BlockItem[] {
       continue;
     }
 
-    // 8. Danh sách gạch đầu dòng hoặc đánh số (- ..., * ..., 1. ...)
+    // 9. Danh sách gạch đầu dòng hoặc đánh số (- ..., * ..., 1. ...)
     const listMatch = line.match(/^(\s*)([-*+]|\d+\.)\s+(.*)$/);
     if (listMatch) {
       blocks.push({
@@ -328,21 +464,8 @@ function parseBlocks(rawText: string): BlockItem[] {
       continue;
     }
 
-    // 9. Dòng trống
-    if (!trimmed) {
-      continue;
-    }
-
     // 10. Đoạn văn thường
     blocks.push({ type: 'paragraph', text: line });
-  }
-
-  if (inCodeBlock && codeBlockLines.length > 0) {
-    blocks.push({
-      type: 'code-block',
-      language: codeBlockLang,
-      content: codeBlockLines.join('\n'),
-    });
   }
 
   return blocks;
@@ -352,18 +475,13 @@ export const ChatMessageRenderer = React.memo(
   function ChatMessageRenderer({ content, className = '' }: ChatMessageRendererProps) {
     const blocks = useMemo(() => {
       if (!content) return [];
-      // 1. Chặn 100% bảng Markdown bằng Anti-Table Post-Processor
-      const tableFreeContent = convertMarkdownTablesToLines(content);
-      // 2. Chuẩn hóa toàn bộ công thức KaTeX
-      const normalized = normalizeMathInput(tableFreeContent);
-      // 3. Phân tích các khối dòng chi tiết
-      return parseBlocks(normalized);
+      return parseBlocks(content);
     }, [content]);
 
     if (!content) return null;
 
     return (
-      <div className={`space-y-2.5 leading-relaxed text-sm ${className}`}>
+      <div className={`space-y-2.5 leading-relaxed text-sm text-left ${className}`}>
         {blocks.map((block, idx) => {
           switch (block.type) {
             case 'horizontal-rule':
@@ -374,13 +492,39 @@ export const ChatMessageRenderer = React.memo(
                 />
               );
 
+            case 'math-block': {
+              try {
+                const html = katex.renderToString(block.content, {
+                  displayMode: true,
+                  throwOnError: false,
+                  strict: false,
+                });
+                return (
+                  <div
+                    key={idx}
+                    className="my-3 w-full overflow-x-auto overflow-y-hidden py-1.5 text-left text-slate-900 dark:text-white"
+                    dangerouslySetInnerHTML={{ __html: html }}
+                  />
+                );
+              } catch {
+                return (
+                  <div
+                    key={idx}
+                    className="my-2 p-2 rounded bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-mono overflow-x-auto text-left"
+                  >
+                    $${block.content}$$
+                  </div>
+                );
+              }
+            }
+
             case 'heading': {
               const tokens = tokenizeInline(block.text);
               if (block.level === 1 || block.level === 2) {
                 return (
                   <h3
                     key={idx}
-                    className="font-bold text-base text-blue-700 dark:text-blue-300 mt-4 mb-2 flex items-baseline gap-1"
+                    className="font-bold text-base text-blue-700 dark:text-blue-300 mt-4 mb-2 flex items-baseline gap-1 text-left"
                   >
                     {renderInlineTokens(tokens)}
                   </h3>
@@ -390,7 +534,7 @@ export const ChatMessageRenderer = React.memo(
               return (
                 <h4
                   key={idx}
-                  className="font-bold text-[15px] text-blue-700 dark:text-blue-400 mt-3.5 mb-2 flex items-baseline gap-2"
+                  className="font-bold text-[15px] text-blue-700 dark:text-blue-400 mt-3.5 mb-2 flex items-baseline gap-2 text-left"
                 >
                   <span className="size-2 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0 self-center" />
                   <span>{renderInlineTokens(tokens)}</span>
@@ -403,12 +547,12 @@ export const ChatMessageRenderer = React.memo(
               return (
                 <div
                   key={idx}
-                  className="flex items-start gap-2.5 py-1.5 px-3 rounded-xl bg-slate-50/70 dark:bg-slate-800/30 border border-slate-200/60 dark:border-slate-800/60 my-1 font-medium transition hover:border-blue-300 dark:hover:border-blue-500/50 hover:bg-blue-50/30 dark:hover:bg-slate-800/50"
+                  className="flex items-start gap-2.5 py-1.5 px-3 rounded-xl bg-slate-50/70 dark:bg-slate-800/30 border border-slate-200/60 dark:border-slate-800/60 my-1 font-medium transition hover:border-blue-300 dark:hover:border-blue-500/50 hover:bg-blue-50/30 dark:hover:bg-slate-800/50 text-left"
                 >
                   <span className="font-bold text-blue-700 dark:text-blue-400 shrink-0 w-5 select-none">
                     {block.optKey}
                   </span>
-                  <div className="flex-1 text-slate-800 dark:text-slate-100 leading-relaxed">
+                  <div className="flex-1 text-slate-800 dark:text-slate-100 leading-relaxed text-left">
                     {renderInlineTokens(tokens)}
                   </div>
                 </div>
@@ -420,7 +564,7 @@ export const ChatMessageRenderer = React.memo(
               return (
                 <div
                   key={idx}
-                  className="my-2.5 p-2.5 px-3.5 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-center gap-2 text-sm text-emerald-900 dark:text-emerald-200 shadow-2xs"
+                  className="my-2.5 p-2.5 px-3.5 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-center gap-2 text-sm text-emerald-900 dark:text-emerald-200 shadow-2xs text-left"
                 >
                   <span className="font-bold text-emerald-700 dark:text-emerald-400 select-none">
                     👉 {block.label}:
@@ -437,12 +581,12 @@ export const ChatMessageRenderer = React.memo(
               return (
                 <div
                   key={idx}
-                  className="my-2 p-3 rounded-xl bg-blue-50/40 dark:bg-[#131F33] border border-blue-200/60 dark:border-slate-800 text-sm leading-relaxed text-slate-800 dark:text-slate-200 shadow-2xs"
+                  className="my-2 p-3 rounded-xl bg-blue-50/40 dark:bg-[#131F33] border border-blue-200/60 dark:border-slate-800 text-sm leading-relaxed text-slate-800 dark:text-slate-200 shadow-2xs text-left"
                 >
-                  <div className="font-semibold text-blue-700 dark:text-blue-400 mb-1 flex items-center gap-1.5 select-none text-xs">
+                  <div className="font-semibold text-blue-700 dark:text-blue-400 mb-1 flex items-center gap-1.5 select-none text-xs text-left">
                     <span>💡 Giải thích chi tiết:</span>
                   </div>
-                  <div className="leading-relaxed">
+                  <div className="leading-relaxed text-left">
                     {renderInlineTokens(tokens)}
                   </div>
                 </div>
@@ -461,11 +605,11 @@ export const ChatMessageRenderer = React.memo(
             case 'list-item': {
               const tokens = tokenizeInline(block.text);
               return (
-                <div key={idx} className="flex items-start gap-2.5 py-1 px-1.5">
-                  <span className="shrink-0 select-none font-semibold text-blue-600 dark:text-blue-400">
+                <div key={idx} className="flex items-start gap-2.5 py-1 px-1 text-left">
+                  <span className="shrink-0 select-none font-semibold text-blue-600 dark:text-blue-400 mt-0.5">
                     {block.prefix || '•'}
                   </span>
-                  <div className="flex-1 text-slate-800 dark:text-slate-100 leading-relaxed">
+                  <div className="flex-1 text-slate-800 dark:text-slate-100 leading-relaxed text-left">
                     {renderInlineTokens(tokens)}
                   </div>
                 </div>
@@ -475,7 +619,7 @@ export const ChatMessageRenderer = React.memo(
             case 'paragraph': {
               const tokens = tokenizeInline(block.text);
               return (
-                <p key={idx} className="text-slate-800 dark:text-slate-100 leading-relaxed">
+                <p key={idx} className="text-slate-800 dark:text-slate-100 leading-relaxed text-left">
                   {renderInlineTokens(tokens)}
                 </p>
               );

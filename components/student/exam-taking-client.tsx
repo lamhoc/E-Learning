@@ -684,7 +684,7 @@ export function ExamTakingClient({
             {cleanExamInstructions(exam.instructions) && (
               <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-4 text-xs text-slate-600 dark:text-slate-300 shadow-2xs">
                 <span className="font-bold text-slate-800 dark:text-white">Hướng dẫn bài thi:</span>{' '}
-                {cleanExamInstructions(exam.instructions)}
+                <MathText content={cleanExamInstructions(exam.instructions)} as="span" className="inline" />
               </div>
             )}
 

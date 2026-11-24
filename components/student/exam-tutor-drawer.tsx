@@ -473,9 +473,10 @@ export function ExamTutorDrawer({
                           </button>
                         </div>
 
-                        <p className="line-clamp-2 text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                          {selectedQuestion.questionText}
-                        </p>
+                        <MathText
+                          content={selectedQuestion.questionText}
+                          className="line-clamp-2 text-slate-700 dark:text-slate-300 leading-relaxed font-medium"
+                        />
 
                         <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-800 text-[11px]">
                           <span className="text-slate-500 dark:text-slate-400">

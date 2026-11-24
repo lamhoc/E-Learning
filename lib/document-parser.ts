@@ -5,6 +5,7 @@ import mammoth from 'mammoth';
 import { extractText as extractPdfText } from 'unpdf';
 import { callAiChatCompletion } from '@/lib/ai-provider';
 import { parseAiJsonSafely } from '@/lib/ai-question-generator';
+import { normalizeMathInput } from '@/components/ui/math-text';
 
 export type ParsedQuestionItem = {
   tempId: string;
@@ -473,20 +474,8 @@ export function parseQuestionsLocallyFromText(rawText: string): ParsedQuestionIt
 export function sanitizeAcademicString(str?: string | null): string {
   if (!str) return '';
   let s = String(str);
-  s = s.replace(/[\u0000\ufffd]/g, '');
-  s = s
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, ' ');
-  s = s.replace(/(?:\\{1,2}\[)([\s\S]*?)(?:\\{1,2}\])/g, (_, p1) => `$$${p1}$$`);
-  s = s.replace(/(?:\\{1,2}\()([\s\S]*?)(?:\\{1,2}\))/g, (_, p1) => `$${p1}$`);
-  s = s.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
-  s = s.normalize('NFC');
   s = s.replace(/\[\/?RED_ANSWER\]/g, '').trim();
-  return s;
+  return normalizeMathInput(s);
 }
 
 /**
