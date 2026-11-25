@@ -727,25 +727,25 @@
     + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
     + Cập nhật commit hash `001e5c6` vào `.antigravity/plans/active.md`.
 
-- [ ] **Phase 72**: Sửa triệt để lỗi hiển thị ký tự thô (Toán & tất cả các môn khác) tại Bảng Phân tích Đề thi + Tổng rà soát toàn bộ web (Admin, Giảng viên, Học sinh):
-  - [ ] **Mục tiêu 1 (Sửa lỗi hiển thị LaTeX thô & cắt chữ tại Bảng Phân tích Đề thi `/teacher/exams/[examId]`)**:
+- [x] **Phase 72 (Commit `3ad7cf9`)**: Sửa triệt để lỗi hiển thị ký tự thô (Toán & tất cả các môn khác) tại Bảng Phân tích Đề thi + Tổng rà soát toàn bộ web (Admin, Giảng viên, Học sinh):
+  - [x] **Mục tiêu 1 (Sửa lỗi hiển thị LaTeX thô & cắt chữ tại Bảng Phân tích Đề thi `/teacher/exams/[examId]`)**:
     + Bọc nội dung câu hỏi bằng `<MathText text={stripLeadingQuestionPrefix(item.questionText)} />` (tự động loại bỏ tiền tố lặp như `Câu 6.` / `Bài 1:` khi bảng đã có cột `#1, #2...`).
     + Cột "Nội dung câu hỏi": Tự động xuống dòng gọn gàng (`min-w-[260px] max-w-[480px] whitespace-normal break-words leading-relaxed`), bỏ `line-clamp-2` làm mất chữ và vỡ công thức ma trận/phân số.
     + Bọc container bảng bằng `w-full max-w-full overflow-x-auto` để các cột P, D, Tỷ lệ đúng, Đánh giá không bị đẩy ra ngoài.
-  - [ ] **Mục tiêu 2 (Nâng cấp `<MathText />` hỗ trợ hoàn hảo Toán & tất cả các môn khác)**:
+  - [x] **Mục tiêu 2 (Nâng cấp `<MathText />` hỗ trợ hoàn hảo Toán & tất cả các môn khác)**:
     + Nhận cả `text` và `content` trong props (`MathTextProps`).
     + Môn Toán: Render chuẩn ma trận `\begin{pmatrix}`, `\begin{bmatrix}`, `\begin{vmatrix}`, `\begin{cases}`, phân số `\frac`, căn `\sqrt`, `\det`, `\lim`, `\int`, `\sum`, `\overline`, `\mid`, `\infty`, `\mathbb`, bảo toàn dấu xuống dòng `\\` trong ma trận.
     + Môn Lý, Hóa, Sinh: Chỉ số trên/dưới, phương trình hóa học (`$H_2SO_4$`, `$\rightarrow$`, `$\rightleftharpoons$`, `$\Delta H$`), đơn vị vật lý (`$120\text{ m}$`, `$\vec{F} = m\vec{a}$`, `\Omega`, `\mu`, `\lambda`, `^\circ\text{C}`).
     + Môn Tin học / CNTT & Xã hội / Ngoại ngữ / Kinh tế: Độ phức tạp (`$O(n \log n)$`, `$2^n$`), không nhầm ký hiệu tiền tệ USD (`$100`, `$50 và $20`).
     + Làm sạch: `\%` -> `%`, `\&` -> `&`, `\_` -> `_` ngoài khối toán; giải mã HTML entities; chuyển `\[...\]` -> `$$...$$` và `\(...\)` -> `$...$`; lọc sạch tag cấu hình `[CAMERA_REQUIRED:...]`, `[AUTO_GRADE_ESSAY:...]`, `[SHOW_ANSWERS:...]` và `<think>...</think>`; chuẩn hóa Unicode NFC.
     + Đảm bảo CSS `.katex` có `overflow: visible !important`.
-  - [ ] **Mục tiêu 3 (Tổng rà soát toàn bộ dự án — Tìm & Sửa 100% chỗ render text thô chưa dùng `<MathText />`)**:
+  - [x] **Mục tiêu 3 (Tổng rà soát toàn bộ dự án — Tìm & Sửa 100% chỗ render text thô chưa dùng `<MathText />`)**:
     + Giảng viên: `/teacher/exams/[examId]`, `/teacher/exams/create`, `/teacher/questions`, `/teacher/ai-generator`, `/teacher/grading`, `/teacher/assignments`, `/teacher/materials`.
     + Sinh viên: `/student/exams/[examId]`, `/student/results`, `/student/assignments`, `/student/classes`, `/student/ai-tutor`, `/student/dashboard`.
     + Admin: Rà soát `/admin/**` chuẩn hóa Unicode tiếng Việt NFC, không để lộ entities hay ký tự rác.
     + Đảm bảo tính năng Xuất Excel / CSV có UTF-8 BOM (`\uFEFF`) không lỗi font.
-  - [ ] **Mục tiêu 4 (Kiểm thử thực tế, nghiệm thu có chứng cứ & commit an toàn)**:
+  - [x] **Mục tiêu 4 (Kiểm thử thực tế, nghiệm thu có chứng cứ & commit an toàn)**:
     + Kiểm tra trực tiếp bảng Item Analysis trên `/teacher/exams/[examId]` hiển thị công thức Toán/Lý/Hóa mượt mà, không còn ký tự thô.
     + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 routes).
     + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
-    + Cập nhật commit hash vào `.antigravity/plans/active.md`.
+    + Cập nhật commit hash `3ad7cf9` vào `.antigravity/plans/active.md`.
