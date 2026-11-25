@@ -412,8 +412,10 @@ export async function submitExamAttemptAction(
     console.warn('Could not record notification:', notifErr);
   }
 
-  revalidatePath(`/student/exams/${examId}`);
+  revalidatePath('/student/results');
   revalidatePath('/student/dashboard');
+  revalidatePath('/student/exams');
+  revalidatePath(`/student/exams/${examId}`);
   revalidatePath('/teacher/grading');
 
   return {

@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { requireRole } from '@/lib/auth-cache';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { sanitizeVietnameseText } from '@/lib/utils';
 import type { ClassMaterialItem } from '@/lib/class-materials';
 import { getStudentAssignments, type StudentAssignmentItem } from '@/lib/assignments';
@@ -65,6 +66,7 @@ export type StudentDashboardData = {
 
 export async function getStudentDashboardData(): Promise<StudentDashboardData> {
   const { user, supabase } = await requireRole('student');
+  const adminClient = createAdminClient();
 
   const [
     profileResult,
@@ -96,19 +98,19 @@ export async function getStudentDashboardData(): Promise<StudentDashboardData> {
       .eq('status', 'published')
       .order('available_from', { ascending: true, nullsFirst: false })
       .limit(50),
-    supabase
+    adminClient
       .from('exam_attempts')
       .select(
         'id, exam_id, attempt_no, started_at, submitted_at, status, exam:exams(title, subject:subjects(name)), result:attempt_results(total_score, released_at)',
       )
       .eq('student_id', user.id)
       .order('started_at', { ascending: false })
-      .limit(8),
-    supabase
+      .limit(10),
+    adminClient
       .from('exam_attempts')
       .select('id', { count: 'exact', head: true })
       .eq('student_id', user.id)
-      .in('status', ['pending_grading', 'completed']),
+      .neq('status', 'in_progress'),
     supabase
       .from('notifications')
       .select('id, title, message, created_at, read_at')
@@ -182,6 +184,38 @@ export async function getStudentDashboardData(): Promise<StudentDashboardData> {
     notificationsResult.error,
   ];
 
+  const rawAttempts = (attemptsResult.data ?? []) as any[];
+  const attempts: StudentAttempt[] = rawAttempts
+    .filter((att) => att.status !== 'in_progress' || Boolean(att.submitted_at))
+    .slice(0, 8)
+    .map((att) => {
+      const rawExam = Array.isArray(att.exam) ? att.exam[0] : att.exam;
+      const resultObj = Array.isArray(att.result) ? att.result[0] : att.result;
+      const rawScore =
+        att.final_score ??
+        att.total_score ??
+        att.score ??
+        att.auto_score ??
+        resultObj?.total_score ??
+        resultObj?.score ??
+        null;
+      const totalScoreNum =
+        rawScore !== null && rawScore !== undefined && rawScore !== '' && Number.isFinite(Number(rawScore))
+          ? Math.round(Number(rawScore) * 100) / 100
+          : null;
+
+      return {
+        id: att.id,
+        exam_id: att.exam_id,
+        attempt_no: att.attempt_no,
+        started_at: att.started_at,
+        submitted_at: att.submitted_at,
+        status: att.status,
+        exam: rawExam,
+        result: totalScoreNum !== null ? { total_score: totalScoreNum, released_at: resultObj?.released_at ?? null } : null,
+      };
+    });
+
   return {
     studentId: user.id,
     studentName: sanitizeVietnameseText(profileResult.data?.full_name || user.email || 'Sinh viên'),
@@ -190,7 +224,7 @@ export async function getStudentDashboardData(): Promise<StudentDashboardData> {
     materials,
     assignments,
     openExams,
-    attempts: (attemptsResult.data ?? []) as StudentAttempt[],
+    attempts,
     submittedAttemptCount: submittedAttemptsResult.count ?? 0,
     notifications: (notificationsResult.data ?? []) as StudentNotification[],
     hasDataError: errors.some(Boolean),

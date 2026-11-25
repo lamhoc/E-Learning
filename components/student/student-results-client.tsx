@@ -68,32 +68,40 @@ export function StudentResultsClient({ examResults, assignmentResults }: Props) 
   const filteredExams = useMemo(() => {
     return examResults.filter((item) => {
       if (examFilter === 'all') return true;
-      if (examFilter === 'passed') return item.status === 'completed' && item.isPassed;
-      if (examFilter === 'failed') return item.status === 'completed' && !item.isPassed;
-      if (examFilter === 'pending') return item.status === 'pending_grading';
+      if (examFilter === 'passed') return item.totalScore !== null && item.totalScore >= 5.0;
+      if (examFilter === 'failed') return item.totalScore !== null && item.totalScore < 5.0;
+      if (examFilter === 'pending') return item.totalScore === null || item.status === 'pending_grading';
       return true;
     });
   }, [examResults, examFilter]);
 
-  // Thống kê chung
+  // Thống kê chung chuẩn hóa
   const stats = useMemo(() => {
-    const completedExams = examResults.filter(
-      (e) => e.status === 'completed' && e.totalScore !== null
+    const scoredExams = examResults.filter(
+      (e) => e.totalScore !== null && Number.isFinite(Number(e.totalScore))
     );
-    const totalScoreSum = completedExams.reduce((sum, e) => sum + (e.totalScore || 0), 0);
-    const averageScore = completedExams.length > 0 ? (totalScoreSum / completedExams.length).toFixed(1) : '0.0';
-    const passedCount = completedExams.filter((e) => e.isPassed).length;
+    const totalScoreSum = scoredExams.reduce((sum, e) => sum + (Number(e.totalScore) || 0), 0);
+    const averageScore = scoredExams.length > 0 ? (totalScoreSum / scoredExams.length).toFixed(1) : '0.0';
+    const passedCount = scoredExams.filter((e) => (Number(e.totalScore) || 0) >= 5.0).length;
+    const failedCount = scoredExams.filter((e) => (Number(e.totalScore) || 0) < 5.0).length;
     const passRate =
-      completedExams.length > 0
-        ? Math.round((passedCount / completedExams.length) * 100)
+      scoredExams.length > 0
+        ? Math.round((passedCount / scoredExams.length) * 100)
         : 0;
+
+    const pendingCount = examResults.filter(
+      (e) => e.totalScore === null || e.status === 'pending_grading'
+    ).length;
 
     return {
       averageScore,
-      completedCount: completedExams.length,
+      scoredCount: scoredExams.length,
       passedCount,
+      failedCount,
+      pendingCount,
       passRate,
       assignmentCount: assignmentResults.length,
+      totalExamsCount: examResults.length,
     };
   }, [examResults, assignmentResults]);
 
@@ -125,7 +133,7 @@ export function StudentResultsClient({ examResults, assignmentResults }: Props) 
                 {stats.averageScore} <span className="text-xs font-normal text-slate-500">/ 10</span>
               </p>
               <p className="text-xs text-slate-600 dark:text-slate-300">
-                Từ {stats.completedCount} bài thi có điểm
+                Từ {stats.scoredCount} bài thi có điểm
               </p>
             </div>
           </CardContent>
@@ -144,7 +152,7 @@ export function StudentResultsClient({ examResults, assignmentResults }: Props) 
                 {stats.passRate}%
               </p>
               <p className="text-xs text-slate-600 dark:text-slate-300">
-                {stats.passedCount} / {stats.completedCount} lượt thi đạt
+                {stats.passedCount} / {stats.scoredCount} lượt thi đạt
               </p>
             </div>
           </CardContent>
@@ -162,7 +170,7 @@ export function StudentResultsClient({ examResults, assignmentResults }: Props) 
               <p className="text-2xl font-bold text-slate-900 dark:text-white">
                 {stats.assignmentCount}
               </p>
-              <p className="text-xs text-slate-600 dark:text-slate-300">Bài tập các lớp phụ trách</p>
+              <p className="text-xs text-slate-600 dark:text-slate-300">Bài tập các lớp đang học</p>
             </div>
           </CardContent>
         </Card>
@@ -177,9 +185,9 @@ export function StudentResultsClient({ examResults, assignmentResults }: Props) 
                 TỔNG LƯỢT THI
               </p>
               <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                {examResults.length}
+                {stats.totalExamsCount}
               </p>
-              <p className="text-xs text-slate-600 dark:text-slate-300">Đã tham gia phòng thi</p>
+              <p className="text-xs text-slate-600 dark:text-slate-300">Đã nộp bài thành công</p>
             </div>
           </CardContent>
         </Card>
@@ -237,7 +245,7 @@ export function StudentResultsClient({ examResults, assignmentResults }: Props) 
                   : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
-              Đạt (≥5.0)
+              Đạt (≥5.0) ({stats.passedCount})
             </button>
             <button
               type="button"
@@ -248,7 +256,7 @@ export function StudentResultsClient({ examResults, assignmentResults }: Props) 
                   : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
-              Chưa đạt (&lt;5.0)
+              Chưa đạt (&lt;5.0) ({stats.failedCount})
             </button>
             <button
               type="button"
@@ -259,7 +267,7 @@ export function StudentResultsClient({ examResults, assignmentResults }: Props) 
                   : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
-              Chờ chấm
+              Chờ chấm ({stats.pendingCount})
             </button>
           </div>
         )}
@@ -402,17 +410,15 @@ export function StudentResultsClient({ examResults, assignmentResults }: Props) 
                             )
                           )}
 
-                          {item.releasedAt && (
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={() => setTutorItem(item)}
-                              className="h-8 text-xs font-semibold gap-1.5 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer"
-                            >
-                              <Sparkles className="size-3.5" />
-                              <span>Gia sư AI</span>
-                            </Button>
-                          )}
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => setTutorItem(item)}
+                            className="h-8 text-xs font-semibold gap-1.5 bg-violet-600 hover:bg-violet-700 text-white cursor-pointer"
+                          >
+                            <Sparkles className="size-3.5" />
+                            <span>Gia sư AI</span>
+                          </Button>
                         </div>
 
                         <Link

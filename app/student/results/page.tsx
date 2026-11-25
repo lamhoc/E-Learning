@@ -1,5 +1,6 @@
 import { Trophy } from 'lucide-react';
 import { requireRole } from '@/lib/auth-cache';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { sanitizeVietnameseText } from '@/lib/utils';
 import { isShowAnswersAfterSubmit } from '@/lib/exam-auto-grade';
 import {
@@ -8,17 +9,21 @@ import {
   type AssignmentResultRecord,
 } from '@/components/student/student-results-client';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export const metadata = {
   title: 'Kết quả học tập | Cổng Sinh viên LHU',
   description: 'Bảng điểm và theo dõi tiến độ thi, bài tập cá nhân tại Đại học Lạc Hồng.',
 };
 
 export default async function StudentResultsPage() {
-  const { user, supabase } = await requireRole('student');
+  const { user } = await requireRole('student');
+  const adminClient = createAdminClient();
 
   const [profileResult, attemptsResult, assignmentSubmissionsResult] = await Promise.all([
-    supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
-    supabase
+    adminClient.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
+    adminClient
       .from('exam_attempts')
       .select(`
         id, exam_id, attempt_no, started_at, submitted_at, status,
@@ -26,8 +31,8 @@ export default async function StudentResultsPage() {
         result:attempt_results(total_score, objective_score, subjective_score, feedback, released_at)
       `)
       .eq('student_id', user.id)
-      .order('submitted_at', { ascending: false, nullsFirst: false }),
-    supabase
+      .order('started_at', { ascending: false }),
+    adminClient
       .from('assignment_submissions')
       .select(`
         id, assignment_id, submitted_at, grade, feedback, status,
@@ -46,47 +51,97 @@ export default async function StudentResultsPage() {
     attempt_no: number;
     started_at: string;
     submitted_at: string | null;
-    status: 'in_progress' | 'pending_grading' | 'completed' | 'voided';
+    status: string;
+    final_score?: number | string | null;
+    total_score?: number | string | null;
+    score?: number | string | null;
+    auto_score?: number | string | null;
     exam: {
       title: string;
       duration_minutes: number;
       instructions?: string | null;
       show_answers_after_submit?: boolean | null;
       subject: { name: string } | { name: string }[] | null;
-    } | null;
+    } | {
+      title: string;
+      duration_minutes: number;
+      instructions?: string | null;
+      show_answers_after_submit?: boolean | null;
+      subject: { name: string } | { name: string }[] | null;
+    }[] | null;
     result: {
-      total_score: number | string | null;
-      objective_score: number | string | null;
-      subjective_score: number | string | null;
-      feedback: string | null;
-      released_at: string | null;
-    } | null;
+      total_score?: number | string | null;
+      score?: number | string | null;
+      objective_score?: number | string | null;
+      subjective_score?: number | string | null;
+      feedback?: string | null;
+      released_at?: string | null;
+    } | {
+      total_score?: number | string | null;
+      score?: number | string | null;
+      objective_score?: number | string | null;
+      subjective_score?: number | string | null;
+      feedback?: string | null;
+      released_at?: string | null;
+    }[] | null;
   };
 
   const rawAttempts = (attemptsResult.data ?? []) as unknown as RawAttempt[];
 
-  const examResults: ExamResultRecord[] = rawAttempts.map((attempt) => {
-    const rawExam = attempt.exam;
+  // Lấy TẤT CẢ các lượt thi đã kết thúc / đã nộp (loại trừ lượt in_progress chưa có submitted_at)
+  const submittedAttempts = rawAttempts.filter(
+    (attempt) => attempt.status !== 'in_progress' || Boolean(attempt.submitted_at)
+  );
+
+  const examResults: ExamResultRecord[] = submittedAttempts.map((attempt) => {
+    const rawExam = Array.isArray(attempt.exam) ? attempt.exam[0] : attempt.exam;
     const subjectName = Array.isArray(rawExam?.subject)
       ? rawExam.subject[0]?.name || 'Môn học'
       : rawExam?.subject?.name || 'Môn học';
 
+    const resultObj = Array.isArray(attempt.result) ? attempt.result[0] : attempt.result;
+
+    // Chuẩn hóa đọc điểm số theo thứ tự ưu tiên đa trường
+    const rawScore =
+      attempt.final_score ??
+      attempt.total_score ??
+      attempt.score ??
+      attempt.auto_score ??
+      resultObj?.total_score ??
+      resultObj?.score ??
+      null;
+
     const totalScoreNum =
-      attempt.result?.total_score !== null && attempt.result?.total_score !== undefined
-        ? Number(attempt.result.total_score)
+      rawScore !== null && rawScore !== undefined && rawScore !== '' && Number.isFinite(Number(rawScore))
+        ? Math.round(Number(rawScore) * 100) / 100
         : null;
 
     const objectiveScoreNum =
-      attempt.result?.objective_score !== null && attempt.result?.objective_score !== undefined
-        ? Number(attempt.result.objective_score)
+      resultObj?.objective_score !== null && resultObj?.objective_score !== undefined
+        ? Number(resultObj.objective_score)
         : null;
 
     const subjectiveScoreNum =
-      attempt.result?.subjective_score !== null && attempt.result?.subjective_score !== undefined
-        ? Number(attempt.result.subjective_score)
+      resultObj?.subjective_score !== null && resultObj?.subjective_score !== undefined
+        ? Number(resultObj.subjective_score)
         : null;
 
     const isPassed = totalScoreNum !== null ? totalScoreNum >= 5.0 : false;
+
+    // Chuẩn hóa trạng thái
+    let normalizedStatus: 'in_progress' | 'pending_grading' | 'completed' | 'voided' = 'pending_grading';
+    if (
+      attempt.status === 'completed' ||
+      attempt.status === 'graded' ||
+      attempt.status === 'published' ||
+      (totalScoreNum !== null && Boolean(resultObj?.released_at))
+    ) {
+      normalizedStatus = 'completed';
+    } else if (attempt.status === 'voided') {
+      normalizedStatus = 'voided';
+    } else {
+      normalizedStatus = 'pending_grading';
+    }
 
     return {
       id: attempt.id,
@@ -94,15 +149,15 @@ export default async function StudentResultsPage() {
       examTitle: rawExam?.title || 'Đề thi không xác định',
       subjectName,
       attemptNo: attempt.attempt_no,
-      submittedAt: attempt.submitted_at,
-      status: attempt.status,
+      submittedAt: attempt.submitted_at || attempt.started_at,
+      status: normalizedStatus,
       totalScore: totalScoreNum,
       objectiveScore: objectiveScoreNum,
       subjectiveScore: subjectiveScoreNum,
-      feedback: attempt.result?.feedback || null,
+      feedback: resultObj?.feedback || null,
       isPassed,
       showAnswersAfterSubmit: isShowAnswersAfterSubmit(rawExam),
-      releasedAt: attempt.result?.released_at || null,
+      releasedAt: resultObj?.released_at || null,
     };
   });
 

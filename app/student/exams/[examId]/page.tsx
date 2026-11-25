@@ -30,6 +30,9 @@ import { StartExamButton } from '@/components/student/start-exam-button';
 import { ExamTutorDrawer } from '@/components/student/exam-tutor-drawer';
 import { StudentExamHistoryTable } from '@/components/student/student-exam-history-table';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 type StudentExamPageProps = {
   params: Promise<{
     examId: string;

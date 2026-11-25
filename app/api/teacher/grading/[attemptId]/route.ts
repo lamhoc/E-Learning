@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import {
   saveEssayGrades,
   SaveEssayGradesPayload,
@@ -36,6 +37,21 @@ export async function POST(
     };
 
     const result = await saveEssayGrades(payload);
+
+    if (result.status === 'success') {
+      try {
+        revalidatePath('/student/results');
+        revalidatePath('/student/dashboard');
+        revalidatePath('/student/exams');
+        if (body.examId) {
+          revalidatePath(`/student/exams/${body.examId}`);
+        }
+        revalidatePath('/teacher/grading');
+        revalidatePath(`/teacher/grading/${attemptId}`);
+      } catch (revErr) {
+        console.warn('revalidatePath in grading route error:', revErr);
+      }
+    }
 
     return NextResponse.json(result, {
       status: result.status === 'success' ? 200 : 400,

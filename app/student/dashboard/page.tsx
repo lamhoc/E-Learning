@@ -45,6 +45,9 @@ import {
   type StudentNotification,
 } from '@/lib/student-dashboard';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export const metadata = {
   title: 'Tổng quan học tập | Đại học Lạc Hồng',
   description: 'Bảng điều khiển học tập cá nhân của sinh viên',

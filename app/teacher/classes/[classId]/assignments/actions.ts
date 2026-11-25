@@ -221,6 +221,7 @@ export async function gradeAssignmentSubmissionAction(
   revalidatePath('/teacher/assignments');
   revalidatePath('/student/assignments');
   revalidatePath('/student/dashboard');
+  revalidatePath('/student/results');
 
   return {
     status: 'success',
@@ -337,6 +338,8 @@ export async function submitAssignmentAction(
   }
 
   revalidatePath('/student/dashboard');
+  revalidatePath('/student/results');
+  revalidatePath('/student/assignments');
   revalidatePath(`/teacher/classes/${classId}/assignments/${assignmentId}`);
 
   return {

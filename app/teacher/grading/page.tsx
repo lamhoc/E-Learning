@@ -6,6 +6,9 @@ import { GradingQueueClient } from '@/components/teacher/grading-queue-client';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { Badge } from '@/components/ui/badge';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: 'Chấm thi & Đánh giá tự luận | Đại học Lạc Hồng',
   description: 'Danh sách các bài thi tự luận cần giảng viên chấm điểm và công bố kết quả',

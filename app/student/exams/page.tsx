@@ -31,6 +31,9 @@ import {
 } from '@/lib/student-dashboard';
 import { NotificationBell } from '@/components/layout/notification-bell';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export const metadata = {
   title: 'Đề thi & Kết quả | Đại học Lạc Hồng',
   description: 'Danh sách đề thi trực tuyến đang mở và lịch sử thi của sinh viên',

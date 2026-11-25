@@ -1,6 +1,7 @@
 import { sanitizeVietnameseText } from '@/lib/utils';
 import 'server-only';
 
+import { revalidatePath } from 'next/cache';
 import { redirect, notFound } from 'next/navigation';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
@@ -800,6 +801,17 @@ export async function saveEssayGrades(
       } catch (notifErr) {
         console.warn('Could not insert student grading notification:', notifErr);
       }
+    }
+
+    try {
+      revalidatePath('/student/results');
+      revalidatePath('/student/dashboard');
+      revalidatePath('/student/exams');
+      revalidatePath(`/student/exams/${examId}`);
+      revalidatePath('/teacher/grading');
+      revalidatePath(`/teacher/grading/${attemptId}`);
+    } catch (revErr) {
+      console.warn('revalidatePath error in saveEssayGrades:', revErr);
     }
 
     return {
