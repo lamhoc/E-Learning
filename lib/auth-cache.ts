@@ -20,6 +20,23 @@ export const getCurrentUser = cache(async () => {
 });
 
 /**
+ * Bản ghi `user_roles` của user hiện tại (cùng shape `{ data, error }` như truy vấn Supabase gốc),
+ * cached trong 1 request: layout + page + loader dùng chung 1 truy vấn thay vì lặp lại 2–3 lần.
+ */
+export const getCurrentRoleRecord = cache(async () => {
+  const { user, supabase } = await getCurrentUser();
+  if (!user) {
+    return { data: null as { role: string } | null, error: null };
+  }
+
+  return supabase
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', user.id)
+    .maybeSingle();
+});
+
+/**
  * Trả về user + role, cached trong cùng 1 request.
  * Gộp 2 truy vấn (getUser + user_roles) thành 1 hàm cached duy nhất.
  */
@@ -30,11 +47,7 @@ export const getCurrentUserWithRole = cache(async () => {
     return { user: null, role: null as string | null, supabase };
   }
 
-  const { data: roleRecord } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .maybeSingle();
+  const { data: roleRecord } = await getCurrentRoleRecord();
 
   return {
     user,
@@ -92,4 +105,3 @@ export const getCurrentProfile = cache(async () => {
     studentCode: profile?.student_code ?? null,
   };
 });
-

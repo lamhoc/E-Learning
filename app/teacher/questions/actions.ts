@@ -251,9 +251,8 @@ export async function updateQuestion(
       { question_id: questionId, option_key: 'D', option_text: optionD, position: 4 },
     ];
 
-    for (const opt of optionsToUpsert) {
-      await supabase.from('question_options').upsert(opt);
-    }
+    // 1 lệnh upsert mảng thay vì 4 lệnh tuần tự
+    await supabase.from('question_options').upsert(optionsToUpsert);
 
     // Upsert answer key
     await supabase.from('question_answer_keys').upsert({

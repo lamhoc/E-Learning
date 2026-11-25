@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useDeferredValue, useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import {
   AlertTriangle,
@@ -35,7 +36,14 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MathText, stripLeadingQuestionPrefix } from '@/components/ui/math-text';
-import { ExamScoreChart } from '@/components/teacher/exam-score-chart';
+// Code splitting: Recharts (nang) chi tai khi trang phan tich can ve bieu do.
+const ExamScoreChart = dynamic(
+  () => import('@/components/teacher/exam-score-chart').then((m) => m.ExamScoreChart),
+  {
+    ssr: false,
+    loading: () => <div className="h-[300px] w-full animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800/60" />,
+  },
+);
 import {
   exportGradeReportToCsv,
   exportGradeReportToExcel,
@@ -51,12 +59,14 @@ export function ExamAnalyticsClient({
   const { exam, metrics, distribution, studentResults, itemAnalysis = [] } = data;
 
   const [searchTerm, setSearchTerm] = useState('');
+  // Loc danh sach theo ban tri hoan: o nhap lieu luon muot, danh sach lon duoc loc o muc uu tien thap.
+  const deferredSearchTerm = useDeferredValue(searchTerm);
   const [resultFilter, setResultFilter] = useState<'all' | 'passed' | 'failed'>('all');
   const [itemTypeFilter, setItemTypeFilter] = useState<'all' | 'multiple_choice' | 'essay' | 'review'>('all');
 
   // Lọc danh sách sinh viên theo từ khóa và trạng thái đạt/chưa đạt
   const filteredResults = studentResults.filter((item) => {
-    const term = searchTerm.toLowerCase().trim();
+    const term = deferredSearchTerm.toLowerCase().trim();
     const matchesSearch =
       !term ||
       item.studentName.toLowerCase().includes(term) ||

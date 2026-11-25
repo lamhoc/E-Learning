@@ -818,3 +818,26 @@
     + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (35/35 routes).
     + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
     + Cập nhật commit hash `c843d91` vào `.antigravity/plans/active.md`.
+
+
+- [ ] **Phase 76**: Tối ưu hiệu năng request/phản hồi toàn hệ thống (an toàn tuyệt đối, giữ nguyên UI/tính năng/RLS/schema):
+  - [ ] **Mục tiêu 1 (Auth & Query waterfall)**:
+    + Thay `supabase.auth.getUser()` + truy vấn `user_roles` lặp lại trong các loader (`lib/teacher-grading.ts`, `lib/student-exam.ts`, `lib/student-exam-review.ts`, `lib/teacher-exam-analytics.ts`, `lib/teacher-exam-create.ts`, `lib/question-bank.ts`, `lib/ai-exam-tutor.ts`, `app/admin/teacher-access/page.tsx`) bằng `getCurrentUser()` / `getCurrentUserWithRole()` (React.cache) trong `lib/auth-cache.ts` → dùng chung kết quả với `layout.tsx`.
+    + Role cache chỉ áp dụng cho loader render-time (không áp cho Server Action / Route Handler để tránh mất dedupe).
+    + Rà soát waterfall: dashboard sinh viên đã `Promise.all` (giữ nguyên); gộp truy vấn tuần tự còn sót ở `getTeacherGradingData`.
+  - [ ] **Mục tiêu 2 (N+1 → bulk)**:
+    + `createExamAction` (4 biến thể snapshot câu hỏi): gom insert `exam_questions` thành 1 lệnh bulk + 1 lệnh bulk `exam_answer_keys`.
+    + `updateQuestion`: 4 upsert option → 1 upsert mảng.
+    + `saveAIQuestionsBatchAction`: bulk insert `question_bank` → bulk `question_options` → bulk `question_answer_keys` (fallback từng câu nếu bulk lỗi để không mất dữ liệu).
+    + `saveEssayGrades`: bỏ SELECT từng câu → 1 SELECT + 1 bulk insert student_answers rỗng + 1 bulk upsert grades.
+    + Tối giản `select('*')` ở danh sách lớn nếu cột sử dụng rõ ràng.
+    + Migration mới `supabase/migrations/20261125_performance_indexes_v2.sql`: chỉ `CREATE INDEX IF NOT EXISTS`, cột đã đối chiếu `schema.sql` (migration 20261102 cũ tham chiếu cột không tồn tại → không sửa, không phụ thuộc).
+  - [ ] **Mục tiêu 3 (Instant navigation & Client)**:
+    + Thêm `app/teacher/loading.tsx`, `app/student/loading.tsx` (skeleton Light/Dark `#09111E`/`#111C2D`).
+    + `next/dynamic` cho Recharts (`ExamScoreChart`) và các modal/drawer nặng (nếu đang import tĩnh).
+    + `useDeferredValue` cho ô tìm kiếm lọc danh sách lớn; kiểm tra cờ chống bấm đúp ở nộp bài / tạo đề / sinh câu hỏi.
+  - [ ] **Mục tiêu 4 (AI & Proxy)**:
+    + `/api/chat-ai`: giới hạn thời gian tra cứu role (không chặn TTFB khi Supabase chậm), rà soát timeout từng cổng AI & số tin nhắn gửi đi.
+    + `proxy.ts`: xác nhận `config.matcher` chỉ chạy trên route cần auth, không chạy trên static.
+  - [ ] **Mục tiêu 5 (Nghiệm thu)**:
+    + `npx tsc --noEmit` + `npm run build` đạt 0 lỗi; Local Commit (TUYỆT ĐỐI không `git push`); cập nhật commit hash cạnh Phase 76.

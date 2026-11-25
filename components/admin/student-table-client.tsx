@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useDeferredValue, useState, useTransition } from 'react';
 import {
   Ban,
   CheckCircle2,
@@ -49,6 +49,7 @@ export function StudentTableClient({
   students: StudentAccount[];
 }) {
   const [searchTerm, setSearchTerm] = useState('');
+  const deferredSearchTerm = useDeferredValue(searchTerm);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'blocked'>('all');
   const [isPending, startTransition] = useTransition();
   const [activeActionId, setActiveActionId] = useState<string | null>(null);
@@ -64,7 +65,7 @@ export function StudentTableClient({
 
   // Lọc dữ liệu theo tìm kiếm và trạng thái
   const filteredStudents = students.filter((student) => {
-    const term = searchTerm.toLowerCase().trim();
+    const term = deferredSearchTerm.toLowerCase().trim();
     const matchesSearch =
       !term ||
       student.fullName.toLowerCase().includes(term) ||

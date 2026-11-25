@@ -13,12 +13,14 @@ export const metadata = {
 export default async function TeacherExamsPage() {
   const { user, supabase } = await requireRole('teacher');
 
-  // Query Profile
-  const profileResult = await supabase
-    .from('profiles')
-    .select('full_name')
-    .eq('id', user.id)
-    .maybeSingle();
+  // Query Profile — khởi chạy song song với truy vấn đề thi (builder Supabase lazy → Promise.resolve để chạy ngay)
+  const profilePromise = Promise.resolve(
+    supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .maybeSingle(),
+  );
 
   // Query Exams với zero-crash fallback cho trường require_camera và auto_grade_essay
   let rawExamsData: any[] = [];
@@ -70,6 +72,7 @@ export default async function TeacherExamsPage() {
     rawExamsData = firstExamsResult.data ?? [];
   }
 
+  const profileResult = await profilePromise;
   const teacherName = sanitizeVietnameseText(profileResult.data?.full_name) || user.email || 'Giảng viên';
 
   type RawExam = {

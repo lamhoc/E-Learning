@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser, getCurrentRoleRecord } from '@/lib/auth-cache';
 
 export class ExamTutorError extends Error {
   constructor(
@@ -14,11 +14,7 @@ export class ExamTutorError extends Error {
 }
 
 export async function authorizeReleasedAttempt(attemptId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  const { user, error: authError, supabase } = await getCurrentUser();
 
   if (authError) {
     console.error('Failed to authenticate AI exam tutor request:', authError);
@@ -26,11 +22,7 @@ export async function authorizeReleasedAttempt(attemptId: string) {
   }
   if (!user) throw new ExamTutorError('Vui lòng đăng nhập để dùng gia sư AI.', 401);
 
-  const { data: roleRecord, error: roleError } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .maybeSingle();
+  const { data: roleRecord, error: roleError } = await getCurrentRoleRecord();
 
   if (roleError) {
     console.error('Failed to load role for AI exam tutor:', roleError);

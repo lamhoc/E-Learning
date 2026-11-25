@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/lib/auth-cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isShowAnswersAfterSubmit } from '@/lib/exam-auto-grade';
 import { shuffleExamQuestions } from '@/lib/exam-shuffle';
@@ -50,11 +50,7 @@ export async function getStudentAttemptReviewData(
   attemptId: string
 ): Promise<{ status: 'success'; data: AttemptReviewData } | { status: 'error'; message: string }> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authErr,
-    } = await supabase.auth.getUser();
+    const { user, error: authErr, supabase } = await getCurrentUser();
 
     if (authErr || !user) {
       return { status: 'error', message: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.' };

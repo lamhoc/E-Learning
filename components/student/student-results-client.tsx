@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import {
   Award,
   BookOpen,
@@ -20,8 +21,15 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ExamAnswerReviewModal } from '@/components/student/exam-answer-review-modal';
-import { ExamTutorDrawer } from '@/components/student/exam-tutor-drawer';
+// Code splitting: modal xem dap an & ngan keo Gia su AI chi tai khi mo (deu render co dieu kien).
+const ExamAnswerReviewModal = dynamic(
+  () => import('@/components/student/exam-answer-review-modal').then((m) => m.ExamAnswerReviewModal),
+  { ssr: false },
+);
+const ExamTutorDrawer = dynamic(
+  () => import('@/components/student/exam-tutor-drawer').then((m) => m.ExamTutorDrawer),
+  { ssr: false },
+);
 
 export type ExamResultRecord = {
   id: string;

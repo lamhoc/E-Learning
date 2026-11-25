@@ -3,7 +3,7 @@ import { isCameraRequired, cleanExamInstructions, isAutoGradeEssay, isShowAnswer
 import 'server-only';
 
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/lib/auth-cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 export type ExamQuestionOption = {
@@ -72,15 +72,32 @@ export type StudentExamPageData = {
 };
 
 export async function getStudentExamPageData(examId: string): Promise<StudentExamPageData> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  const { user, error: authError, supabase } = await getCurrentUser();
 
   if (authError || !user) {
     redirect('/login');
   }
+
+  // Tối ưu waterfall: hồ sơ, câu hỏi và lượt thi không phụ thuộc truy vấn đề thi nên khởi chạy song song ngay
+  // (query builder của Supabase chỉ chạy khi được await/then → bọc Promise.resolve để kích hoạt sớm).
+  const profileQuery = Promise.resolve(
+    supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
+  );
+  const questionsQuery = Promise.resolve(
+    supabase
+      .from('exam_questions')
+      .select('id, position, question_type, question_text, options, points')
+      .eq('exam_id', examId)
+      .order('position', { ascending: true }),
+  );
+  const attemptsQuery = Promise.resolve(
+    supabase
+      .from('exam_attempts')
+      .select('id, attempt_no, started_at, ends_at, submitted_at, status, result:attempt_results(total_score, released_at)')
+      .eq('exam_id', examId)
+      .eq('student_id', user.id)
+      .order('attempt_no', { ascending: false }),
+  );
 
   // 1. Fetch Exam Detail (hỗ trợ zero-crash fallback nếu DB chưa cập nhật cột require_camera)
   let rawExam: any = null;
@@ -125,20 +142,12 @@ export async function getStudentExamPageData(examId: string): Promise<StudentExa
   };
 
   // 2. Fetch User Profile
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name')
-    .eq('id', user.id)
-    .maybeSingle();
+  const { data: profile } = await profileQuery;
 
   const studentName = sanitizeVietnameseText(profile?.full_name) || user.email || 'Sinh viên';
 
   // 3. Fetch Questions of the Exam
-  const { data: questionsData, error: qError } = await supabase
-    .from('exam_questions')
-    .select('id, position, question_type, question_text, options, points')
-    .eq('exam_id', examId)
-    .order('position', { ascending: true });
+  const { data: questionsData, error: qError } = await questionsQuery;
 
   const rawQuestions = (questionsData ?? []) as {
     id: string;
@@ -175,12 +184,7 @@ export async function getStudentExamPageData(examId: string): Promise<StudentExa
   });
 
   // 4. Fetch Attempts of this Student for this Exam
-  const { data: attemptsData } = await supabase
-    .from('exam_attempts')
-    .select('id, attempt_no, started_at, ends_at, submitted_at, status, result:attempt_results(total_score, released_at)')
-    .eq('exam_id', examId)
-    .eq('student_id', user.id)
-    .order('attempt_no', { ascending: false });
+  const { data: attemptsData } = await attemptsQuery;
 
   const rawAttempts = (attemptsData ?? []) as {
     id: string;

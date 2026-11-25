@@ -25,6 +25,133 @@ export type CreateExamPayload = {
   }[];
 };
 
+type SnapshotSourceQuestion = {
+  id: string;
+  question_type: string;
+  question_text: string;
+  explanation: string | null;
+  options: unknown;
+  answer_key: unknown;
+};
+
+type SnapshotResult = { ok: true } | { ok: false; stage: 'question' | 'answer_key' };
+
+/**
+ * Đóng gói (snapshot) câu hỏi từ ngân hàng vào exam_questions + exam_answer_keys.
+ * Tối ưu N+1: 1 lệnh bulk insert exam_questions + 1 lệnh bulk insert exam_answer_keys
+ * (trước đây: 2 lệnh INSERT tuần tự cho MỖI câu hỏi).
+ * - `tolerant = false` (tạo đề): bất kỳ lỗi nào cũng trả về { ok: false } để caller rollback.
+ * - `tolerant = true` (cập nhật đề): giữ hành vi cũ - nếu bulk lỗi thì chèn lại từng câu, bỏ qua câu lỗi.
+ */
+async function snapshotExamQuestions(
+  adminClient: ReturnType<typeof createAdminClient>,
+  examId: string,
+  selectedQuestions: CreateExamPayload['selectedQuestions'],
+  sourceMap: Map<string, SnapshotSourceQuestion>,
+  tolerant: boolean,
+): Promise<SnapshotResult> {
+  const prepared: {
+    eqRow: {
+      exam_id: string;
+      source_question_id: string;
+      position: number;
+      question_type: string;
+      question_text: string;
+      options: { key: 'A' | 'B' | 'C' | 'D'; text: string }[];
+      points: number;
+    };
+    keyRow: {
+      correct_option_key: string | null;
+      model_answer: string | null;
+      grading_rubric: string | null;
+      explanation: string | null;
+    };
+  }[] = [];
+
+  for (const sq of selectedQuestions) {
+    const source = sourceMap.get(sq.questionId);
+    if (!source) continue;
+
+    const isMC = source.question_type === 'multiple_choice';
+    const rawOptions = (Array.isArray(source.options) ? source.options : []) as {
+      option_key: 'A' | 'B' | 'C' | 'D';
+      option_text: string;
+      position: number;
+    }[];
+
+    const sortedOptions = [...rawOptions].sort((a, b) => a.position - b.position);
+    const optionsJson = isMC
+      ? sortedOptions.map((opt) => ({ key: opt.option_key, text: opt.option_text }))
+      : [];
+
+    const answerKeyObj = (Array.isArray(source.answer_key) ? source.answer_key[0] : source.answer_key) as
+      | { correct_option_key?: string | null; model_answer?: string | null; grading_rubric?: string | null }
+      | null
+      | undefined;
+
+    prepared.push({
+      eqRow: {
+        exam_id: examId,
+        source_question_id: source.id,
+        position: sq.position,
+        question_type: source.question_type,
+        question_text: source.question_text,
+        options: optionsJson,
+        points: sq.points,
+      },
+      keyRow: {
+        correct_option_key: isMC ? answerKeyObj?.correct_option_key || null : null,
+        model_answer: !isMC ? answerKeyObj?.model_answer || null : null,
+        grading_rubric: !isMC ? answerKeyObj?.grading_rubric || null : null,
+        explanation: source.explanation || null,
+      },
+    });
+  }
+
+  if (prepared.length === 0) return { ok: true };
+
+  const { data: inserted, error: eqErr } = await adminClient
+    .from('exam_questions')
+    .insert(prepared.map((p) => p.eqRow))
+    .select('id, position');
+
+  if (!eqErr && inserted) {
+    // (exam_id, position) là UNIQUE nên position định danh duy nhất từng câu vừa chèn.
+    const idByPosition = new Map<number, string>(
+      inserted.map((row: { id: string; position: number }) => [Number(row.position), row.id]),
+    );
+    const keyRows = prepared.flatMap((p) => {
+      const examQuestionId = idByPosition.get(p.eqRow.position);
+      return examQuestionId ? [{ exam_question_id: examQuestionId, ...p.keyRow }] : [];
+    });
+
+    if (keyRows.length > 0) {
+      const { error: akErr } = await adminClient.from('exam_answer_keys').insert(keyRows);
+      if (akErr) {
+        console.error('Failed to snapshot exam_answer_keys (bulk):', akErr);
+        return tolerant ? { ok: true } : { ok: false, stage: 'answer_key' };
+      }
+    }
+    return { ok: true };
+  }
+
+  console.error('Failed to snapshot exam_questions (bulk):', eqErr);
+  if (!tolerant) return { ok: false, stage: 'question' };
+
+  // Chế độ dung sai (cập nhật đề): bulk là atomic nên chưa có dòng nào được chèn -> chèn lại từng câu như cũ.
+  for (const p of prepared) {
+    const { data: insertedEq, error: rowErr } = await adminClient
+      .from('exam_questions')
+      .insert(p.eqRow)
+      .select('id')
+      .single();
+    if (insertedEq && !rowErr) {
+      await adminClient.from('exam_answer_keys').insert({ exam_question_id: insertedEq.id, ...p.keyRow });
+    }
+  }
+  return { ok: true };
+}
+
 export type CreateExamResult = {
   status: 'success' | 'error';
   message: string;
@@ -231,63 +358,21 @@ export async function createExamAction(payload: CreateExamPayload): Promise<Crea
       return { status: 'error', message: 'Không thể nạp nội dung câu hỏi từ ngân hàng.' };
     }
 
-    const sourceMap = new Map(sourceQuestions.map((sq) => [sq.id, sq]));
+    const sourceMap = new Map<string, SnapshotSourceQuestion>(
+      (sourceQuestions as unknown as SnapshotSourceQuestion[]).map((sq) => [sq.id, sq]),
+    );
 
-    // 5. Snapshot into public.exam_questions & public.exam_answer_keys
-    for (const sq of selectedQuestions) {
-      const source = sourceMap.get(sq.questionId);
-      if (!source) continue;
-
-      const isMC = source.question_type === 'multiple_choice';
-      const rawOptions = (Array.isArray(source.options) ? source.options : []) as {
-        option_key: 'A' | 'B' | 'C' | 'D';
-        option_text: string;
-        position: number;
-      }[];
-
-      const sortedOptions = [...rawOptions].sort((a, b) => a.position - b.position);
-      const optionsJson = isMC
-        ? sortedOptions.map((opt) => ({ key: opt.option_key, text: opt.option_text }))
-        : [];
-
-      // Insert exam_question
-      const { data: insertedEq, error: eqErr } = await adminClient
-        .from('exam_questions')
-        .insert({
-          exam_id: examId,
-          source_question_id: source.id,
-          position: sq.position,
-          question_type: source.question_type,
-          question_text: source.question_text,
-          options: optionsJson,
-          points: sq.points,
-        })
-        .select('id')
-        .single();
-
-      if (eqErr || !insertedEq) {
-        console.error('Failed to snapshot exam_question:', eqErr);
-        await adminClient.from('exams').delete().eq('id', examId);
-        return { status: 'error', message: 'Lỗi khi đóng gói câu hỏi vào đề thi.' };
-      }
-
-      // Insert exam_answer_key
-      const answerKeyObj = Array.isArray(source.answer_key) ? source.answer_key[0] : source.answer_key;
-      const { error: akErr } = await adminClient
-        .from('exam_answer_keys')
-        .insert({
-          exam_question_id: insertedEq.id,
-          correct_option_key: isMC ? answerKeyObj?.correct_option_key || null : null,
-          model_answer: !isMC ? answerKeyObj?.model_answer || null : null,
-          grading_rubric: !isMC ? answerKeyObj?.grading_rubric || null : null,
-          explanation: source.explanation || null,
-        });
-
-      if (akErr) {
-        console.error('Failed to snapshot exam_answer_key:', akErr);
-        await adminClient.from('exams').delete().eq('id', examId);
-        return { status: 'error', message: 'Lỗi khi đóng gói đáp án câu hỏi.' };
-      }
+    // 5. Snapshot into public.exam_questions & public.exam_answer_keys (bulk insert, không còn N+1)
+    const snapshot = await snapshotExamQuestions(adminClient, examId, selectedQuestions, sourceMap, false);
+    if (!snapshot.ok) {
+      await adminClient.from('exams').delete().eq('id', examId);
+      return {
+        status: 'error',
+        message:
+          snapshot.stage === 'question'
+            ? 'Lỗi khi đóng gói câu hỏi vào đề thi.'
+            : 'Lỗi khi đóng gói đáp án câu hỏi.',
+      };
     }
 
     // 6. Handle Publish Immediately
@@ -554,49 +639,11 @@ export async function updateExamAction(payload: UpdateExamPayload): Promise<Crea
       .in('id', questionIds);
 
     if (!fetchQError && sourceQuestions && sourceQuestions.length > 0) {
-      const sourceMap = new Map(sourceQuestions.map((sq) => [sq.id, sq]));
-
-      for (const sq of selectedQuestions) {
-        const source = sourceMap.get(sq.questionId);
-        if (!source) continue;
-
-        const isMC = source.question_type === 'multiple_choice';
-        const rawOptions = (Array.isArray(source.options) ? source.options : []) as {
-          option_key: 'A' | 'B' | 'C' | 'D';
-          option_text: string;
-          position: number;
-        }[];
-
-        const sortedOptions = [...rawOptions].sort((a, b) => a.position - b.position);
-        const optionsJson = isMC
-          ? sortedOptions.map((opt) => ({ key: opt.option_key, text: opt.option_text }))
-          : [];
-
-        const { data: insertedEq, error: eqErr } = await adminClient
-          .from('exam_questions')
-          .insert({
-            exam_id: examId,
-            source_question_id: source.id,
-            position: sq.position,
-            question_type: source.question_type,
-            question_text: source.question_text,
-            options: optionsJson,
-            points: sq.points,
-          })
-          .select('id')
-          .single();
-
-        if (insertedEq && !eqErr) {
-          const answerKeyObj = Array.isArray(source.answer_key) ? source.answer_key[0] : source.answer_key;
-          await adminClient.from('exam_answer_keys').insert({
-            exam_question_id: insertedEq.id,
-            correct_option_key: isMC ? answerKeyObj?.correct_option_key || null : null,
-            model_answer: !isMC ? answerKeyObj?.model_answer || null : null,
-            grading_rubric: !isMC ? answerKeyObj?.grading_rubric || null : null,
-            explanation: source.explanation || null,
-          });
-        }
-      }
+      const sourceMap = new Map<string, SnapshotSourceQuestion>(
+        (sourceQuestions as unknown as SnapshotSourceQuestion[]).map((sq) => [sq.id, sq]),
+      );
+      // Bulk insert (không còn N+1); chế độ dung sai giữ nguyên hành vi cũ của luồng cập nhật.
+      await snapshotExamQuestions(adminClient, examId, selectedQuestions, sourceMap, true);
     }
 
     // 4. Xử lý Xuất bản ngay nếu người dùng chọn

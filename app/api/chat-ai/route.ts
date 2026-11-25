@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUserWithRole } from '@/lib/auth-cache';
 import { callAiChatCompletion, sanitizeChatHistory } from '@/lib/ai-provider';
 import { convertMarkdownTablesToLines } from '@/lib/anti-table-processor';
 
@@ -76,23 +76,18 @@ export async function POST(request: Request) {
   const latestUserMessage = messages[messages.length - 1].content;
 
   // 2. Xác định vai trò người dùng (Giảng viên / Sinh viên) để cá nhân hóa System Prompt
+  // Tối ưu TTFB: tra role (getUser + user_roles) có giới hạn 1.5s; nếu Supabase chậm thì dùng prompt mặc định
+  // thay vì bắt người dùng chờ trước khi gọi AI (role chỉ ảnh hưởng cách xưng hô trong System Prompt).
   let userRole: 'teacher' | 'admin' | 'student' = 'student';
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const ROLE_LOOKUP_TIMEOUT_MS = 1500;
+    const resolved = await Promise.race([
+      getCurrentUserWithRole(),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), ROLE_LOOKUP_TIMEOUT_MS)),
+    ]);
 
-    if (user) {
-      const { data: roleRecord } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (roleRecord?.role === 'teacher' || roleRecord?.role === 'admin') {
-        userRole = roleRecord.role;
-      }
+    if (resolved?.user && (resolved.role === 'teacher' || resolved.role === 'admin')) {
+      userRole = resolved.role;
     }
   } catch (authErr) {
     // Không làm gián đoạn luồng chat nếu lỗi session

@@ -150,7 +150,75 @@ export async function saveAIQuestionsBatchAction(
 
   let savedCount = 0;
 
-  for (const q of questions) {
+  // Đường nhanh: 3 lệnh bulk (question_bank -> question_options -> question_answer_keys)
+  // thay vì 3–4 lệnh tuần tự cho MỖI câu hỏi. Id sinh sẵn ở server nên không phụ thuộc thứ tự trả về.
+  // Nếu bất kỳ bước nào lỗi: dọn các bản ghi vừa chèn rồi rơi về vòng lặp từng câu bên dưới (giữ nguyên hành vi cũ).
+  let bulkSaved = false;
+  let bulkIds: string[] = [];
+  try {
+    const prepared = questions.map((q) => ({ q, id: crypto.randomUUID() }));
+    bulkIds = prepared.map((p) => p.id);
+
+    const { error: bulkQbErr } = await supabase.from('question_bank').insert(
+      prepared.map(({ q, id }) => ({
+        id,
+        subject_id: subjectId,
+        created_by: user.id,
+        question_type: q.question_type,
+        question_text: q.question_text.trim(),
+        explanation: q.explanation?.trim() || null,
+      })),
+    );
+
+    if (!bulkQbErr) {
+      const optionRows = prepared
+        .filter(({ q }) => q.question_type === 'multiple_choice')
+        .flatMap(({ q, id }) => [
+          { question_id: id, option_key: 'A', option_text: q.option_a?.trim() || 'A', position: 1 },
+          { question_id: id, option_key: 'B', option_text: q.option_b?.trim() || 'B', position: 2 },
+          { question_id: id, option_key: 'C', option_text: q.option_c?.trim() || 'C', position: 3 },
+          { question_id: id, option_key: 'D', option_text: q.option_d?.trim() || 'D', position: 4 },
+        ]);
+
+      const keyRows = prepared.map(({ q, id }) =>
+        q.question_type === 'multiple_choice'
+          ? {
+              question_id: id,
+              correct_option_key: q.correct_option || 'A',
+              model_answer: null,
+              grading_rubric: null,
+            }
+          : {
+              question_id: id,
+              correct_option_key: null,
+              model_answer: q.model_answer?.trim() || null,
+              grading_rubric: q.grading_rubric?.trim() || null,
+            },
+      );
+
+      const optErr = optionRows.length > 0
+        ? (await supabase.from('question_options').insert(optionRows)).error
+        : null;
+      const keyErr = optErr ? null : (await supabase.from('question_answer_keys').insert(keyRows)).error;
+
+      if (!optErr && !keyErr) {
+        bulkSaved = true;
+        savedCount = prepared.length;
+      } else {
+        console.error('Bulk save AI questions failed, falling back to per-item save:', optErr ?? keyErr);
+        await supabase.from('question_bank').delete().in('id', prepared.map((p) => p.id));
+      }
+    } else {
+      console.error('Bulk save question_bank failed, falling back to per-item save:', bulkQbErr);
+    }
+  } catch (bulkErr) {
+    console.error('Bulk save AI questions exception, falling back to per-item save:', bulkErr);
+    if (bulkIds.length > 0) {
+      await supabase.from('question_bank').delete().in('id', bulkIds).then(() => undefined, () => undefined);
+    }
+  }
+
+  for (const q of bulkSaved ? [] : questions) {
     try {
       // 1. Insert question_bank
       const { data: qb, error: qbError } = await supabase

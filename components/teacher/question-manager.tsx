@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import {
   BookOpen,
   Check,
@@ -28,10 +29,11 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { MathText } from '@/components/ui/math-text';
-import { QuestionModal } from './question-modal';
-import { AIGeneratorModal } from './ai-generator-modal';
-import { UploadDocumentModal } from './upload-document-modal';
-import { ExamPreviewModal } from './exam-preview-modal';
+// Code splitting: cac modal nang chi tai code khi nguoi dung mo (deu duoc render co dieu kien).
+const QuestionModal = dynamic(() => import('./question-modal').then((m) => m.QuestionModal), { ssr: false });
+const AIGeneratorModal = dynamic(() => import('./ai-generator-modal').then((m) => m.AIGeneratorModal), { ssr: false });
+const UploadDocumentModal = dynamic(() => import('./upload-document-modal').then((m) => m.UploadDocumentModal), { ssr: false });
+const ExamPreviewModal = dynamic(() => import('./exam-preview-modal').then((m) => m.ExamPreviewModal), { ssr: false });
 import { deleteQuestion } from '@/app/teacher/questions/actions';
 import type { BankQuestion, SubjectSummary } from '@/lib/question-bank';
 

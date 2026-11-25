@@ -4,8 +4,9 @@ import 'server-only';
 import { revalidatePath } from 'next/cache';
 import { redirect, notFound } from 'next/navigation';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser, getCurrentRoleRecord } from '@/lib/auth-cache';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/server';
 
 export type EssayQuestionGradingItem = {
   questionId: string;
@@ -72,162 +73,16 @@ export type TeacherGradingPageData = {
   };
 };
 
-export async function getTeacherGradingData(attemptId: string): Promise<TeacherGradingPageData> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    redirect('/login');
-  }
-
-  const { data: roleRecord, error: roleError } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  const userRole = roleRecord?.role as 'admin' | 'teacher' | 'student' | undefined;
-  if (roleError || !userRole || (userRole !== 'teacher' && userRole !== 'admin')) {
-    redirect('/subjects');
-  }
-
-  const { data: teacherProfile } = await supabase
-    .from('profiles')
-    .select('full_name')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  const teacherName = sanitizeVietnameseText(teacherProfile?.full_name) || user.email || 'Giảng viên';
-
-  // Use Admin Client if service role key is present, otherwise fall back to authenticated supabase client
-  const adminClient = process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : supabase;
-
-  // 1. Fetch Attempt Record
-  const { data: attempt, error: attemptError } = await adminClient
-    .from('exam_attempts')
-    .select(`
-      id, exam_id, student_id, attempt_no, started_at, submitted_at, status,
-      student:profiles!exam_attempts_student_id_fkey(id, full_name, student_code),
-      exam:exams!exam_attempts_exam_id_fkey(
-        id, title, duration_minutes,
-        subject:subjects!exams_subject_id_fkey(name, code)
-      )
-    `)
-    .eq('id', attemptId)
-    .maybeSingle();
-
-  if (attemptError || !attempt) {
-    console.error('Failed to load attempt for grading:', attemptError);
-    notFound();
-  }
-
-  const examRecord = Array.isArray(attempt.exam) ? attempt.exam[0] : attempt.exam;
-  const studentRecord = Array.isArray(attempt.student) ? attempt.student[0] : attempt.student;
-  const subjectRecord = examRecord && typeof examRecord === 'object' && 'subject' in examRecord
-    ? (Array.isArray(examRecord.subject) ? examRecord.subject[0] : examRecord.subject)
-    : null;
-
-  // 2. Fetch All Exam Questions
-  const { data: rawQuestions } = await adminClient
-    .from('exam_questions')
-    .select('id, position, question_type, question_text, points')
-    .eq('exam_id', attempt.exam_id)
-    .order('position', { ascending: true });
-
-  const questionList = rawQuestions ?? [];
-
-  // 3. Fetch Answer Keys for this Exam
-  const questionIds = questionList.map((q) => q.id);
-  const { data: rawKeys } = await adminClient
-    .from('exam_answer_keys')
-    .select('exam_question_id, correct_option_key, model_answer, grading_rubric, explanation')
-    .in('exam_question_id', questionIds);
-
-  const keyMap = new Map((rawKeys ?? []).map((k) => [k.exam_question_id, k]));
-
-  // 4. Fetch Student's Answers for this Attempt
-  const { data: rawAnswers } = await adminClient
-    .from('student_answers')
-    .select('exam_question_id, selected_option, answer_text')
-    .eq('attempt_id', attemptId);
-
-  const answerMap = new Map((rawAnswers ?? []).map((a) => [a.exam_question_id, a]));
-
-  // 5. Fetch Existing Grades for this Attempt
-  const { data: rawGrades } = await adminClient
-    .from('student_answer_grades')
-    .select('exam_question_id, awarded_points, feedback, graded_at')
-    .eq('attempt_id', attemptId);
-
-  const gradeMap = new Map((rawGrades ?? []).map((g) => [g.exam_question_id, g]));
-
-  // 6. Fetch Attempt Result
-  const { data: result } = await adminClient
-    .from('attempt_results')
-    .select('total_score, released_at')
-    .eq('attempt_id', attemptId)
-    .maybeSingle();
-
-  // 7. Partition Essay vs Multiple Choice Questions
-  const essayQuestions: EssayQuestionGradingItem[] = [];
-  const mcQuestions: MultipleChoiceSummaryItem[] = [];
-
-  let mcAwardedScore = 0;
-  let mcTotalScore = 0;
-  let essayMaxScore = 0;
-
-  for (const q of questionList) {
-    const qPoints = Number(q.points) || 1;
-    const ansKey = keyMap.get(q.id);
-    const studentAns = answerMap.get(q.id);
-    const existingGrade = gradeMap.get(q.id);
-
-    if (q.question_type === 'essay') {
-      essayMaxScore += qPoints;
-      essayQuestions.push({
-        questionId: q.id,
-        position: q.position,
-        questionText: q.question_text,
-        points: qPoints,
-        modelAnswer: ansKey?.model_answer || null,
-        gradingRubric: ansKey?.grading_rubric || null,
-        explanation: ansKey?.explanation || null,
-        studentAnswerText: studentAns?.answer_text || null,
-        currentAwardedPoints: existingGrade ? Number(existingGrade.awarded_points) : null,
-        currentFeedback: existingGrade?.feedback || null,
-        gradedAt: existingGrade?.graded_at || null,
-      });
-    } else {
-      mcTotalScore += qPoints;
-      const correctKey = ansKey?.correct_option_key || null;
-      const studentKey = studentAns?.selected_option || null;
-      const isCorrect = Boolean(correctKey && studentKey && correctKey === studentKey);
-      const awarded = existingGrade
-        ? Number(existingGrade.awarded_points)
-        : isCorrect
-          ? qPoints
-          : 0;
-
-      mcAwardedScore += awarded;
-
-      mcQuestions.push({
-        questionId: q.id,
-        position: q.position,
-        questionText: q.question_text,
-        points: qPoints,
-        correctOptionKey: correctKey,
-        studentSelectedOption: studentKey,
-        isCorrect,
-        awardedPoints: awarded,
-      });
-    }
-  }
-
-  // 6. Proctoring logs
-  let proctoring: { tabSwitchCount: number; hasViolations: boolean; breakdown?: { tabSwitches: number; fullscreenExits: number; cameraBlocked: number } } = {
+/**
+ * Đọc log giám thị của 1 lượt thi (chạy song song với các truy vấn khác trong getTeacherGradingData).
+ * Giữ nguyên logic cũ: ưu tiên bảng exam_proctoring_logs, nếu rỗng thì dự phòng bằng notifications.
+ * Mọi lỗi đều được nuốt (chỉ cảnh báo) để không làm hỏng trang chấm bài.
+ */
+async function loadAttemptProctoring(
+  adminClient: ReturnType<typeof createAdminClient> | Awaited<ReturnType<typeof createClient>>,
+  attemptId: string,
+): Promise<NonNullable<TeacherGradingPageData['proctoring']>> {
+  let proctoring: NonNullable<TeacherGradingPageData['proctoring']> = {
     tabSwitchCount: 0,
     hasViolations: false,
   };
@@ -285,6 +140,158 @@ export async function getTeacherGradingData(attemptId: string): Promise<TeacherG
     }
   } catch (procErr) {
     console.warn('Could not read proctoring logs:', procErr);
+  }
+
+  return proctoring;
+}
+
+export async function getTeacherGradingData(attemptId: string): Promise<TeacherGradingPageData> {
+  const { user, error: authError, supabase } = await getCurrentUser();
+
+  if (authError || !user) {
+    redirect('/login');
+  }
+
+  const { data: roleRecord, error: roleError } = await getCurrentRoleRecord();
+
+  const userRole = roleRecord?.role as 'admin' | 'teacher' | 'student' | undefined;
+  if (roleError || !userRole || (userRole !== 'teacher' && userRole !== 'admin')) {
+    redirect('/subjects');
+  }
+
+  // Use Admin Client if service role key is present, otherwise fall back to authenticated supabase client
+  const adminClient = process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : supabase;
+
+  // Vòng 1 (song song): hồ sơ giảng viên + bản ghi lượt thi — hai truy vấn độc lập, không còn chờ nối tiếp.
+  const [{ data: teacherProfile }, { data: attempt, error: attemptError }] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .maybeSingle(),
+    adminClient
+      .from('exam_attempts')
+      .select(`
+      id, exam_id, student_id, attempt_no, started_at, submitted_at, status,
+      student:profiles!exam_attempts_student_id_fkey(id, full_name, student_code),
+      exam:exams!exam_attempts_exam_id_fkey(
+        id, title, duration_minutes,
+        subject:subjects!exams_subject_id_fkey(name, code)
+      )
+    `)
+      .eq('id', attemptId)
+      .maybeSingle(),
+  ]);
+
+  const teacherName = sanitizeVietnameseText(teacherProfile?.full_name) || user.email || 'Giảng viên';
+
+  if (attemptError || !attempt) {
+    console.error('Failed to load attempt for grading:', attemptError);
+    notFound();
+  }
+
+  const examRecord = Array.isArray(attempt.exam) ? attempt.exam[0] : attempt.exam;
+  const studentRecord = Array.isArray(attempt.student) ? attempt.student[0] : attempt.student;
+  const subjectRecord = examRecord && typeof examRecord === 'object' && 'subject' in examRecord
+    ? (Array.isArray(examRecord.subject) ? examRecord.subject[0] : examRecord.subject)
+    : null;
+
+  // Vòng 2 (song song): câu hỏi, đáp án SV, điểm đã chấm, kết quả, log giám thị — 5 truy vấn độc lập.
+  const proctoringPromise = loadAttemptProctoring(adminClient, attemptId);
+  const [
+    { data: rawQuestions },
+    { data: rawAnswers },
+    { data: rawGrades },
+    { data: result },
+    proctoring,
+  ] = await Promise.all([
+    adminClient
+      .from('exam_questions')
+      .select('id, position, question_type, question_text, points')
+      .eq('exam_id', attempt.exam_id)
+      .order('position', { ascending: true }),
+    adminClient
+      .from('student_answers')
+      .select('exam_question_id, selected_option, answer_text')
+      .eq('attempt_id', attemptId),
+    adminClient
+      .from('student_answer_grades')
+      .select('exam_question_id, awarded_points, feedback, graded_at')
+      .eq('attempt_id', attemptId),
+    adminClient
+      .from('attempt_results')
+      .select('total_score, released_at')
+      .eq('attempt_id', attemptId)
+      .maybeSingle(),
+    proctoringPromise,
+  ]);
+
+  const questionList = rawQuestions ?? [];
+  const answerMap = new Map((rawAnswers ?? []).map((a) => [a.exam_question_id, a]));
+  const gradeMap = new Map((rawGrades ?? []).map((g) => [g.exam_question_id, g]));
+
+  // Vòng 3: Answer Keys (phụ thuộc danh sách id câu hỏi nên phải chờ vòng 2)
+  const questionIds = questionList.map((q) => q.id);
+  const { data: rawKeys } = await adminClient
+    .from('exam_answer_keys')
+    .select('exam_question_id, correct_option_key, model_answer, grading_rubric, explanation')
+    .in('exam_question_id', questionIds);
+
+  const keyMap = new Map((rawKeys ?? []).map((k) => [k.exam_question_id, k]));
+
+  // 7. Partition Essay vs Multiple Choice Questions
+  const essayQuestions: EssayQuestionGradingItem[] = [];
+  const mcQuestions: MultipleChoiceSummaryItem[] = [];
+
+  let mcAwardedScore = 0;
+  let mcTotalScore = 0;
+  let essayMaxScore = 0;
+
+  for (const q of questionList) {
+    const qPoints = Number(q.points) || 1;
+    const ansKey = keyMap.get(q.id);
+    const studentAns = answerMap.get(q.id);
+    const existingGrade = gradeMap.get(q.id);
+
+    if (q.question_type === 'essay') {
+      essayMaxScore += qPoints;
+      essayQuestions.push({
+        questionId: q.id,
+        position: q.position,
+        questionText: q.question_text,
+        points: qPoints,
+        modelAnswer: ansKey?.model_answer || null,
+        gradingRubric: ansKey?.grading_rubric || null,
+        explanation: ansKey?.explanation || null,
+        studentAnswerText: studentAns?.answer_text || null,
+        currentAwardedPoints: existingGrade ? Number(existingGrade.awarded_points) : null,
+        currentFeedback: existingGrade?.feedback || null,
+        gradedAt: existingGrade?.graded_at || null,
+      });
+    } else {
+      mcTotalScore += qPoints;
+      const correctKey = ansKey?.correct_option_key || null;
+      const studentKey = studentAns?.selected_option || null;
+      const isCorrect = Boolean(correctKey && studentKey && correctKey === studentKey);
+      const awarded = existingGrade
+        ? Number(existingGrade.awarded_points)
+        : isCorrect
+          ? qPoints
+          : 0;
+
+      mcAwardedScore += awarded;
+
+      mcQuestions.push({
+        questionId: q.id,
+        position: q.position,
+        questionText: q.question_text,
+        points: qPoints,
+        correctOptionKey: correctKey,
+        studentSelectedOption: studentKey,
+        isCorrect,
+        awardedPoints: awarded,
+      });
+    }
   }
 
   return {
@@ -351,21 +358,13 @@ export type TeacherGradingQueueData = {
 };
 
 export async function getTeacherGradingQueue(): Promise<TeacherGradingQueueData> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  const { user, error: authError, supabase } = await getCurrentUser();
 
   if (authError || !user) {
     redirect('/login');
   }
 
-  const { data: roleRecord, error: roleError } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .maybeSingle();
+  const { data: roleRecord, error: roleError } = await getCurrentRoleRecord();
 
   const userRole = roleRecord?.role as 'admin' | 'teacher' | 'student' | undefined;
   if (roleError || !userRole || (userRole !== 'teacher' && userRole !== 'admin')) {
@@ -628,11 +627,7 @@ export async function saveEssayGrades(
     const { attemptId, examId, studentId, grades, releaseResult } = parseResult.data;
 
     // 2. Xác thực phiên đăng nhập & vai trò giảng viên
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    const { user, error: authError, supabase } = await getCurrentUser();
 
     if (authError || !user) {
       return { status: 'error', message: 'Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.' };
@@ -681,22 +676,31 @@ export async function saveEssayGrades(
     const nowIso = new Date().toISOString();
 
     // 4. Lưu câu trả lời & điểm số vào student_answer_grades
-    for (const item of grades) {
-      const { data: existingAnswer } = await dbClient
-        .from('student_answers')
-        .select('id')
-        .eq('attempt_id', attemptId)
-        .eq('exam_question_id', item.questionId)
-        .maybeSingle();
+    // Tối ưu N+1: 1 SELECT + (nếu cần) 1 bulk INSERT + 1 bulk UPSERT thay vì 2–3 lệnh cho mỗi câu.
+    // Dedupe theo questionId (giữ bản cuối) để bulk upsert không vướng lỗi "affect row a second time".
+    const gradesByQuestion = new Map(grades.map((item) => [item.questionId, item]));
+    const uniqueGrades = Array.from(gradesByQuestion.values());
 
-      if (!existingAnswer) {
-        const { error: insAnsErr } = await dbClient.from('student_answers').insert({
+    if (uniqueGrades.length > 0) {
+      const { data: existingAnswers } = await dbClient
+        .from('student_answers')
+        .select('exam_question_id')
+        .eq('attempt_id', attemptId)
+        .in('exam_question_id', uniqueGrades.map((item) => item.questionId));
+
+      const answeredIds = new Set((existingAnswers ?? []).map((row) => row.exam_question_id as string));
+      const missingAnswers = uniqueGrades
+        .filter((item) => !answeredIds.has(item.questionId))
+        .map((item) => ({
           attempt_id: attemptId,
           exam_id: examId,
           exam_question_id: item.questionId,
           answer_text: '',
           updated_at: nowIso,
-        });
+        }));
+
+      if (missingAnswers.length > 0) {
+        const { error: insAnsErr } = await dbClient.from('student_answers').insert(missingAnswers);
         if (insAnsErr) {
           console.warn('Notice inserting blank student_answer:', insAnsErr.message);
         }
@@ -705,14 +709,14 @@ export async function saveEssayGrades(
       const { error: gradeErr } = await dbClient
         .from('student_answer_grades')
         .upsert(
-          {
+          uniqueGrades.map((item) => ({
             attempt_id: attemptId,
             exam_question_id: item.questionId,
             awarded_points: item.awardedPoints,
             feedback: item.feedback?.trim() || null,
             graded_by: user.id,
             graded_at: nowIso,
-          },
+          })),
           { onConflict: 'attempt_id,exam_question_id' }
         );
 

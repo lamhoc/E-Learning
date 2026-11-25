@@ -5,7 +5,7 @@ import 'server-only';
 
 import { redirect } from 'next/navigation';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser, getCurrentRoleRecord } from '@/lib/auth-cache';
 
 export type ExamScoreDistributionItem = {
   range: string;
@@ -94,21 +94,13 @@ function calculateMedian(numbers: number[]): number {
 }
 
 export async function getTeacherExamAnalytics(examId: string): Promise<TeacherExamAnalyticsData> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  const { user, error: authError, supabase } = await getCurrentUser();
 
   if (authError || !user) {
     redirect('/login');
   }
 
-  const { data: roleRecord, error: roleError } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .maybeSingle();
+  const { data: roleRecord, error: roleError } = await getCurrentRoleRecord();
 
   const userRole = roleRecord?.role as 'admin' | 'teacher' | 'student' | undefined;
   if (roleError || !userRole || (userRole !== 'teacher' && userRole !== 'admin')) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useDeferredValue, useState } from 'react';
 import Link from 'next/link';
 import {
   AlertTriangle,
@@ -43,11 +43,12 @@ export function GradingQueueClient({
   const { pendingAttempts, completedAttempts, totalPendingCount, totalCompletedCount, teacherName } = data;
 
   const [searchTerm, setSearchTerm] = useState('');
+  const deferredSearchTerm = useDeferredValue(searchTerm);
   const [selectedTab, setSelectedTab] = useState<'pending' | 'completed'>('pending');
 
   const filterItems = (items: TeacherGradingQueueItem[]) => {
-    if (!searchTerm.trim()) return items;
-    const q = searchTerm.toLowerCase().trim();
+    if (!deferredSearchTerm.trim()) return items;
+    const q = deferredSearchTerm.toLowerCase().trim();
     return items.filter(
       (item) =>
         item.studentName.toLowerCase().includes(q) ||
