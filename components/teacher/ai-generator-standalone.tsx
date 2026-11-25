@@ -142,6 +142,31 @@ export function AIGeneratorStandalone({ subjects, teacherName }: Props) {
     }
   };
 
+  const handleRegenerate = async () => {
+    if (!topic.trim() || isGenerating) return;
+    setIsGenerating(true);
+    setGenerateError(null);
+    setSaveSuccessMsg(null);
+
+    const res = await generateAIQuestionsAction({
+      subjectId: selectedSubjectId,
+      topic,
+      questionType,
+      difficulty,
+      count,
+      additionalNote,
+    });
+
+    setIsGenerating(false);
+
+    if (res.status === 'success' && res.questions && res.questions.length > 0) {
+      setGeneratedDrafts(res.questions);
+      setSelectedIds(new Set(res.questions.map((q) => q.tempId)));
+    } else {
+      setGenerateError(res.message || 'Không thể sinh câu hỏi. Vui lòng thử lại với chủ đề khác.');
+    }
+  };
+
   const toggleSelectOne = (tempId: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -330,21 +355,31 @@ export function AIGeneratorStandalone({ subjects, teacherName }: Props) {
                   </select>
                 </div>
 
-                {/* Chủ đề bài học */}
+                {/* Chủ đề bài học / Nội dung kiến thức */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="ai-topic" className="text-xs font-bold text-slate-700 dark:text-slate-200">
-                    Chủ đề bài học / Nội dung kiến thức <span className="text-rose-500">*</span>
-                  </Label>
-                  <Input
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="ai-topic" className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                      Chủ đề bài học / Nội dung kiến thức <span className="text-rose-500">*</span>
+                    </Label>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Hỗ trợ nhập tự do & dán bài giảng
+                    </span>
+                  </div>
+                  <textarea
                     id="ai-topic"
+                    rows={3}
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
-                    placeholder="Ví dụ: Giới hạn của hàm số, Kế thừa và Đa hình trong OOP..."
+                    placeholder="Ví dụ: Phương pháp tọa độ trong mặt phẳng Oxy và không gian Oxyz, hoặc dán nguyên đoạn văn bản bài giảng, định nghĩa lý thuyết, đoạn code để AI đọc và tạo câu hỏi trực tiếp..."
                     required
-                    className="h-10 rounded-xl border-slate-300 dark:border-slate-700 dark:bg-[#0B1422] dark:text-white"
+                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#0B1422] p-3 text-xs sm:text-sm text-slate-900 dark:text-white leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y min-h-[76px]"
                   />
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    💡 Bạn có thể bấm chọn gợi ý nhanh bên dưới, HOẶC nhập chủ đề tự do, HOẶC dán nguyên đoạn văn bản bài giảng/tài liệu để AI bám sát 100% nội dung đó.
+                  </p>
+
                   {/* Gợi ý chủ đề nhanh đồng bộ theo môn học */}
-                  <div className="pt-1">
+                  <div className="pt-1.5">
                     <div className="flex items-center justify-between pb-1">
                       <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
                         Gợi ý nhanh theo môn{' '}
@@ -492,20 +527,20 @@ export function AIGeneratorStandalone({ subjects, teacherName }: Props) {
                 <div className="flex items-center gap-2">
                   <Cpu className="size-4 text-blue-600 dark:text-blue-400" />
                   <CardTitle className="text-sm font-bold text-slate-900 dark:text-white">
-                    Công nghệ Groq Llama 3
+                    Công nghệ AI Đa Mô Hình (Gemini & Groq)
                   </CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3 text-xs text-slate-600 dark:text-slate-300">
                 <p>
-                  Hệ thống tích hợp mô hình AI siêu tốc độ <strong>Groq Llama 3 70B</strong> với khả năng suy luận mạnh mẽ, chính xác và định dạng chuẩn học thuật.
+                  Hệ thống tích hợp mô hình AI cao cấp của <strong>Google Gemini</strong> và <strong>Groq Llama 3.3 70B</strong> với khả năng suy luận chuyên sâu, bám sát 100% nội dung bài giảng và công thức Toán học chuẩn KaTeX.
                 </p>
                 <div className="rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/50 dark:bg-blue-950/30 p-3">
                   <p className="font-semibold text-blue-900 dark:text-blue-200">
                     💡 Hỗ trợ công thức Toán & Khoa học
                   </p>
                   <p className="mt-1 text-[11px] text-blue-800/80 dark:text-blue-300/80">
-                    Mọi ký hiệu, biểu thức toán học sẽ được tự động xuất dưới dạng LaTeX KaTeX rõ nét và đẹp mắt.
+                    Mọi ký hiệu vectơ, tọa độ Oxy/Oxyz, ma trận, phân số sẽ được tự động xuất dưới dạng LaTeX KaTeX rõ nét và đẹp mắt.
                   </p>
                 </div>
               </CardContent>
@@ -525,7 +560,7 @@ export function AIGeneratorStandalone({ subjects, teacherName }: Props) {
                   <span className="grid size-5 shrink-0 place-items-center rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-bold">
                     1
                   </span>
-                  <span>Cấu hình môn học và nhập chủ đề bài giảng.</span>
+                  <span>Cấu hình môn học và nhập chủ đề bài giảng hoặc dán tài liệu.</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="grid size-5 shrink-0 place-items-center rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-bold">
@@ -546,6 +581,44 @@ export function AIGeneratorStandalone({ subjects, teacherName }: Props) {
       ) : (
         /* Review Step */
         <div className="space-y-4">
+          {/* Thanh tóm tắt ngữ cảnh & Nút tạo lại */}
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/70 dark:bg-blue-950/40 p-3.5 text-xs shadow-2xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-semibold text-slate-700 dark:text-slate-300">Chủ đề:</span>
+              <span className="font-bold text-blue-900 dark:text-blue-200 line-clamp-1 max-w-[280px] sm:max-w-[420px]" title={topic}>
+                {topic}
+              </span>
+              <span className="text-slate-400">·</span>
+              <Badge className="bg-blue-600 text-white font-bold">{currentSubject?.name || 'Môn học'}</Badge>
+              <Badge variant="outline" className="text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 font-medium">
+                {questionType === 'multiple_choice' ? 'Trắc nghiệm (A-B-C-D)' : 'Tự luận'}
+              </Badge>
+              <Badge variant="outline" className="text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 font-medium">
+                {difficulty === 'easy' ? 'Nhận biết' : difficulty === 'medium' ? 'Thông hiểu' : difficulty === 'hard' ? 'Vận dụng' : 'Vận dụng cao'}
+              </Badge>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isGenerating}
+              onClick={handleRegenerate}
+              className="gap-1.5 rounded-lg border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-100/50 dark:hover:bg-blue-900/40 text-xs font-semibold cursor-pointer"
+            >
+              {isGenerating ? (
+                <>
+                  <LoaderCircle className="size-3.5 animate-spin text-blue-600" />
+                  <span>Đang sinh lại...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="size-3.5 text-blue-600" />
+                  <span>Sinh thêm / Tạo lại bộ khác</span>
+                </>
+              )}
+            </Button>
+          </div>
+
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-4">
             <div className="flex items-center gap-3">
               <Button

@@ -150,6 +150,30 @@ export function AIGeneratorModal({
     }
   };
 
+  const handleRegenerate = async () => {
+    if (!topic.trim() || isGenerating) return;
+    setIsGenerating(true);
+    setGenerateError(null);
+
+    const res = await generateAIQuestionsAction({
+      subjectId: selectedSubjectId,
+      topic,
+      questionType,
+      difficulty,
+      count,
+      additionalNote,
+    });
+
+    setIsGenerating(false);
+
+    if (res.status === 'error' || !res.questions) {
+      setGenerateError(res.message);
+    } else {
+      setGeneratedDrafts(res.questions);
+      setSelectedIds(new Set(res.questions.map((q) => q.tempId)));
+    }
+  };
+
   const handleToggleSelect = (tempId: string) => {
     const next = new Set(selectedIds);
     if (next.has(tempId)) {
@@ -235,10 +259,10 @@ export function AIGeneratorModal({
             </span>
             <div>
               <h2 className="text-base font-bold text-foreground sm:text-lg">
-                AI Sinh câu hỏi tự động (Groq)
+                AI Sinh câu hỏi thông minh (Gemini & Groq)
               </h2>
               <p className="text-xs text-muted-foreground">
-                Tạo nhanh bộ câu hỏi khảo thí chuẩn xác kèm công thức LaTeX và lời giải chi tiết.
+                Tạo nhanh bộ câu hỏi khảo thí chuẩn xác bám sát 100% nội dung bài giảng và công thức KaTeX.
               </p>
             </div>
           </div>
@@ -309,16 +333,22 @@ export function AIGeneratorModal({
 
               {/* Topic / Knowledge Domain */}
               <div className="space-y-1.5">
-                <Label htmlFor="ai-topic">
-                  Chủ đề / Bài học / Nội dung kiến thức <span className="text-destructive">*</span>
-                </Label>
-                <Input
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="ai-topic">
+                    Chủ đề / Bài học / Nội dung kiến thức <span className="text-destructive">*</span>
+                  </Label>
+                  <span className="text-[11px] text-muted-foreground">
+                    Hỗ trợ nhập tự do & dán bài giảng
+                  </span>
+                </div>
+                <textarea
                   id="ai-topic"
+                  rows={3}
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
                   required
-                  placeholder="Ví dụ: Ma trận vuông cấp 2, định thức và ma trận khả nghịch..."
-                  className="h-10"
+                  placeholder="Ví dụ: Phương pháp tọa độ trong mặt phẳng Oxy và không gian Oxyz, hoặc dán nguyên đoạn văn bản bài giảng, định nghĩa lý thuyết, đoạn code để AI đọc và tạo câu hỏi trực tiếp..."
+                  className="w-full rounded-md border border-input bg-background p-2.5 text-xs sm:text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary/40 resize-y min-h-[72px]"
                 />
                 
                 {/* Gợi ý chủ đề nhanh đồng bộ theo môn học */}
@@ -358,7 +388,7 @@ export function AIGeneratorModal({
                 </div>
 
                 <p className="text-[11px] text-muted-foreground pt-0.5">
-                  Gợi ý: Càng nêu rõ bài học hoặc dạng bài, AI sẽ tạo câu hỏi càng bám sát chương trình.
+                  💡 Bạn có thể bấm chọn gợi ý nhanh bên trên, HOẶC gõ chủ đề bất kỳ, HOẶC dán nguyên đoạn văn bản bài giảng/tài liệu để AI bám sát 100% nội dung đó.
                 </p>
               </div>
 
@@ -462,8 +492,8 @@ export function AIGeneratorModal({
             /* STEP 2: REVIEW, INLINE EDIT & APPROVAL */
             <div className="space-y-5">
               {/* Review Bar */}
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#dce7e0] bg-[#f8faf8] p-3.5">
-                <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/60 dark:bg-blue-950/30 p-3.5">
+                <div className="flex flex-wrap items-center gap-3">
                   <Button
                     type="button"
                     variant="outline"
@@ -479,22 +509,43 @@ export function AIGeneratorModal({
                   </Button>
                   <div className="text-xs text-muted-foreground">
                     Môn: <strong className="text-foreground">{currentSubject?.name}</strong> · Chủ đề:{' '}
-                    <strong className="text-foreground">{topic}</strong>
+                    <strong className="text-foreground line-clamp-1 max-w-[200px] sm:max-w-[320px]" title={topic}>{topic}</strong>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isGenerating || isSaving}
+                    onClick={handleRegenerate}
+                    className="h-8 gap-1.5 text-xs font-semibold text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 hover:bg-blue-100/50 cursor-pointer"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <LoaderCircle className="size-3 animate-spin text-blue-600" />
+                        <span>Đang sinh...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="size-3 text-blue-600" />
+                        <span>Sinh lại bộ khác</span>
+                      </>
+                    )}
+                  </Button>
+
                   <button
                     type="button"
                     onClick={handleToggleSelectAll}
-                    className="text-xs font-medium text-primary hover:underline"
+                    className="text-xs font-medium text-primary hover:underline px-2"
                   >
                     {selectedIds.size === generatedDrafts.length
-                      ? 'Bỏ chọn tất cả'
+                      ? 'Bỏ chọn'
                       : 'Chọn tất cả'}
                   </button>
                   <span className="text-xs font-semibold text-foreground">
-                    Đã chọn: {selectedIds.size}/{generatedDrafts.length} câu
+                    {selectedIds.size}/{generatedDrafts.length} câu
                   </span>
                 </div>
               </div>
