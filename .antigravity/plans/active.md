@@ -774,3 +774,22 @@
     + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 routes).
     + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
     + Cập nhật commit hash `1187ebe` vào `.antigravity/plans/active.md`.
+
+- [x] **Phase 74 (Commit `c561e32`)**: Xóa hoàn toàn tên "Mầm Học" trên toàn bộ hệ thống web & đổi sang "E-Learning" + Sửa khung Dark Mode tại student dashboard:
+  - [x] **Mục tiêu 1 (Quét toàn bộ mã nguồn không bỏ sót biến thể nào)**:
+    + Tìm kiếm `Mầm Học`, `Mầm học`, `mầm học`, `MẦM HỌC`, `Mam Hoc`, `mam hoc`, `MamHoc`, `mamhoc`, `mam-hoc`, `mam_hoc` trong `app/**`, `components/**`, `lib/**`, `public/**`.
+  - [x] **Mục tiêu 2 (Thay thế đồng bộ sang "E-Learning" trên cả 3 phân hệ & trang công khai)**:
+    + Chân trang (Footer): `"E-Learning cùng bạn học tốt hơn mỗi ngày"`, `© 2026 E-Learning · Đại học Lạc Hồng (LHU)`.
+    + Trang Chủ, Đăng nhập, Đăng ký, Quên mật khẩu: Thay đổi logo text, slogan, thẻ alt, tiêu đề. Tránh lặp từ `"E-Learning E-Learning"`.
+    + Sidebar, Topbar, Modal, Toast, Empty State trên Admin, Giảng viên, Học sinh.
+  - [x] **Mục tiêu 3 (Cập nhật Metadata, AI Prompt & File xuất dữ liệu)**:
+    + Metadata: `metadata.title`, `metadata.description`, `openGraph.title`, `applicationName` trong `layout.tsx`, `manifest.json`.
+    + AI Prompt & Chat: Đổi câu chào ban đầu và System Prompt từ Mầm Học sang `"hệ thống E-Learning - Đại học Lạc Hồng (LHU)"`.
+    + Tên file Export: Đổi `MamHoc_...` sang `E-Learning_...`.
+  - [x] **Mục tiêu 4 (Sửa lỗi khung nền trắng trong Dark Mode tại `/student/dashboard`)**:
+    + Mục "Lượt thi gần nhất": Khung `"Bài thi bạn đã nộp sẽ xuất hiện tại đây."` đổi sang `bg-slate-50 dark:bg-[#111C2D] border border-dashed border-slate-300 dark:border-slate-700/80 text-slate-600 dark:text-slate-300 rounded-xl`.
+  - [x] **Mục tiêu 5 (Kiểm thử thực tế, nghiệm thu có chứng cứ & commit an toàn)**:
+    + Quét lại toàn bộ repo đảm bảo 0 kết quả cho từ khóa Mầm Học.
+    + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (35/35 routes).
+    + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
+    + Cập nhật commit hash `c561e32` vào `.antigravity/plans/active.md`.
