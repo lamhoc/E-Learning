@@ -54,6 +54,7 @@ export default function StudentAiTutorPage() {
   const [loading, setLoading] = useState(false);
   const [studentName, setStudentName] = useState('Sinh viên');
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [continuingIndex, setContinuingIndex] = useState<number | null>(null);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -180,6 +181,35 @@ export default function StudentAiTutorPage() {
     }
   };
 
+  async function handleContinueWriting(currentText: string, messageIndex: number) {
+    if (loading || continuingIndex !== null) return;
+    setContinuingIndex(messageIndex);
+    try {
+      const historySlice = messages.slice(0, messageIndex + 1);
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          continueFrom: currentText,
+          messages: historySlice,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Không thể tiếp tục sinh nội dung.');
+      }
+      if (data.reply) {
+        setMessages((cur) =>
+          cur.map((m, idx) => (idx === messageIndex ? { ...m, content: data.reply } : m))
+        );
+      }
+    } catch (err) {
+      console.warn('Lỗi khi tiếp tục viết:', err);
+    } finally {
+      setContinuingIndex(null);
+    }
+  }
+
   const isInitialState = messages.length === 1;
 
   return (
@@ -301,9 +331,9 @@ export default function StudentAiTutorPage() {
                         )}
                       </div>
 
-                      {/* Nút Sao chép câu trả lời dưới mỗi tin nhắn Assistant */}
+                      {/* Nút Sao chép & Tiếp tục viết phần còn lại dưới mỗi tin nhắn Assistant */}
                       {msg.role === 'assistant' && !msg.content.startsWith('⚠️ Lỗi kết nối') && (
-                        <div className="mt-1 px-1 flex items-center justify-start">
+                        <div className="mt-1 px-1 flex flex-wrap items-center justify-start gap-3">
                           <button
                             type="button"
                             onClick={() => handleCopyMessage(msg.content, i)}
@@ -319,6 +349,25 @@ export default function StudentAiTutorPage() {
                               <>
                                 <Copy className="size-3" />
                                 <span>Sao chép</span>
+                              </>
+                            )}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleContinueWriting(msg.content, i)}
+                            disabled={continuingIndex === i || loading}
+                            className="inline-flex items-center gap-1 text-[11px] text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline transition cursor-pointer font-medium disabled:opacity-50"
+                            title="Yêu cầu AI viết tiếp từ chỗ đang ngắt để hoàn thành trọn vẹn"
+                          >
+                            {continuingIndex === i ? (
+                              <>
+                                <Sparkles className="size-3 animate-spin text-blue-600" />
+                                <span>Đang viết tiếp...</span>
+                              </>
+                            ) : (
+                              <>
+                                <span>▶ Tiếp tục viết phần còn lại</span>
                               </>
                             )}
                           </button>

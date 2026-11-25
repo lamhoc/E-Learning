@@ -9,6 +9,7 @@ import {
   normalizeMathInput,
 } from '@/components/ui/math-text';
 import { convertMarkdownTablesToLines } from '@/lib/anti-table-processor';
+import { balanceStreamingDelimiters } from '@/lib/ai-continuation';
 
 type ChatMessageRendererProps = {
   content?: string | null;
@@ -257,6 +258,9 @@ function parseBlocks(rawText: string): BlockItem[] {
 
   // Chặn 100% bảng Markdown bằng Anti-Table Post-Processor
   text = convertMarkdownTablesToLines(text);
+
+  // Tự động cân bằng các dấu toán KaTeX $...$ và dấu ngoặc khi đang stream dở
+  text = balanceStreamingDelimiters(text);
 
   // Khử escape kép dư thừa cho các lệnh LaTeX phổ biến (\\\\frac -> \frac)
   text = text.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
@@ -549,6 +553,22 @@ export const ChatMessageRenderer = React.memo(
 
             case 'heading': {
               const tokens = tokenizeInline(block.text);
+              const isQuestionHeading = /^(?:câu|bài|question)\s*\d+/i.test(block.text);
+
+              // Khối tiêu đề câu hỏi tự luận / trắc nghiệm phân cấp nổi bật
+              if (isQuestionHeading) {
+                return (
+                  <div
+                    key={idx}
+                    className="mt-5 mb-2.5 p-2.5 px-3.5 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 border-l-4 border-l-blue-600 dark:border-l-blue-400 border-t border-r border-b border-blue-200/60 dark:border-blue-900/40 shadow-2xs text-left"
+                  >
+                    <h4 className="font-bold text-[15px] text-blue-900 dark:text-blue-200 flex items-baseline gap-2 text-left">
+                      <span>{renderInlineTokens(tokens)}</span>
+                    </h4>
+                  </div>
+                );
+              }
+
               if (block.level === 1 || block.level === 2) {
                 return (
                   <h3
@@ -559,7 +579,7 @@ export const ChatMessageRenderer = React.memo(
                   </h3>
                 );
               }
-              // Level 3 hoặc 4 (Câu 1: ...)
+              // Level 3 hoặc 4
               return (
                 <h4
                   key={idx}
@@ -667,13 +687,25 @@ export const ChatMessageRenderer = React.memo(
 
             case 'list-item': {
               const tokens = tokenizeInline(block.text);
+              // Nhận diện nếu dòng danh sách chứa điểm số rubric: (X điểm) hoặc (X.X điểm) hoặc (Xđ)
+              const scoreMatch = block.text.match(/\((\d+(?:[.,]\d+)?\s*(?:đ|điểm|đ\.|pt|pts))\)/i);
+
               return (
                 <div key={idx} className="flex items-start gap-2.5 py-1 px-1 text-left">
                   <span className="shrink-0 select-none font-semibold text-blue-600 dark:text-blue-400 mt-0.5">
                     {block.prefix || '•'}
                   </span>
                   <div className="flex-1 text-slate-800 dark:text-slate-100 leading-relaxed text-left">
-                    {renderInlineTokens(tokens)}
+                    {scoreMatch ? (
+                      <div className="flex flex-wrap items-baseline gap-1.5">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shrink-0 select-none">
+                          {scoreMatch[1]}
+                        </span>
+                        <span>{renderInlineTokens(tokens)}</span>
+                      </div>
+                    ) : (
+                      renderInlineTokens(tokens)
+                    )}
                   </div>
                 </div>
               );

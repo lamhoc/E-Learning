@@ -172,20 +172,70 @@ export function convertMarkdownTablesToLines(content?: string | null): string {
           resultLines.push(''); // Dòng trống cách giữa các câu
         });
       } else {
-        // --- CHUYỂN ĐỔI BẢNG NỘI DUNG KHÁC THÀNH DANH SÁCH DỌC ---
-        rows.forEach((row, rowIdx) => {
-          const firstVal = row[0]?.trim() || `Mục ${rowIdx + 1}`;
-          resultLines.push(`#### ${firstVal}`);
+        // --- CHUYỂN ĐỔI BẢNG NỘI DUNG KHÁC (RUBRIC / TIÊU CHÍ / DỮ LIỆU) THÀNH DANH SÁCH DÒNG GỌN ĐẸP ---
+        // Nếu là bảng 2 cột (hoặc 3 cột có 1 cột STT): Tự động gộp thành 1 dòng "- **Cột 1:** Cột 2"
+        const isTwoColumn = headers.length === 2;
+        const colSttIdx = lowerHeaders.findIndex((h) => h === 'stt' || h === '#' || h === 'no');
+        const isThreeColWithStt = headers.length === 3 && colSttIdx !== -1;
 
-          for (let c = 1; c < headers.length; c++) {
-            const headerName = headers[c]?.trim() || `Thuộc tính ${c}`;
-            const cellVal = row[c]?.trim() || '';
-            if (cellVal) {
-              resultLines.push(`- **${headerName}:** ${cellVal}`);
+        if (isTwoColumn) {
+          rows.forEach((row) => {
+            const key = (row[0] || '').trim();
+            const val = (row[1] || '').trim();
+            if (!key && !val) return;
+            if (key && val) {
+              resultLines.push(`- **${key}:** ${val}`);
+            } else {
+              resultLines.push(`- ${key || val}`);
             }
-          }
+          });
           resultLines.push('');
-        });
+        } else if (isThreeColWithStt) {
+          // Bảng 3 cột nhưng có 1 cột STT -> Lấy 2 cột thực chất
+          const contentCols = [0, 1, 2].filter((idx) => idx !== colSttIdx);
+          const colKeyIdx = contentCols[0];
+          const colValIdx = contentCols[1];
+
+          rows.forEach((row) => {
+            const key = (row[colKeyIdx] || '').trim();
+            const val = (row[colValIdx] || '').trim();
+            if (!key && !val) return;
+            if (key && val) {
+              resultLines.push(`- **${key}:** ${val}`);
+            } else {
+              resultLines.push(`- ${key || val}`);
+            }
+          });
+          resultLines.push('');
+        } else {
+          // Bảng nhiều hơn 2 cột (ví dụ Tiêu chí, Yêu cầu cần đạt, Thang điểm)
+          const colScoreIdx = lowerHeaders.findIndex(
+            (h) => h.includes('điểm') || h.includes('score') || h.includes('weight') || h.includes('trọng số')
+          );
+
+          rows.forEach((row, rowIdx) => {
+            const firstVal = row[0]?.trim() || `Mục ${rowIdx + 1}`;
+            const scoreVal = colScoreIdx !== -1 && colScoreIdx !== 0 ? row[colScoreIdx]?.trim() : '';
+
+            // Nếu có cột điểm, đưa điểm vào cạnh tiêu đề mục: "#### Mục 1 (2.0 điểm)"
+            if (scoreVal) {
+              const scoreLabel = /điểm/i.test(scoreVal) ? scoreVal : `${scoreVal} điểm`;
+              resultLines.push(`#### ${firstVal} (${scoreLabel})`);
+            } else {
+              resultLines.push(`#### ${firstVal}`);
+            }
+
+            for (let c = 1; c < headers.length; c++) {
+              if (c === colScoreIdx) continue; // Đã đưa lên tiêu đề
+              const headerName = headers[c]?.trim() || `Thuộc tính ${c}`;
+              const cellVal = row[c]?.trim() || '';
+              if (cellVal) {
+                resultLines.push(`- **${headerName}:** ${cellVal}`);
+              }
+            }
+            resultLines.push('');
+          });
+        }
       }
 
       continue;
