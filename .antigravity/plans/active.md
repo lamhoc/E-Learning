@@ -863,3 +863,26 @@
     + Chạy `cmd /c "npx tsc --noEmit"`: 0 lỗi.
     + Chạy `cmd /c "npm run build"`: Compiled successfully, 31/31 static/dynamic pages tối ưu 100%.
     + Tạo Local Commit an toàn theo `AGENTS.md` (tuyệt đối không `git push` tự ý). Ghi nhận commit hash `dab392d`.
+
+- [x] **Phase 78 (Commit `28939a7`)**: Nâng cấp tính năng "Sinh câu hỏi AI" chạy LLM thực thụ (Gemini / ChatGPT) — bám sát 100% nội dung kiến thức đã chọn hoặc nhập tự do:
+  - [x] **Mục tiêu 1 (Xóa bỏ hoàn toàn kho câu hỏi mẫu tĩnh gây lệch chủ đề)**:
+    + Xóa bỏ `generateSmartDiverseFallback`, `mcScenarios`, `essayScenarios`, và vô hiệu hóa triệt để `domain-fallback-generator.ts`.
+    + TUYỆT ĐỐI không trả về câu hỏi tĩnh khi AI gặp lỗi. Trả về thông báo lỗi thân thiện rõ ràng kèm nút "Thử sinh lại". 100% câu hỏi phải sinh từ LLM dựa trên môn học và chủ đề yêu cầu.
+  - [x] **Mục tiêu 2 (Kết nối lõi LLM đa cổng & bộ sửa lỗi parse JSON chứa LaTeX `safeParseAIQuestionsJson`)**:
+    + Nâng trần `max_tokens: 8192` và `temperature: 0.7`, kết hợp nonce chống lặp để mỗi lần bấm sinh đều ra câu hỏi mới đa dạng.
+    + Module mới `lib/ai-json-parser.ts`: viết hàm `safeParseAIQuestionsJson(rawText: string)` tự động sửa escape cho LaTeX (`\frac`, `\vec`, `\sqrt`, `\text`, `\times`...), gỡ thẻ `<think>...</think>`, và cơ chế State-Machine Bracket Matcher tự động cứu các câu hỏi hoàn chỉnh nếu chuỗi JSON bị ngắt giữa chừng do token limit.
+  - [x] **Mục tiêu 3 (Nâng cấp System Prompt chuyên gia khảo thí ép bám sát 100% chủ đề)**:
+    + Ép bám sát 100% chủ đề / nội dung kiến thức bắt buộc: nếu là Tọa độ Oxy/Oxyz thì 100% về tọa độ điểm, vectơ, đường thẳng, mặt phẳng, mặt cầu; tuyệt đối không sinh Đạo hàm/Tích phân.
+    + Nếu dán đoạn văn bản/bài giảng/code thì chỉ khai thác kiến thức từ đoạn đó.
+    + Định dạng JSON chuẩn cho cả Trắc nghiệm và Tự luận (kèm Rubric chi tiết).
+  - [x] **Mục tiêu 4 (Nâng cấp giao diện /teacher/ai-generator & Modal trong /teacher/questions)**:
+    + Nâng cấp ô "Chủ đề bài học / Nội dung kiến thức" từ `<input>` 1 dòng thành `<textarea rows={3}>` tự co giãn, cho phép gõ tự do mọi chủ đề hoặc dán nguyên đoạn bài giảng.
+    + Bỏ active gợi ý nhanh khi gõ tay tự do; hiển thị thanh tóm tắt ngữ cảnh (Chủ đề, Loại câu, Mức độ) và nút "Sinh lại bộ khác".
+    + Render công thức qua `<MathText />` chuẩn đẹp cho vectơ, tọa độ, ma trận, phân số.
+    + Thống nhất tiêu đề và nhận diện thương hiệu E-Learning (hỗ trợ đa mô hình AI thông minh: Gemini / Groq Llama 3).
+  - [x] **Mục tiêu 5 (Kiểm thử thực tế, nghiệm thu & commit an toàn)**:
+    + Kiểm thử unit test parser với chuỗi LaTeX phức tạp: 100% Passed.
+    + Kiểm thử cứu vãn JSON bị truncated do token: 100% Passed.
+    + Chạy `cmd /c "npx tsc --noEmit"`: 0 lỗi.
+    + Chạy `cmd /c "npm run build"`: Compiled successfully, 31/31 static/dynamic pages tối ưu 100%.
+    + Tạo local commit an toàn theo `AGENTS.md` (tuyệt đối không `git push` tự ý). Ghi nhận commit hash `28939a7`.
