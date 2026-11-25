@@ -841,3 +841,25 @@
     + `proxy.ts`: xác nhận `config.matcher` chỉ chạy trên route cần auth, không chạy trên static.
   - [x] **Mục tiêu 5 (Nghiệm thu)**:
     + `npx tsc --noEmit` + `npm run build` đạt 0 lỗi; Local Commit (TUYỆT ĐỐI không `git push`); cập nhật commit hash cạnh Phase 76.
+
+- [x] **Phase 77 (Commit `dab392d`)**: Nâng cấp lõi AI — chống cắt cụt (auto-continue + streaming), chuẩn hóa rubric thang 10, tối ưu hiển thị (Giảng viên & Học sinh):
+  - [x] **Mục tiêu 1 (Chống cắt cụt & Nâng trần 8192 token)**:
+    + Lõi AI trong `lib/ai-provider.ts` & alias `lib/ai-engine.ts`: Nâng trần token mặc định 8192 cho các model lớn (`gemini-2.5-flash`, `gemini-2.0-flash`, `llama-3.3-70b`, `llama-4-scout`, `qwen3-32b`), an toàn context cho model nhỏ (`gemma2-9b-it`), đọc `finishReason`/`finish_reason` và gộp toàn bộ `parts` của Gemini.
+    + File mới `lib/ai-continuation.ts`: hàm thuần `isTextIncomplete` (nhận diện ngắt độ dài, thiếu câu so với yêu cầu N câu, KaTeX `$` lẻ, ngoặc mở chưa đóng), `stripOverlap` (thuật toán cắt bỏ phần trùng giữa đuôi và đầu), `mergeContinuation` (ghép chuỗi tự nhiên có khoảng trắng), `buildContinuationPrompt`.
+    + Vòng lặp Server-Side Auto-Continuation: Tự động gửi tiếp tối đa 2 lần lặp khi phát hiện câu trả lời bị ngắt dở, ghép nối mượt mà trước khi trả về Client.
+    + Endpoint `/api/chat` & `/api/chat-ai`: Hỗ trợ `continueFrom` cho nút tiếp tục viết và hỗ trợ SSE Streaming (`stream: true`). Nới giới hạn `MAX_MESSAGE_LENGTH = 8000` và sliding window để không bỏ sót ngữ cảnh.
+    + Giao diện `/teacher/ai-tutor`, `/student/ai-tutor`: Bổ sung nút nhỏ **`▶ Tiếp tục viết phần còn lại`** đặt cạnh nút **`Sao chép`** dưới mỗi tin nhắn Assistant.
+  - [x] **Mục tiêu 2 (Chuẩn hóa Rubric & Thang điểm 10 Khảo thí)**:
+    + Bổ sung quy tắc trong System Prompt: Mặc định tính theo thang điểm 10 chuẩn Việt Nam (tổng các câu = 10.0, hoặc 1 câu tự luận tổng tiêu chí = điểm câu đó, tuyệt đối không bịa tổng 30 điểm).
+    + Định dạng rubric gọn trên cùng 1 dòng: `- **[Tên tiêu chí] ([X.X] điểm):** [Nội dung yêu cầu cần đạt]`.
+    + Phân bổ độ dài thông minh khi người dùng yêu cầu 5 - 10 câu.
+  - [x] **Mục tiêu 3 (Tối ưu hiển thị ChatMessageRenderer & Chuyển đổi bảng)**:
+    + `convertMarkdownTablesToLines` (`lib/anti-table-processor.ts`): Tự động gộp bảng 2 cột thành `- **[Cột 1]:** [Cột 2]` gọn đẹp, không bung heading + bullet lộn xộn.
+    + `ChatMessageRenderer`: Phân cấp rõ rệt đề bài câu hỏi tự luận với border-left màu xanh và nền riêng, khối `Gợi ý trả lời` (amber), khối `Thang điểm` (purple), badge điểm nổi bật cho từng tiêu chí, tự động cân bằng delimiter KaTeX khi streaming dở.
+  - [x] **Mục tiêu 4 (Đồng bộ toàn bộ 3 phân hệ)**:
+    + Cả Teacher AI Tutor, Student AI Tutor, Exam Tutor Drawer (`/api/student/exam-tutor`), Sinh câu hỏi AI (`/teacher/ai-generator`) và Bóc tách tài liệu đều đồng bộ hưởng lợi trần token 8192 và renderer mới.
+  - [x] **Mục tiêu 5 (Kiểm thử & Nghiệm thu có chứng cứ)**:
+    + Chạy bộ unit test độc lập kiểm tra trích xuất câu hỏi, phát hiện ngắt dở, overlap trimming và anti-table 2 cột: 100% Passed.
+    + Chạy `cmd /c "npx tsc --noEmit"`: 0 lỗi.
+    + Chạy `cmd /c "npm run build"`: Compiled successfully, 31/31 static/dynamic pages tối ưu 100%.
+    + Tạo Local Commit an toàn theo `AGENTS.md` (tuyệt đối không `git push` tự ý). Ghi nhận commit hash `dab392d`.
