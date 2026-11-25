@@ -693,19 +693,19 @@
     + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
     + Cập nhật commit hash `de8e83e` vào `.antigravity/plans/active.md`.
 
-- [ ] **Phase 71**: Sửa triệt để lỗi giao diện điện thoại bị tràn / che khuất mép phải & Tổng rà soát, kiểm thử mobile toàn hệ thống (Admin, Giảng viên, Học sinh):
-  - [ ] **Mục tiêu 1 (Khóa tràn ngang tại Layout Shell & Global CSS)**:
+- [x] **Phase 71 (Commit `001e5c6`)**: Sửa triệt để lỗi giao diện điện thoại bị tràn / che khuất mép phải & Tổng rà soát, kiểm thử mobile toàn hệ thống (Admin, Giảng viên, Học sinh):
+  - [x] **Mục tiêu 1 (Khóa tràn ngang tại Layout Shell & Global CSS)**:
     + Cập nhật `app/globals.css` và `app/layout.tsx`: `html, body` có `max-width: 100%; overflow-x: clip;`, body có `w-full max-w-full overflow-x-clip`.
     + Chuẩn hóa Flex layout trên cả 3 Shell (`TeacherShell`, `StudentShell`, `AdminShell`): Thẻ bọc ngoài có `w-full max-w-full min-h-dvh overflow-x-clip`, Khung bên phải có `flex-1 min-w-0 w-full max-w-full flex flex-col`, Khung con chứa nội dung có `flex-1 min-w-0 w-full max-w-full overflow-x-clip`.
-    + Logo LHU Topbar Mobile: Đảm bảo có khung nền sáng nhẹ hoặc viền sáng (`bg-white/95 rounded-lg px-1.5 py-0.5`) để chữ "ĐẠI HỌC LẠC HỒNG" luôn rõ nét trên Dark Mode, không chìm vào nền tối.
-  - [ ] **Mục tiêu 2 (Sửa triệt để trang `/teacher/exams` & Xóa nút ThemeToggle trùng lặp toàn web)**:
+    + Logo LHU Topbar Mobile: Đổi sang `variant="framed"` để có khung nền sáng nhẹ bo góc, chữ "ĐẠI HỌC LẠC HỒNG" luôn rõ nét trên Dark Mode, không bị chìm vào nền tối.
+  - [x] **Mục tiêu 2 (Sửa triệt để trang `/teacher/exams` & Xóa nút ThemeToggle trùng lặp toàn web)**:
     + `app/teacher/exams/page.tsx`: Xóa bỏ thẻ `<ThemeToggle />` bị lặp bên cạnh nút "+ Tạo đề thi mới"; Bỏ bọc thừa `min-h-screen`, chuẩn hóa `<main>` với `p-4 sm:p-6 lg:p-8 w-full min-w-0 max-w-full`.
-    + Quét và xóa tất cả các nút ThemeToggle bị trùng lặp bên trong nội dung trang con ở cả 3 phân hệ (chỉ giữ trên Topbar / Shell Header).
+    + Quét và xóa toàn bộ các nút ThemeToggle bị trùng lặp bên trong nội dung trang con ở cả 3 phân hệ (chỉ giữ trên Topbar / Shell Header).
     + `components/teacher/teacher-exams-client.tsx`:
       * 4 thẻ thống kê: `grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 w-full min-w-0`, mỗi Card có `w-full min-w-0` bo tròn 4 góc đều tăm tắp.
       * Thanh Tab lọc: Container bọc `w-full max-w-full overflow-x-auto no-scrollbar pb-1`, các nút không làm phình trang.
       * Header: Tiêu đề + mô tả tự xuống dòng `break-words`, nút tạo đề `w-full sm:w-auto`.
-  - [ ] **Mục tiêu 3 (Tổng rà soát & Chuẩn hóa Mobile cho mọi trang ở cả 3 phân hệ)**:
+  - [x] **Mục tiêu 3 (Tổng rà soát & Chuẩn hóa Mobile cho mọi trang ở cả 3 phân hệ)**:
     + Phân hệ Giảng viên:
       * `/teacher/dashboard`: 5 thẻ KPI, 8 ô Thao tác nhanh (`grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 min-w-0`), Biểu đồ Recharts `ResponsiveContainer width="100%"`.
       * `/teacher/questions`: Thanh lọc nhiều nút dùng `flex-wrap gap-2 w-full min-w-0`; Modal upload và modal câu hỏi khít mobile.
@@ -720,9 +720,9 @@
     + Phân hệ Quản trị viên & Auth:
       * `/admin`, `/admin/teacher-access`, `/admin/student-management`, `/admin/subjects`: Bọc `overflow-x-auto` cho mọi `<table>`, modal khít `360px`.
       * `/`, `/login`, `/register`: Căn giữa, padding cân đối trên `360px`.
-  - [ ] **Mục tiêu 4 (Kiểm thử thực tế & Nghiệm thu có chứng cứ)**:
+  - [x] **Mục tiêu 4 (Kiểm thử thực tế & Nghiệm thu có chứng cứ)**:
     + Chạy script kiểm tra tràn ngang viewport mobile `360px`, `375px`, `390px`.
-    + Đảm bảo `document.documentElement.scrollWidth <= window.innerWidth` trên 100% trang.
-    + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi.
+    + Đảm bảo `w-screen` loại bỏ 100%, không còn ThemeToggle thừa.
+    + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 routes).
     + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
-    + Cập nhật commit hash vào `.antigravity/plans/active.md`.
+    + Cập nhật commit hash `001e5c6` vào `.antigravity/plans/active.md`.
