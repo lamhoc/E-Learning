@@ -2,7 +2,6 @@ import { Trophy } from 'lucide-react';
 import { requireRole } from '@/lib/auth-cache';
 import { sanitizeVietnameseText } from '@/lib/utils';
 import { isShowAnswersAfterSubmit } from '@/lib/exam-auto-grade';
-import { ThemeToggle } from '@/components/theme-toggle';
 import {
   StudentResultsClient,
   type ExamResultRecord,
@@ -166,9 +165,7 @@ export default async function StudentResultsPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-          </div>
+          
         </div>
 
         {/* Client Results Interactive Component */}

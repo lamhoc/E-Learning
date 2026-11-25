@@ -5,7 +5,7 @@ import { StudentTableClient } from '@/components/admin/student-table-client';
 import { Badge } from '@/components/ui/badge';
 
 export const metadata: Metadata = {
-  title: 'Quản lý Tài khoản Sinh viên | Mầm Học Admin',
+  title: 'Quản lý Tài khoản Sinh viên | Quản trị LHU',
   description: 'Quản lý danh sách tài khoản sinh viên và quyền truy cập hệ thống.',
 };
 
@@ -13,7 +13,7 @@ export default async function AdminStudentManagementPage() {
   const students = await getAdminStudentsList();
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 px-5 py-7 sm:px-8 sm:py-9">
+    <div className="w-full max-w-6xl min-w-0 mx-auto space-y-6 px-3.5 sm:px-8 py-5 sm:py-9">
       {/* Page Header */}
       <section className="flex flex-col gap-2">
         <div className="flex items-center gap-2">

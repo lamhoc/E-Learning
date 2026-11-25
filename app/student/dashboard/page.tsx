@@ -1,4 +1,3 @@
-import { ThemeToggle } from '@/components/theme-toggle';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import { Suspense } from 'react';
 import Link from 'next/link';
@@ -47,7 +46,7 @@ import {
 } from '@/lib/student-dashboard';
 
 export const metadata = {
-  title: 'Tổng quan học tập | Mầm Học',
+  title: 'Tổng quan học tập | Đại học Lạc Hồng',
   description: 'Bảng điều khiển học tập cá nhân của sinh viên',
 };
 
@@ -215,7 +214,7 @@ async function StudentDashboardDataContent() {
       )}
 
       {/* Metric Cards */}
-      <section aria-label="Chỉ số học tập" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 items-stretch">
+      <section aria-label="Chỉ số học tập" className="grid gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-4 items-stretch w-full min-w-0">
         <Link href="/student/classes" className="block h-full w-full text-left transition hover:opacity-95">
           <MetricCard
             label="Lớp đang tham gia"
@@ -259,7 +258,7 @@ async function StudentDashboardDataContent() {
         <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
           Khu vực học tập
         </p>
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 items-stretch">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 items-stretch w-full min-w-0">
           <Link
             href="/student/classes"
             className="group flex flex-col justify-between h-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] p-5 transition-all duration-200 hover:-translate-y-1 hover:border-[#154C99]/50 hover:shadow-md"
@@ -563,7 +562,6 @@ export default async function StudentDashboardPage() {
             <p className="hidden text-xs font-medium capitalize text-slate-500 sm:block">{today}</p>
             <div className="ml-auto flex items-center gap-3">
               <NotificationBell userId={user.id} />
-              <ThemeToggle />
               <Badge
                 variant="outline"
                 className="hidden gap-1.5 border-primary/20 bg-primary/10 text-primary sm:inline-flex"
@@ -580,7 +578,7 @@ export default async function StudentDashboardPage() {
           </div>
         </header>
 
-        <div className="mx-auto max-w-[1440px] space-y-7 px-5 py-7 sm:px-8 sm:py-8 lg:px-10">
+        <div className="w-full max-w-[1440px] min-w-0 mx-auto space-y-6 px-3.5 sm:px-6 lg:px-8 py-5 sm:py-7">
           {/* Greeting: Static Shell 0ms */}
           <section className="flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -617,7 +615,7 @@ export default async function StudentDashboardPage() {
 
           <Separator />
           <footer className="pb-2 text-center text-xs text-slate-400">
-            Mầm Học · Cùng bạn học tốt hơn mỗi ngày
+            Đại học Lạc Hồng · Cùng bạn học tốt hơn mỗi ngày
           </footer>
         </div>
       </div>

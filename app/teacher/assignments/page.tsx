@@ -1,4 +1,3 @@
-import { ThemeToggle } from '@/components/theme-toggle';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import { Metadata } from 'next';
 import Link from 'next/link';
@@ -54,7 +53,6 @@ export default async function TeacherAssignmentsPage({ searchParams }: TeacherAs
 
             <div className="ml-auto flex items-center gap-3">
               <NotificationBell userId={data.teacherId} />
-              <ThemeToggle />
               <Badge variant="outline" className="hidden gap-1.5 border-primary/20 bg-primary/10 text-primary sm:inline-flex">
                 <CheckCircle2 data-icon="inline-start" /> {data.stats.totalAssignments} Bài tập đã giao
               </Badge>

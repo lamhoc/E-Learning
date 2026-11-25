@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { FileCheck, PlusCircle } from 'lucide-react';
 import { requireRole } from '@/lib/auth-cache';
 import { sanitizeVietnameseText } from '@/lib/utils';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { TeacherExamsClient, type ExamItem } from '@/components/teacher/teacher-exams-client';
 import { isCameraRequired, isAutoGradeEssay, isShowAnswersAfterSubmit } from '@/lib/exam-auto-grade';
 
@@ -127,40 +126,36 @@ export default async function TeacherExamsPage() {
   });
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-[#070D18]">
-
-      <main className="flex-1 p-6 md:p-8 lg:p-10">
-        {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 dark:border-slate-800 pb-6 mb-8">
-          <div className="flex items-center gap-3">
-            <div className="grid size-12 place-items-center rounded-2xl bg-blue-600/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400">
-              <FileCheck className="size-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-                Quản lý Đề thi & Phòng thi
-              </h1>
-              <p className="text-sm text-slate-600 dark:text-slate-300">
-                Theo dõi đề thi, phổ điểm thống kê, giám sát phòng thi và xuất kết quả
-              </p>
-            </div>
+    <main className="w-full max-w-full min-w-0 p-4 sm:p-6 lg:p-8">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 dark:border-slate-800 pb-5 mb-6 min-w-0">
+        <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+          <div className="grid size-11 sm:size-12 shrink-0 place-items-center rounded-2xl bg-blue-600/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400">
+            <FileCheck className="size-5.5 sm:size-6" />
           </div>
-
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <Link
-              href="/teacher/exams/create"
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition"
-            >
-              <PlusCircle className="size-4" />
-              Tạo đề thi mới
-            </Link>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white break-words">
+              Quản lý Đề thi & Phòng thi
+            </h1>
+            <p className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-300 break-words">
+              Theo dõi đề thi, phổ điểm thống kê, giám sát phòng thi và xuất kết quả
+            </p>
           </div>
         </div>
 
-        {/* Exams Table / Cards with Filter */}
-        <TeacherExamsClient exams={examItems} />
-      </main>
-    </div>
+        <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto">
+          <Link
+            href="/teacher/exams/create"
+            className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-xs hover:bg-blue-700 transition"
+          >
+            <PlusCircle className="size-4" />
+            Tạo đề thi mới
+          </Link>
+        </div>
+      </div>
+
+      {/* Exams Table / Cards with Filter */}
+      <TeacherExamsClient exams={examItems} />
+    </main>
   );
 }

@@ -136,9 +136,14 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    max-width: 100%;
+    overflow-x: clip;
+  }
   body {
     @apply bg-background text-foreground;
-    overflow-x: hidden;
+    max-width: 100%;
+    overflow-x: clip;
   }
   /* Utility class to hide scrollbar while preserving scroll functionality */
   .no-scrollbar::-webkit-scrollbar {

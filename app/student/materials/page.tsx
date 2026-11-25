@@ -1,4 +1,3 @@
-import { ThemeToggle } from '@/components/theme-toggle';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import Link from 'next/link';
 import {
@@ -13,7 +12,7 @@ import { NotificationBell } from '@/components/layout/notification-bell';
 import { StudentClassMaterials } from '@/components/student/student-class-materials';
 
 export const metadata = {
-  title: 'Tài liệu học tập | Mầm Học',
+  title: 'Tài liệu học tập | Đại học Lạc Hồng',
   description: 'Tài liệu học tập theo tuần, bài giảng slide, PDF và video học tập',
 };
 
@@ -48,7 +47,6 @@ export default async function StudentMaterialsPage({
 
             <div className="ml-auto flex items-center gap-3">
               <NotificationBell userId={data.studentId} initialNotifications={data.notifications} />
-              <ThemeToggle />
               <Badge variant="outline" className="hidden gap-1.5 border-primary/20 bg-primary/10 text-primary sm:inline-flex">
                 <CheckCircle2 data-icon="inline-start" /> {data.materials.length} Tài liệu có sẵn
               </Badge>

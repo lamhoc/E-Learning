@@ -432,10 +432,10 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                  {/* SPLIT VIEW: 2 COLUMNS ON DESKTOP */}
-                  <div className="grid lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-slate-200 dark:divide-slate-800">
+                  {/* SPLIT VIEW: 2 COLUMNS ON DESKTOP, 1 COLUMN ON MOBILE */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-slate-200 dark:divide-slate-800 w-full min-w-0">
                     {/* CỘT TRÁI: ĐỀ BÀI, ĐÁP ÁN MẪU & RUBRIC CHẤM ĐIỂM (KATEX) */}
-                    <div className="p-5 sm:p-6 space-y-4 bg-slate-50/30 dark:bg-slate-900/30">
+                    <div className="p-4 sm:p-6 space-y-4 bg-slate-50/30 dark:bg-slate-900/30 w-full min-w-0">
                       {/* Đề bài */}
                       <div className="space-y-1">
                         <Label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -481,7 +481,7 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
                     </div>
 
                     {/* CỘT PHẢI: BÀI LÀM CỦA SINH VIÊN, Ô NHẬP ĐIỂM & NHẬN XÉT */}
-                    <div className="p-5 sm:p-6 space-y-5 bg-white dark:bg-[#111C2D] flex flex-col justify-between">
+                    <div className="p-4 sm:p-6 space-y-5 bg-white dark:bg-[#111C2D] flex flex-col justify-between w-full min-w-0">
                       {/* Bài làm của thí sinh */}
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between">

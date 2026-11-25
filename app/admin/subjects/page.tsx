@@ -98,7 +98,7 @@ export default async function AdminSubjectsPage() {
   }));
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 px-5 py-7 sm:px-8 sm:py-9">
+    <div className="w-full max-w-6xl min-w-0 mx-auto space-y-6 px-3.5 sm:px-8 py-5 sm:py-9">
       {/* Header khu vực Quản trị môn học */}
       <section className="flex flex-col gap-2">
         <div className="flex items-center gap-2">

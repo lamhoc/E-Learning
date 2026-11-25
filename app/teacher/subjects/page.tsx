@@ -9,7 +9,6 @@ import {
   Users,
   Sparkles,
 } from 'lucide-react';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { getTeacherSubjectsData } from '@/lib/teacher-subjects';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { Badge } from '@/components/ui/badge';
@@ -43,7 +42,6 @@ export default async function TeacherSubjectsPage() {
 
           <div className="ml-auto flex items-center gap-3">
             <NotificationBell userId={data.teacherId} />
-            <ThemeToggle />
             <Badge variant="outline" className="border-primary/20 bg-primary/10 text-primary text-xs font-medium">
               {data.totalAssignedSubjects} môn phụ trách
             </Badge>

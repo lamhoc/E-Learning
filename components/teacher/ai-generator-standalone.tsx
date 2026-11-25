@@ -293,7 +293,7 @@ export function AIGeneratorStandalone({ subjects, teacherName }: Props) {
       )}
 
       {step === 'config' ? (
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-3 w-full min-w-0">
           {/* Main Form */}
           <Card className="lg:col-span-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
             <CardHeader>
@@ -759,7 +759,7 @@ export function AIGeneratorStandalone({ subjects, teacherName }: Props) {
                         </div>
 
                         {isMC && (
-                          <div className="grid gap-2 sm:grid-cols-2 pt-1 items-stretch">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 items-stretch w-full min-w-0">
                             {(
                               [
                                 { key: 'A', text: draft.option_a },
@@ -772,7 +772,7 @@ export function AIGeneratorStandalone({ subjects, teacherName }: Props) {
                               return (
                                 <div
                                   key={opt.key}
-                                  className={`flex h-full items-start gap-2.5 rounded-lg border p-2.5 text-xs transition ${
+                                  className={`flex h-full w-full min-w-0 items-start gap-2.5 rounded-lg border p-2.5 text-xs transition break-words ${
                                     isCorrect
                                       ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 font-medium'
                                       : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300'

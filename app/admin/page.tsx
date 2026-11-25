@@ -52,9 +52,9 @@ export default async function AdminHubPage() {
   const subjectCount = totalSubjectsCount ?? 0;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 px-5 py-8 sm:px-8 sm:py-10">
+    <div className="w-full max-w-6xl min-w-0 mx-auto space-y-6 sm:space-y-8 px-3.5 sm:px-8 py-6 sm:py-10">
       {/* ─── Hero Header Trung Tâm ─────────────────────────────────────────── */}
-      <section className="relative overflow-hidden rounded-3xl border border-blue-900/20 bg-gradient-to-br from-[#0A275C] via-[#154C99] to-[#0F3D8A] p-7 text-white shadow-xl sm:p-10">
+      <section className="relative overflow-hidden rounded-3xl border border-blue-900/20 bg-gradient-to-br from-[#0A275C] via-[#154C99] to-[#0F3D8A] p-5 sm:p-10 text-white shadow-xl">
         {/* Glow hiệu ứng nền */}
         <div
           aria-hidden
@@ -111,7 +111,7 @@ export default async function AdminHubPage() {
       </section>
 
       {/* ─── Grid 2 Thẻ Quản Trị Lớn Chuẩn EdTech ──────────────────────────── */}
-      <section aria-label="Khu vực quản lý trung tâm" className="grid gap-6 md:grid-cols-2 items-stretch">
+      <section aria-label="Khu vực quản lý trung tâm" className="grid gap-4 sm:gap-6 md:grid-cols-2 items-stretch w-full min-w-0">
         {/* THẺ 1: QUẢN LÝ GIẢNG VIÊN */}
         <Link
           href="/admin/teacher-access"

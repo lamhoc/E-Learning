@@ -184,7 +184,7 @@ export function TeacherShell({ children, teacherName = 'Giảng viên' }: Teache
   ];
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-[#070D18] text-slate-900 dark:text-slate-100 transition-colors">
+    <div className="flex min-h-dvh w-full max-w-full overflow-x-clip bg-slate-50 dark:bg-[#070D18] text-slate-900 dark:text-slate-100 transition-colors">
       {/* ── 1. DESKTOP SIDEBAR (Kéo ra w-64 / Thu gọn w-20) ── */}
       <aside
         className={cn(
@@ -323,7 +323,7 @@ export function TeacherShell({ children, teacherName = 'Giảng viên' }: Teache
       </aside>
 
       {/* ── 2. KHUNG NỘI DUNG CHÍNH (Kèm Sticky Topbar trên Mobile) ── */}
-      <div className="flex-1 min-w-0 flex flex-col min-h-screen">
+      <div className="flex-1 min-w-0 w-full max-w-full flex flex-col min-h-dvh">
         {/* Sticky Topbar trên Mobile (< 1024px) */}
         <header className="sticky top-0 z-40 h-14 bg-white/95 dark:bg-[#0B1628]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-3 sm:px-6 flex items-center justify-between lg:hidden shrink-0">
           <div className="flex items-center gap-3 min-w-0">
@@ -341,7 +341,7 @@ export function TeacherShell({ children, teacherName = 'Giảng viên' }: Teache
             <BrandLogo
               href="/teacher/dashboard"
               size="sm"
-              variant="plain"
+              variant="framed"
               badgeText="GV"
               subtitle="ĐH Lạc Hồng"
             />
@@ -356,7 +356,7 @@ export function TeacherShell({ children, teacherName = 'Giảng viên' }: Teache
         </header>
 
         {/* Nội dung trang con */}
-        <div className="flex-1 min-w-0 overflow-x-hidden">
+        <div className="flex-1 min-w-0 w-full max-w-full overflow-x-clip">
           {children}
         </div>
       </div>

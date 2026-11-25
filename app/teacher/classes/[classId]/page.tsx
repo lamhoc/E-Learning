@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { createClient } from '@/lib/supabase/server';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { RosterManager, type ClassRosterStudent } from '../roster-manager';
 
 type ClassRosterPageProps = { params: Promise<{ classId: string }> };
@@ -74,12 +73,7 @@ export default async function ClassRosterPage({ params }: ClassRosterPageProps) 
         <header className="hidden lg:block sticky top-0 z-20 border-b border-border bg-card/90 dark:bg-[#0B1628]/95 px-5 py-3 backdrop-blur sm:px-8 lg:px-10">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
             {/* Logo mobile */}
-            <div className="flex items-center gap-2 lg:hidden">
-              <span className="grid size-9 place-items-center rounded-lg bg-[#17372e] text-[#c9ed99]">
-                <GraduationCap aria-hidden="true" className="size-5" />
-              </span>
-              <span className="text-sm font-semibold dark:text-white">Mầm Học</span>
-            </div>
+            
             {/* Breadcrumb */}
             <div className="hidden lg:flex items-center gap-2 text-sm text-muted-foreground">
               <Link href="/teacher/classes" className="hover:text-foreground transition-colors font-medium">
@@ -88,8 +82,7 @@ export default async function ClassRosterPage({ params }: ClassRosterPageProps) 
               <span>/</span>
               <span className="text-foreground font-semibold dark:text-white">{classItem.name}</span>
             </div>
-            <ThemeToggle />
-          </div>
+            </div>
         </header>
 
         <div className="mx-auto max-w-5xl px-4 py-7 sm:px-6 lg:px-8 space-y-5">

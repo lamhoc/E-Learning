@@ -646,7 +646,7 @@ export function SubjectsManagerClient({
             <DialogHeader>
               <DialogTitle className="text-foreground">Thêm Môn Học Mới</DialogTitle>
               <DialogDescription className="text-muted-foreground">
-                Nhập thông tin mã môn, tên môn và mô tả học phần để tạo môn mới trong hệ thống Mầm Học.
+                Nhập thông tin mã môn, tên môn và mô tả học phần để tạo môn mới trong hệ thống Đại học Lạc Hồng.
               </DialogDescription>
             </DialogHeader>
 

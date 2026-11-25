@@ -30,9 +30,9 @@ export default function RootLayout({
     <html
       lang="vi"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full w-full max-w-full overflow-x-clip antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground transition-colors duration-200">
+      <body className="min-h-full w-full max-w-full overflow-x-clip flex flex-col bg-background text-foreground transition-colors duration-200">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

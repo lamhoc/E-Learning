@@ -248,7 +248,7 @@ export function QuestionManager({
             </div>
 
             {/* Filter Dropdowns & Action Buttons */}
-            <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto min-w-0">
               <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                 <Filter className="size-3.5" /> Lọc:
               </div>
@@ -258,7 +258,7 @@ export function QuestionManager({
                 value={selectedSubject}
                 onChange={(e) => setSelectedSubject(e.target.value)}
                 aria-label="Lọc theo môn học"
-                className="h-9 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/80 px-2.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-1 focus:ring-primary"
+                className="h-9 max-w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/80 px-2.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-1 focus:ring-primary"
               >
                 <option value="all">Tất cả môn học ({subjects.length})</option>
                 {subjects.map((sub) => (
@@ -273,7 +273,7 @@ export function QuestionManager({
                 value={filterExplanation}
                 onChange={(e) => setFilterExplanation(e.target.value as 'all' | 'with' | 'without')}
                 aria-label="Lọc theo lời giải"
-                className="h-9 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/80 px-2.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-1 focus:ring-primary"
+                className="h-9 max-w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/80 px-2.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden focus:ring-1 focus:ring-primary"
               >
                 <option value="all">Mọi lời giải</option>
                 <option value="with">Đã có lời giải chi tiết</option>
@@ -281,7 +281,7 @@ export function QuestionManager({
               </select>
 
               {/* Type Filter */}
-              <div className="flex rounded-md border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60 p-0.5">
+              <div className="flex flex-wrap sm:flex-nowrap rounded-md border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60 p-0.5 max-w-full">
                 <button
                   type="button"
                   onClick={() => setSelectedType('all')}
@@ -321,7 +321,7 @@ export function QuestionManager({
               <Button
                 onClick={() => setIsPreviewOpen(true)}
                 variant="outline"
-                className="gap-1.5 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700"
+                className="gap-1.5 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs"
                 title="Xem đề thi tổng hợp từ danh sách câu hỏi đã lọc"
               >
                 <Eye className="size-4 text-slate-600 dark:text-slate-300" />
@@ -332,7 +332,7 @@ export function QuestionManager({
               <Button
                 onClick={() => setIsAIModalOpen(true)}
                 variant="outline"
-                className="gap-1.5 border-primary/30 dark:border-blue-700 bg-white dark:bg-blue-950/40 text-primary dark:text-blue-300 hover:bg-primary/10 dark:hover:bg-blue-900/50"
+                className="gap-1.5 border-primary/30 dark:border-blue-700 bg-white dark:bg-blue-950/40 text-primary dark:text-blue-300 hover:bg-primary/10 dark:hover:bg-blue-900/50 text-xs"
               >
                 <Sparkles className="size-4 text-primary dark:text-blue-400" />
                 AI Sinh câu hỏi
@@ -342,7 +342,7 @@ export function QuestionManager({
               <Button
                 onClick={() => setIsUploadModalOpen(true)}
                 variant="outline"
-                className="gap-1.5 border-emerald-600 dark:border-emerald-700 bg-white dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/60"
+                className="gap-1.5 border-emerald-600 dark:border-emerald-700 bg-white dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/60 text-xs"
               >
                 <FileUp className="size-4 text-emerald-700 dark:text-emerald-400" />
                 Upload tài liệu (DOCX/PDF)
@@ -351,7 +351,7 @@ export function QuestionManager({
               {/* Create Question Button */}
               <Button
                 onClick={handleOpenCreate}
-                className="gap-1.5 bg-[#154C99] hover:bg-[#0F3D8A] text-white shadow-xs dark:bg-[#1E5BBB] dark:hover:bg-[#154C99]"
+                className="gap-1.5 bg-[#154C99] hover:bg-[#0F3D8A] text-white shadow-xs dark:bg-[#1E5BBB] dark:hover:bg-[#154C99] text-xs"
               >
                 <Plus className="size-4" />
                 Thêm câu hỏi
@@ -504,13 +504,13 @@ export function QuestionManager({
 
                   {/* Multiple Choice Options List */}
                   {isMC && q.options && q.options.length > 0 && (
-                    <div className="grid gap-2 sm:grid-cols-2 items-stretch">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full min-w-0 items-stretch">
                       {q.options.map((opt) => {
                         const isCorrect = opt.option_key === correctKey;
                         return (
                           <div
                             key={opt.option_key}
-                            className={`flex h-full items-start gap-2.5 rounded-lg border p-2.5 text-xs transition ${
+                            className={`flex h-full w-full min-w-0 items-start gap-2.5 rounded-lg border p-2.5 text-xs transition break-words ${
                               isCorrect
                                 ? 'border-[#246348] dark:border-emerald-700 bg-[#eef6f1] dark:bg-emerald-950/50 text-[#1b4e38] dark:text-emerald-200'
                                 : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-slate-800 dark:text-slate-200'

@@ -178,7 +178,7 @@ export default async function TeacherAccessAdminPage({
   const invitationRows = invitationsResult.data ?? [];
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 px-5 py-7 sm:px-8 sm:py-9">
+    <div className="w-full max-w-6xl min-w-0 mx-auto space-y-6 px-3.5 sm:px-8 py-5 sm:py-9">
       {/* Page Title & Metrics */}
       <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>

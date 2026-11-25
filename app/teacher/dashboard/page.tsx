@@ -1,4 +1,3 @@
-import { ThemeToggle } from '@/components/theme-toggle';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import { Suspense } from 'react';
 import Link from 'next/link';
@@ -278,7 +277,7 @@ async function TeacherDashboardDataContent() {
       )}
 
       {/* ── Metric cards (Bento Grid) ── */}
-      <section aria-label="Chỉ số giảng dạy" className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 items-stretch">
+      <section aria-label="Chỉ số giảng dạy" className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 items-stretch w-full min-w-0">
         <Link href="/teacher/classes" className="block h-full w-full text-left transition hover:opacity-95">
           <MetricCard
             label="Lớp đang phụ trách"
@@ -683,7 +682,6 @@ export default async function TeacherDashboardPage() {
 
             <div className="ml-auto flex items-center gap-3">
               <NotificationBell userId={user.id} />
-              <ThemeToggle />
               <Badge
                 variant="outline"
                 className="hidden gap-1.5 border-primary/20 bg-primary/10 text-primary sm:inline-flex"
@@ -701,7 +699,7 @@ export default async function TeacherDashboardPage() {
         </header>
 
         {/* ── Main content ── */}
-        <div className="mx-auto max-w-[1440px] space-y-7 px-5 py-7 sm:px-8 sm:py-8 lg:px-10">
+        <div className="w-full max-w-[1440px] min-w-0 mx-auto space-y-6 px-3.5 sm:px-6 lg:px-8 py-5 sm:py-7">
 
           {/* ── Greeting (Static Shell 0ms) ── */}
           <section className="flex flex-wrap items-end justify-between gap-4">
@@ -748,7 +746,7 @@ export default async function TeacherDashboardPage() {
             <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-400">
               Thao tác nhanh
             </p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-8 items-stretch">
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-8 items-stretch w-full min-w-0">
               {QUICK_ACTIONS.map((action) => {
                 const Icon = action.icon;
                 return (
@@ -779,7 +777,7 @@ export default async function TeacherDashboardPage() {
 
           {/* ── Footer ── */}
           <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 dark:border-slate-800 py-4 text-xs text-slate-400">
-            <span>Mầm Học · Hệ thống quản lý đào tạo</span>
+            <span>Đại học Lạc Hồng · Hệ thống quản lý đào tạo</span>
             <Link href="/teacher/ai-tutor" className="inline-flex items-center gap-1.5 transition hover:text-slate-700 dark:hover:text-slate-200">
               <Sparkles aria-hidden="true" className="size-3.5" /> Mở gia sư AI
             </Link>

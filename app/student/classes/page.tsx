@@ -1,4 +1,3 @@
-import { ThemeToggle } from '@/components/theme-toggle';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import Link from 'next/link';
 import {
@@ -17,7 +16,7 @@ import { getStudentDashboardData, type StudentClass } from '@/lib/student-dashbo
 import { NotificationBell } from '@/components/layout/notification-bell';
 
 export const metadata = {
-  title: 'Lớp học của tôi | Mầm Học',
+  title: 'Lớp học của tôi | Đại học Lạc Hồng',
   description: 'Danh sách các lớp học đã ghi danh của sinh viên',
 };
 
@@ -107,7 +106,6 @@ export default async function StudentClassesPage() {
 
             <div className="ml-auto flex items-center gap-3">
               <NotificationBell userId={data.studentId} initialNotifications={data.notifications} />
-              <ThemeToggle />
               <Badge variant="outline" className="hidden gap-1.5 border-primary/20 bg-primary/10 text-primary sm:inline-flex">
                 <CheckCircle2 data-icon="inline-start" /> {data.classes.length} Lớp đang học
               </Badge>

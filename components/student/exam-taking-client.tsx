@@ -545,7 +545,7 @@ export function ExamTakingClient({
 
   // ─── 5. GIAO DIỆN LÀM BÀI CHÍNH THỨC ──────────────────────────────────────
   return (
-    <div className="fixed inset-0 z-[100] w-screen h-screen overflow-y-auto bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors select-none">
+    <div className="fixed inset-0 z-[100] w-full h-full max-w-full overflow-y-auto overflow-x-hidden bg-slate-50 dark:bg-[#09111E] text-slate-900 dark:text-slate-100 transition-colors select-none">
       {/* Lớp phủ cảnh báo & khóa màn hình khi thí sinh bấm Esc hoặc thoát Toàn màn hình */}
       {hasEnteredExam && !isSubmitting && !isFullscreenActive && (
         <div className="fixed inset-0 z-[250] flex flex-col items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 text-center">

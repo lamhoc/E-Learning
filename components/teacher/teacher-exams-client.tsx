@@ -229,72 +229,73 @@ export function TeacherExamsClient({ exams }: Props) {
       )}
 
       {/* Metric Cards */}
-      <div className="grid gap-4 sm:grid-cols-4 items-stretch">
-        <Card className="h-full flex flex-col justify-between rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
-          <CardContent className="h-full flex items-center gap-4 p-5">
-            <div className="grid size-12 place-items-center rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400">
-              <FileCheck className="size-6" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 w-full min-w-0 items-stretch">
+        <Card className="h-full w-full min-w-0 flex flex-col justify-between rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs">
+          <CardContent className="h-full flex items-center gap-4 p-4 sm:p-5 min-w-0">
+            <div className="grid size-11 sm:size-12 shrink-0 place-items-center rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400">
+              <FileCheck className="size-5.5 sm:size-6" />
             </div>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-200">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-200 truncate">
                 TỔNG ĐỀ THI
               </p>
               <p className="text-2xl font-bold text-slate-900 dark:text-white">{stats.total}</p>
-              <p className="text-xs text-slate-600 dark:text-slate-300">Đã khởi tạo</p>
+              <p className="text-xs text-slate-600 dark:text-slate-300 truncate">Đã khởi tạo</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="h-full flex flex-col justify-between rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
-          <CardContent className="h-full flex items-center gap-4 p-5">
-            <div className="grid size-12 place-items-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-              <FileCheck className="size-6" />
+        <Card className="h-full w-full min-w-0 flex flex-col justify-between rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs">
+          <CardContent className="h-full flex items-center gap-4 p-4 sm:p-5 min-w-0">
+            <div className="grid size-11 sm:size-12 shrink-0 place-items-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+              <FileCheck className="size-5.5 sm:size-6" />
             </div>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-200">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-200 truncate">
                 ĐÃ PHÁT HÀNH
               </p>
               <p className="text-2xl font-bold text-slate-900 dark:text-white">{stats.published}</p>
-              <p className="text-xs text-slate-600 dark:text-slate-300">Đang mở cho thí sinh</p>
+              <p className="text-xs text-slate-600 dark:text-slate-300 truncate">Đang mở cho thí sinh</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="grid size-12 place-items-center rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
-              <FileQuestion className="size-6" />
+        <Card className="h-full w-full min-w-0 flex flex-col justify-between rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs">
+          <CardContent className="h-full flex items-center gap-4 p-4 sm:p-5 min-w-0">
+            <div className="grid size-11 sm:size-12 shrink-0 place-items-center rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
+              <FileQuestion className="size-5.5 sm:size-6" />
             </div>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-200">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-200 truncate">
                 BẢN NHÁP
               </p>
               <p className="text-2xl font-bold text-slate-900 dark:text-white">{stats.draft}</p>
-              <p className="text-xs text-slate-600 dark:text-slate-300">Chờ hoàn thiện cấu hình</p>
+              <p className="text-xs text-slate-600 dark:text-slate-300 truncate">Chờ hoàn thiện cấu hình</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D]">
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="grid size-12 place-items-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-              <Clock className="size-6" />
+        <Card className="h-full w-full min-w-0 flex flex-col justify-between rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] shadow-xs">
+          <CardContent className="h-full flex items-center gap-4 p-4 sm:p-5 min-w-0">
+            <div className="grid size-11 sm:size-12 shrink-0 place-items-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+              <Clock className="size-5.5 sm:size-6" />
             </div>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-200">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-200 truncate">
                 ĐÃ ĐÓNG / LƯU TRỮ
               </p>
               <p className="text-2xl font-bold text-slate-900 dark:text-white">{stats.closed}</p>
-              <p className="text-xs text-slate-600 dark:text-slate-300">Hết hạn làm bài</p>
+              <p className="text-xs text-slate-600 dark:text-slate-300 truncate">Hết hạn làm bài</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Filter Tabs & Search */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        {/* Pills Tabs */}
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-slate-200/80 dark:bg-[#111C2D] p-1.5 border border-slate-300/80 dark:border-slate-800">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between w-full min-w-0">
+        {/* Pills Tabs bọc trong thanh cuộn ngang an toàn */}
+        <div className="w-full lg:w-auto max-w-full overflow-x-auto no-scrollbar pb-1">
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-slate-200/80 dark:bg-[#111C2D] p-1.5 border border-slate-300/80 dark:border-slate-800 shrink-0">
           <button
             type="button"
             onClick={() => {
@@ -391,18 +392,19 @@ export function TeacherExamsClient({ exams }: Props) {
             </span>
           </button>
         </div>
-
-        {/* Ô tìm kiếm */}
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm theo tên đề, môn..."
-            className="pl-9 h-10 rounded-xl border-slate-300 dark:border-slate-700 bg-white dark:bg-[#111C2D]"
-          />
-        </div>
       </div>
+
+      {/* Ô tìm kiếm */}
+      <div className="relative w-full lg:w-72 shrink-0">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+        <Input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Tìm theo tên đề, môn..."
+          className="pl-9 h-10 rounded-xl border-slate-300 dark:border-slate-700 bg-white dark:bg-[#111C2D]"
+        />
+      </div>
+    </div>
 
       {/* Danh sách đề thi */}
       {filteredExams.length === 0 ? (
@@ -427,11 +429,11 @@ export function TeacherExamsClient({ exams }: Props) {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 w-full min-w-0 items-stretch">
           {filteredExams.map((exam) => (
             <Card
               key={exam.id}
-              className="group flex flex-col justify-between h-full rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] transition-all hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-md"
+              className="group flex flex-col justify-between h-full w-full min-w-0 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111C2D] transition-all hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-md"
             >
               <CardHeader className="p-5 pb-3">
                 <div className="flex items-start justify-between gap-2">

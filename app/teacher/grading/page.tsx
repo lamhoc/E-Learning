@@ -1,4 +1,3 @@
-import { ThemeToggle } from '@/components/theme-toggle';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import { Metadata } from 'next';
 import { CheckCircle2, FileCheck, GraduationCap, PenTool } from 'lucide-react';
@@ -8,7 +7,7 @@ import { NotificationBell } from '@/components/layout/notification-bell';
 import { Badge } from '@/components/ui/badge';
 
 export const metadata: Metadata = {
-  title: 'Chấm thi & Đánh giá tự luận | Mầm Học',
+  title: 'Chấm thi & Đánh giá tự luận | Đại học Lạc Hồng',
   description: 'Danh sách các bài thi tự luận cần giảng viên chấm điểm và công bố kết quả',
 };
 
@@ -43,7 +42,6 @@ export default async function TeacherGradingQueuePage() {
 
             <div className="ml-auto flex items-center gap-3">
               <NotificationBell userId={data.teacherId} />
-              <ThemeToggle />
               {data.totalPendingCount > 0 ? (
                 <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-800 text-xs">
                   {data.totalPendingCount} bài chờ chấm

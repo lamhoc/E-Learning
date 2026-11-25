@@ -11,7 +11,6 @@ import { getTeacherExamAnalytics } from '@/lib/teacher-exam-analytics';
 import { ExamAnalyticsClient } from '@/components/teacher/exam-analytics-client';
 import { ExamDraftActions } from '@/components/teacher/exam-draft-actions';
 import { ExamAnswerVisibilityToggle } from '@/components/teacher/exam-answer-visibility-toggle';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 
@@ -26,7 +25,7 @@ export async function generateMetadata({
 }: TeacherExamAnalyticsPageProps): Promise<Metadata> {
   const { examId } = await params;
   return {
-    title: `Thống kê & Xuất điểm thi | Mầm Học`,
+    title: `Thống kê & Xuất điểm thi | Đại học Lạc Hồng`,
     description: `Phân tích phổ điểm và xuất kết quả đề thi ${examId}`,
   };
 }
@@ -91,9 +90,7 @@ export default async function TeacherExamAnalyticsPage({
             <p className="hidden text-xs font-medium capitalize text-slate-500 dark:text-slate-400 sm:block">
               {today}
             </p>
-            <div className="ml-auto flex items-center gap-3">
-              <ThemeToggle />
-            </div>
+            
           </div>
         </header>
 

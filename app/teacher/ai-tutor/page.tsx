@@ -10,7 +10,6 @@ import {
   Sparkles,
   User,
 } from 'lucide-react';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { ChatMessageRenderer } from '@/components/chat/ChatMessageRenderer';
 import { createClient } from '@/lib/supabase/client';
@@ -206,9 +205,7 @@ export default function TeacherAiTutorPage() {
               </button>
               <NotificationBell />
               {/* Chỉ hiển thị ThemeToggle trên Desktop để tránh lặp 2 nút trên Mobile Topbar */}
-              <div className="hidden lg:block">
-                <ThemeToggle />
-              </div>
+              
             </div>
           </div>
         </header>

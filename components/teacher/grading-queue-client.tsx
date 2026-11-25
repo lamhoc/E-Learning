@@ -190,39 +190,41 @@ export function GradingQueueClient({
         onValueChange={(val) => setSelectedTab(val as 'pending' | 'completed')}
         className="w-full space-y-4"
       >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <TabsList className="inline-flex items-center gap-1.5 rounded-full bg-slate-200/80 dark:bg-[#111C2D] p-1.5 border border-slate-300/80 dark:border-slate-800 w-fit h-auto">
-            <TabsTrigger
-              value="pending"
-              className="group gap-2 text-xs font-semibold px-4 py-2 rounded-full cursor-pointer transition-all duration-200 text-slate-600 hover:text-slate-900 hover:bg-slate-300/50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/70 data-[selected]:!bg-blue-600 data-[selected]:!text-white data-[selected]:shadow-md data-[selected]:shadow-blue-600/30 data-[selected]:ring-1 data-[selected]:ring-blue-400/40 data-[state=active]:!bg-blue-600 data-[state=active]:!text-white data-[state=active]:shadow-md data-[state=active]:shadow-blue-600/30 data-[state=active]:ring-1 data-[state=active]:ring-blue-400/40 aria-selected:!bg-blue-600 aria-selected:!text-white"
-            >
-              <PenTool className="size-3.5 text-slate-500 dark:text-slate-400 group-data-[selected]:text-white group-data-[state=active]:text-white group-aria-selected:text-white" />
-              <span>Chờ chấm điểm</span>
-              {totalPendingCount > 0 && (
-                <span className="grid size-5 place-items-center rounded-full bg-amber-400 text-slate-950 text-[10px] font-bold shadow-xs">
-                  {totalPendingCount}
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between w-full min-w-0">
+          <div className="w-full lg:w-auto max-w-full overflow-x-auto no-scrollbar pb-1">
+            <TabsList className="inline-flex items-center gap-1.5 rounded-full bg-slate-200/80 dark:bg-[#111C2D] p-1.5 border border-slate-300/80 dark:border-slate-800 w-fit h-auto shrink-0">
+              <TabsTrigger
+                value="pending"
+                className="group gap-2 text-xs font-semibold px-4 py-2 rounded-full cursor-pointer transition-all duration-200 text-slate-600 hover:text-slate-900 hover:bg-slate-300/50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/70 data-[selected]:!bg-blue-600 data-[selected]:!text-white data-[selected]:shadow-md data-[selected]:shadow-blue-600/30 data-[selected]:ring-1 data-[selected]:ring-blue-400/40 data-[state=active]:!bg-blue-600 data-[state=active]:!text-white data-[state=active]:shadow-md data-[state=active]:shadow-blue-600/30 data-[state=active]:ring-1 data-[state=active]:ring-blue-400/40 aria-selected:!bg-blue-600 aria-selected:!text-white"
+              >
+                <PenTool className="size-3.5 text-slate-500 dark:text-slate-400 group-data-[selected]:text-white group-data-[state=active]:text-white group-aria-selected:text-white" />
+                <span>Chờ chấm điểm</span>
+                {totalPendingCount > 0 && (
+                  <span className="grid size-5 place-items-center rounded-full bg-amber-400 text-slate-950 text-[10px] font-bold shadow-xs">
+                    {totalPendingCount}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger
+                value="completed"
+                className="group gap-2 text-xs font-semibold px-4 py-2 rounded-full cursor-pointer transition-all duration-200 text-slate-600 hover:text-slate-900 hover:bg-slate-300/50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/70 data-[selected]:!bg-blue-600 data-[selected]:!text-white data-[selected]:shadow-md data-[selected]:shadow-blue-600/30 data-[selected]:ring-1 data-[selected]:ring-blue-400/40 data-[state=active]:!bg-blue-600 data-[state=active]:!text-white data-[state=active]:shadow-md data-[state=active]:shadow-blue-600/30 data-[state=active]:ring-1 data-[state=active]:ring-blue-400/40 aria-selected:!bg-blue-600 aria-selected:!text-white"
+              >
+                <CheckCircle2 className="size-3.5 text-slate-500 dark:text-slate-400 group-data-[selected]:text-white group-data-[state=active]:text-white group-aria-selected:text-white" />
+                <span>Đã chấm xong</span>
+                <span className="grid size-5 place-items-center rounded-full bg-slate-300 dark:bg-slate-700/80 text-slate-700 dark:text-slate-300 text-[10px] font-bold group-data-[selected]:bg-white group-data-[selected]:text-blue-700 group-data-[state=active]:bg-white group-data-[state=active]:text-blue-700 group-aria-selected:bg-white group-aria-selected:text-blue-700 shadow-xs transition-colors">
+                  {totalCompletedCount}
                 </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger
-              value="completed"
-              className="group gap-2 text-xs font-semibold px-4 py-2 rounded-full cursor-pointer transition-all duration-200 text-slate-600 hover:text-slate-900 hover:bg-slate-300/50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/70 data-[selected]:!bg-blue-600 data-[selected]:!text-white data-[selected]:shadow-md data-[selected]:shadow-blue-600/30 data-[selected]:ring-1 data-[selected]:ring-blue-400/40 data-[state=active]:!bg-blue-600 data-[state=active]:!text-white data-[state=active]:shadow-md data-[state=active]:shadow-blue-600/30 data-[state=active]:ring-1 data-[state=active]:ring-blue-400/40 aria-selected:!bg-blue-600 aria-selected:!text-white"
-            >
-              <CheckCircle2 className="size-3.5 text-slate-500 dark:text-slate-400 group-data-[selected]:text-white group-data-[state=active]:text-white group-aria-selected:text-white" />
-              <span>Đã chấm xong</span>
-              <span className="grid size-5 place-items-center rounded-full bg-slate-300 dark:bg-slate-700/80 text-slate-700 dark:text-slate-300 text-[10px] font-bold group-data-[selected]:bg-white group-data-[selected]:text-blue-700 group-data-[state=active]:bg-white group-data-[state=active]:text-blue-700 group-aria-selected:bg-white group-aria-selected:text-blue-700 shadow-xs transition-colors">
-                {totalCompletedCount}
-              </span>
-            </TabsTrigger>
-          </TabsList>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Action Toolbar */}
-          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto min-w-0">
             <Button
               type="button"
               size="sm"
               onClick={handleExportExcel}
-              className="gap-1.5 bg-[#0D652D] hover:bg-[#0B5324] text-white font-medium text-xs shadow-xs"
+              className="gap-1.5 bg-[#0D652D] hover:bg-[#0B5324] text-white font-medium text-xs shadow-xs w-full sm:w-auto justify-center"
             >
               <FileSpreadsheet className="size-4" />
               <span>Xuất Bảng Điểm Excel (.xlsx)</span>
@@ -232,20 +234,20 @@ export function GradingQueueClient({
               variant="outline"
               size="sm"
               onClick={handleExportCsv}
-              className="gap-1.5 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs shadow-2xs"
+              className="gap-1.5 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs shadow-2xs w-full sm:w-auto justify-center"
             >
               <Download className="size-3.5" />
               <span>Xuất CSV</span>
             </Button>
 
-            <div className="relative min-w-48 sm:w-60">
+            <div className="relative w-full sm:w-60 min-w-0">
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
               <Input
                 type="text"
                 placeholder="Tìm tên, MSSV, lớp, đề..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="h-9 pl-9 pr-3 text-xs bg-white dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-muted-foreground"
+                className="h-9 pl-9 pr-3 text-xs bg-white dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-muted-foreground w-full"
               />
             </div>
           </div>

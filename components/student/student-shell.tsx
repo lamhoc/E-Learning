@@ -170,7 +170,7 @@ export function StudentShell({ children, studentName = 'Sinh viên' }: StudentSh
   ];
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-[#070D18] text-slate-900 dark:text-slate-100 transition-colors">
+    <div className="flex min-h-dvh w-full max-w-full overflow-x-clip bg-slate-50 dark:bg-[#070D18] text-slate-900 dark:text-slate-100 transition-colors">
       {/* ── 1. DESKTOP SIDEBAR (Kéo ra w-64 / Thu gọn w-20) ── */}
       <aside
         className={cn(
@@ -310,7 +310,7 @@ export function StudentShell({ children, studentName = 'Sinh viên' }: StudentSh
       </aside>
 
       {/* ── 2. KHUNG NỘI DUNG CHÍNH (Kèm Sticky Topbar trên Mobile) ── */}
-      <div className={cn("flex-1 min-w-0 flex flex-col min-h-screen", isExamFullscreen && "w-full")}>
+      <div className={cn("flex-1 min-w-0 w-full max-w-full flex flex-col min-h-dvh", isExamFullscreen && "w-full")}>
         {/* Sticky Topbar trên Mobile (< 1024px) */}
         <header
           className={cn(
@@ -332,7 +332,7 @@ export function StudentShell({ children, studentName = 'Sinh viên' }: StudentSh
             <BrandLogo
               href="/student/dashboard"
               size="sm"
-              variant="plain"
+              variant="framed"
               badgeText="SV"
               subtitle="ĐH Lạc Hồng"
             />
@@ -347,7 +347,7 @@ export function StudentShell({ children, studentName = 'Sinh viên' }: StudentSh
         </header>
 
         {/* Nội dung trang con */}
-        <div className="flex-1 min-w-0 overflow-x-hidden">
+        <div className="flex-1 min-w-0 w-full max-w-full overflow-x-clip">
           {children}
         </div>
       </div>

@@ -70,7 +70,7 @@ export default async function StudentExamPage({ params }: StudentExamPageProps) 
             <span className="grid size-7 place-items-center rounded-md bg-[#17372e] dark:bg-emerald-950 text-[#c9ed99] dark:text-emerald-300">
               <GraduationCap className="size-4" />
             </span>
-            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Mầm Học Khảo Thí</span>
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">LHU Khảo Thí</span>
           </div>
         </div>
       </header>

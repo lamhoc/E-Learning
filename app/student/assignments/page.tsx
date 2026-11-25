@@ -1,4 +1,3 @@
-import { ThemeToggle } from '@/components/theme-toggle';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import Link from 'next/link';
 import {
@@ -13,7 +12,7 @@ import { NotificationBell } from '@/components/layout/notification-bell';
 import { StudentAssignments } from '@/components/student/student-assignments';
 
 export const metadata = {
-  title: 'Bài tập về nhà | Mầm Học',
+  title: 'Bài tập về nhà | Đại học Lạc Hồng',
   description: 'Nộp bài tập tự luận, bài tập nhóm, đồ án và theo dõi kết quả chấm điểm',
 };
 
@@ -50,7 +49,6 @@ export default async function StudentAssignmentsPage({
 
             <div className="ml-auto flex items-center gap-3">
               <NotificationBell userId={data.studentId} initialNotifications={data.notifications} />
-              <ThemeToggle />
               {pendingCount > 0 ? (
                 <Badge variant="destructive" className="hidden sm:inline-flex">
                   {pendingCount} bài cần nộp

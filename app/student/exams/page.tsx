@@ -1,4 +1,3 @@
-import { ThemeToggle } from '@/components/theme-toggle';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import Link from 'next/link';
 import {
@@ -33,7 +32,7 @@ import {
 import { NotificationBell } from '@/components/layout/notification-bell';
 
 export const metadata = {
-  title: 'Đề thi & Kết quả | Mầm Học',
+  title: 'Đề thi & Kết quả | Đại học Lạc Hồng',
   description: 'Danh sách đề thi trực tuyến đang mở và lịch sử thi của sinh viên',
 };
 
@@ -195,7 +194,6 @@ export default async function StudentExamsPage() {
 
             <div className="ml-auto flex items-center gap-3">
               <NotificationBell userId={data.studentId} initialNotifications={data.notifications} />
-              <ThemeToggle />
               <Badge variant="outline" className="hidden gap-1.5 border-primary/20 bg-primary/10 text-primary sm:inline-flex">
                 <CheckCircle2 data-icon="inline-start" /> {data.openExams.length} Đề thi đang mở
               </Badge>

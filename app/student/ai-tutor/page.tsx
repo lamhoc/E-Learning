@@ -10,7 +10,6 @@ import {
   Sparkles,
   User,
 } from 'lucide-react';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { ChatMessageRenderer } from '@/components/chat/ChatMessageRenderer';
 import { createClient } from '@/lib/supabase/client';
@@ -46,7 +45,7 @@ const SUGGESTIONS = [
 const INITIAL_MESSAGE: ChatMessage = {
   role: 'assistant',
   content:
-    'Xin chào bạn! Mình là Gia sư AI thông minh của Mầm Học. Bạn có thể hỏi mình bất cứ điều gì — từ giải bài tập, lập trình, tóm tắt, dịch thuật đến kiến thức đời sống. Bạn muốn bắt đầu với điều gì?',
+    'Xin chào bạn! Mình là Gia sư AI thông minh của Đại học Lạc Hồng. Bạn có thể hỏi mình bất cứ điều gì — từ giải bài tập, lập trình, tóm tắt, dịch thuật đến kiến thức đời sống. Bạn muốn bắt đầu với điều gì?',
 };
 
 export default function StudentAiTutorPage() {
@@ -208,9 +207,7 @@ export default function StudentAiTutorPage() {
               </button>
               <NotificationBell />
               {/* Chỉ hiển thị ThemeToggle trên Desktop để tránh lặp 2 nút trên Mobile Topbar */}
-              <div className="hidden lg:block">
-                <ThemeToggle />
-              </div>
+              
             </div>
           </div>
         </header>

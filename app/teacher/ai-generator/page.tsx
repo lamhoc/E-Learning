@@ -1,6 +1,5 @@
 import { Sparkles, Wand2 } from 'lucide-react';
 import { getTeacherQuestionsData } from '@/lib/question-bank';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { AIGeneratorStandalone } from '@/components/teacher/ai-generator-standalone';
 
 export const metadata = {
@@ -12,9 +11,7 @@ export default async function TeacherAIGeneratorPage() {
   const data = await getTeacherQuestionsData();
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-[#070D18]">
-
-      <main className="flex-1 p-6 md:p-8 lg:p-10">
+    <main className="w-full max-w-full min-w-0 p-4 sm:p-6 lg:p-8">
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 dark:border-slate-800 pb-6 mb-8">
           <div className="flex items-center gap-3">
@@ -31,9 +28,7 @@ export default async function TeacherAIGeneratorPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-          </div>
+          
         </div>
 
         {/* Standalone AI Generator Client */}
@@ -42,6 +37,5 @@ export default async function TeacherAIGeneratorPage() {
           teacherName={data.teacherName}
         />
       </main>
-    </div>
   );
 }

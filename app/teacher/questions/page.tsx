@@ -1,4 +1,3 @@
-import { ThemeToggle } from '@/components/theme-toggle';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import { Suspense } from 'react';
 import { LibraryBig } from 'lucide-react';
@@ -86,9 +85,7 @@ export default async function TeacherQuestionsPage({ searchParams }: QuestionsPa
             <p className="hidden text-xs font-medium capitalize text-muted-foreground sm:block">
               {today}
             </p>
-            <div className="ml-auto flex items-center gap-3">
-              <ThemeToggle />
-            </div>
+            
           </div>
         </header>
 
