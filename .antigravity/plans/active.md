@@ -793,3 +793,28 @@
     + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (35/35 routes).
     + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
     + Cập nhật commit hash `c561e32` vào `.antigravity/plans/active.md`.
+
+- [x] **Phase 75 (Commit `c843d91`)**: Sửa triệt để lỗi không đồng bộ dữ liệu tại "Lịch sử thi & Kết quả" (`/student/results`) và Tổng quan sinh viên (`/student/dashboard`) sau khi thi xong:
+  - [x] **Mục tiêu 1 (Điều tra & Sửa lỗi truy vấn dữ liệu tại `/student/results`)**:
+    + Sửa lọc trạng thái: Lấy tất cả lượt thi đã kết thúc/đã nộp (`submitted`, `graded`, `completed`, `published`, `auto_graded`, `pending_grading`), hoặc `.neq('status', 'in_progress')` kết hợp `.not('submitted_at', 'is', null)`. TUYỆT ĐỐI không ẩn bài chờ chấm hoặc bài chưa published.
+    + Sửa lệch khóa `student_id` & Join bảng bị rớt dòng: Không dùng `!inner` join khi join sang `exams`, `subjects`, `classes`. Đảm bảo truy vấn an toàn (dùng tách bước hoặc admin client đọc metadata exams/subjects sau khi đã xác thực user.id của sinh viên).
+    + Chuẩn hóa đọc điểm số: `const finalScore = attempt.final_score ?? attempt.total_score ?? attempt.score ?? attempt.auto_score ?? null;` Chuẩn hóa thang 10 đồng bộ.
+  - [x] **Mục tiêu 2 (Xóa Cache cũ & Đồng bộ thời gian thực Real-time Sync)**:
+    + Thêm `export const dynamic = 'force-dynamic';` và `export const revalidate = 0;` tại:
+      * `app/student/results/page.tsx`
+      * `app/student/dashboard/page.tsx`
+      * `app/student/exams/page.tsx`
+      * `app/student/exams/[examId]/page.tsx`
+      * `app/teacher/grading/page.tsx`
+    + Bổ sung đầy đủ `revalidatePath` tại luồng Nộp bài thi, Giảng viên lưu điểm và Nộp bài tập.
+    + Gọi `router.refresh()` phía Client sau khi nộp bài thi thành công.
+  - [x] **Mục tiêu 3 (Đồng bộ 4 thẻ KPI, Bộ lọc Tab & Dữ liệu trên `/student/dashboard`)**:
+    + Tính toán chính xác 4 thẻ KPI tại `/student/results`: Điểm trung bình thi (làm tròn 1 số thập phân), Tỷ lệ đạt (>=5.0), Bài tập đã nộp (sửa mô tả `"Bài tập các lớp đang học"`), Tổng lượt thi.
+    + Bộ lọc tab: `Tất cả`, `Đạt`, `Chưa đạt`, `Chờ chấm`; từng dòng hiển thị Tên đề, Môn, Lượt thi, Ngày nộp, Trạng thái, Điểm số, Nút Xem đáp án và Nút Hỏi Gia sư AI.
+    + Đồng bộ mục "Lượt thi gần nhất" & "Kết quả học tập" trên `/student/dashboard` khớp 100% với `/student/results`.
+  - [x] **Mục tiêu 4 (Tiện tay dọn nút trùng lặp trên `/student/results`)**:
+    + Xóa nút đổi Theme Sáng/Tối bị trùng lặp ở góc trên bên phải tiêu đề trang `/student/results`.
+  - [x] **Mục tiêu 5 (Kiểm thử thực tế, nghiệm thu có chứng cứ & commit an toàn)**:
+    + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (35/35 routes).
+    + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
+    + Cập nhật commit hash `c843d91` vào `.antigravity/plans/active.md`.
