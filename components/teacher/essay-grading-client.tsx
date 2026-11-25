@@ -37,7 +37,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { MathText } from '@/components/ui/math-text';
+import { MathText, stripLeadingQuestionPrefix } from '@/components/ui/math-text';
 import type { EssayQuestionGradingItem, TeacherGradingPageData } from '@/lib/teacher-grading';
 
 type EssayGradingClientProps = {
@@ -442,7 +442,7 @@ export function EssayGradingClient({ data }: EssayGradingClientProps) {
                           Đề bài câu hỏi #{q.position}:
                         </Label>
                         <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/60 p-3.5 text-sm font-medium text-slate-900 dark:text-slate-100 leading-relaxed shadow-2xs">
-                          <MathText content={q.questionText} />
+                          <MathText content={stripLeadingQuestionPrefix(q.questionText)} />
                         </div>
                       </div>
 

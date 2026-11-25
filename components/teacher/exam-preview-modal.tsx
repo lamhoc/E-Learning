@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MathText } from '@/components/ui/math-text';
+import { MathText, stripLeadingQuestionPrefix } from '@/components/ui/math-text';
 import type { BankQuestion } from '@/lib/question-bank';
 
 type ExamPreviewModalProps = {
@@ -159,7 +159,7 @@ export function ExamPreviewModal({
                           Câu {idx + 1}:
                         </span>
                         <div className="flex-1 font-medium leading-relaxed text-slate-800 dark:text-slate-200">
-                          <MathText content={q.question_text} />
+                          <MathText content={stripLeadingQuestionPrefix(q.question_text)} />
                         </div>
                       </div>
 

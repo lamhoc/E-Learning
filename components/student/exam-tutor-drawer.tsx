@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MathText } from '@/components/ui/math-text';
+import { MathText, stripLeadingQuestionPrefix } from '@/components/ui/math-text';
 import { ChatMessageRenderer } from '@/components/chat/ChatMessageRenderer';
 import type { AttemptReviewQuestion } from '@/lib/student-exam-review';
 
@@ -474,7 +474,7 @@ export function ExamTutorDrawer({
                         </div>
 
                         <MathText
-                          content={selectedQuestion.questionText}
+                          content={stripLeadingQuestionPrefix(selectedQuestion.questionText)}
                           className="line-clamp-2 text-slate-700 dark:text-slate-300 leading-relaxed font-medium"
                         />
 
@@ -607,7 +607,7 @@ export function ExamTutorDrawer({
               {selectedQuestion && (
                 <div className="mb-2 flex items-center justify-between rounded-lg bg-blue-50 dark:bg-blue-950/60 px-2.5 py-1 text-xs text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-900">
                   <span className="truncate">
-                    Đang thảo luận: <strong>Câu {selectedQuestion.questionNumber}</strong> · {selectedQuestion.questionText.slice(0, 45)}...
+                    Đang thảo luận: <strong>Câu {selectedQuestion.questionNumber}</strong> · {stripLeadingQuestionPrefix(selectedQuestion.questionText).slice(0, 45)}...
                   </span>
                   <button
                     type="button"

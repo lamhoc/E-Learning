@@ -34,6 +34,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { MathText, stripLeadingQuestionPrefix } from '@/components/ui/math-text';
 import { ExamScoreChart } from '@/components/teacher/exam-score-chart';
 import {
   exportGradeReportToCsv,
@@ -424,12 +425,12 @@ export function ExamAnalyticsClient({
                   </p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto w-full max-w-full">
                   <Table className="text-xs">
                     <TableHeader>
                       <TableRow className="bg-slate-50/80 dark:bg-slate-900/60 hover:bg-slate-50/80 dark:hover:bg-slate-900/60 border-slate-200 dark:border-slate-800">
                         <TableHead className="w-12 pl-5 font-semibold text-slate-700 dark:text-slate-300">Câu</TableHead>
-                        <TableHead className="font-semibold text-slate-700 dark:text-slate-300 min-w-56">Nội dung câu hỏi</TableHead>
+                        <TableHead className="font-semibold text-slate-700 dark:text-slate-300 min-w-[260px] max-w-[480px]">Nội dung câu hỏi</TableHead>
                         <TableHead className="font-semibold text-slate-700 dark:text-slate-300 text-center">Loại</TableHead>
                         <TableHead className="font-semibold text-slate-700 dark:text-slate-300 text-center">Điểm</TableHead>
                         <TableHead className="font-semibold text-slate-700 dark:text-slate-300 text-center">Lượt làm</TableHead>
@@ -445,13 +446,11 @@ export function ExamAnalyticsClient({
                           key={item.questionId}
                           className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 border-slate-100 dark:border-slate-800/80 transition"
                         >
-                          <TableCell className="pl-5 font-mono font-bold text-slate-900 dark:text-white">
+                          <TableCell className="pl-5 font-mono font-bold text-slate-900 dark:text-white align-top pt-3">
                             #{item.position}
                           </TableCell>
-                          <TableCell>
-                            <p className="line-clamp-2 text-slate-800 dark:text-slate-200 leading-snug">
-                              {item.questionText}
-                            </p>
+                          <TableCell className="min-w-[260px] max-w-[480px] whitespace-normal break-words leading-relaxed py-3 align-top">
+                            <MathText text={stripLeadingQuestionPrefix(item.questionText)} className="text-xs text-slate-800 dark:text-slate-200" />
                           </TableCell>
                           <TableCell className="text-center">
                             {item.questionType === 'multiple_choice' ? (

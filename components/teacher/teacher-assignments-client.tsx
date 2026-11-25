@@ -34,6 +34,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
+import { MathText } from '@/components/ui/math-text';
 import type { TeacherClassSummary, TeacherAssignmentItem } from '@/lib/teacher-all-assignments';
 import type { AssignmentSubmission } from '@/lib/assignments';
 import {
@@ -403,9 +404,13 @@ export function TeacherAssignmentsClient({
                     <h3 className="text-base font-bold text-slate-900 dark:text-white line-clamp-2 min-h-[3rem]">
                       {a.title}
                     </h3>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2 min-h-[2.5rem] leading-relaxed">
-                      {a.description || 'Không có mô tả chi tiết cho bài tập này.'}
-                    </p>
+                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2 min-h-[2.5rem] leading-relaxed">
+                      {a.description ? (
+                        <MathText content={a.description} />
+                      ) : (
+                        'Không có mô tả chi tiết cho bài tập này.'
+                      )}
+                    </div>
                   </div>
 
                   {/* Attachment if exists */}

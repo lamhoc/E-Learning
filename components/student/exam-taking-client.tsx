@@ -28,7 +28,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { MathText } from '@/components/ui/math-text';
+import { MathText, stripLeadingQuestionPrefix } from '@/components/ui/math-text';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -729,7 +729,7 @@ export function ExamTakingClient({
 
                     {/* Question Body with KaTeX */}
                     <div className="text-sm font-medium leading-relaxed text-slate-900 dark:text-white sm:text-base">
-                      <MathText content={q.question_text} />
+                      <MathText content={stripLeadingQuestionPrefix(q.question_text)} />
                     </div>
 
                     {/* Options (Multiple Choice) - Deterministic Seeded Shuffle */}

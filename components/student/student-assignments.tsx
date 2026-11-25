@@ -25,6 +25,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { MathText } from '@/components/ui/math-text';
 import type { StudentAssignmentItem } from '@/lib/assignments';
 import { submitAssignmentAction } from '@/app/teacher/classes/[classId]/assignments/actions';
 
@@ -273,9 +274,9 @@ export function StudentAssignments({ assignments, initialClassId }: StudentAssig
                     </div>
 
                     {assignment.description && (
-                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line bg-slate-50/70 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700/60">
-                        {assignment.description}
-                      </p>
+                      <div className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line bg-slate-50/70 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700/60">
+                        <MathText content={assignment.description} />
+                      </div>
                     )}
                   </div>
 
@@ -292,9 +293,9 @@ export function StudentAssignments({ assignments, initialClassId }: StudentAssig
                         )}
                       </div>
                       {submission?.feedback ? (
-                        <p className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed italic bg-white/80 dark:bg-[#162235] p-2.5 rounded-lg border border-emerald-100 dark:border-emerald-800/60">
-                          &quot;{submission.feedback}&quot;
-                        </p>
+                        <div className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed italic bg-white/80 dark:bg-[#162235] p-2.5 rounded-lg border border-emerald-100 dark:border-emerald-800/60">
+                          <MathText content={submission.feedback} />
+                        </div>
                       ) : (
                         <p className="text-xs text-slate-500 dark:text-slate-400 italic">Giảng viên không để lại lời nhận xét.</p>
                       )}

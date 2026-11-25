@@ -33,7 +33,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { MathText } from '@/components/ui/math-text';
+import { MathText, stripLeadingQuestionPrefix } from '@/components/ui/math-text';
 import { createExamAction, updateExamAction } from '@/app/teacher/exams/create/actions';
 import type { BankQuestion, SubjectSummary } from '@/lib/question-bank';
 import type { DraftExamInitialData, TeacherClassSummary } from '@/lib/teacher-exam-create';
@@ -937,7 +937,7 @@ export function ExamCreateForm({
                           </div>
 
                           <div className="text-xs font-medium text-slate-900 dark:text-slate-100 [&_.katex]:text-slate-900 dark:[&_.katex]:text-slate-100 line-clamp-2">
-                            <MathText content={q.question_text} />
+                            <MathText content={stripLeadingQuestionPrefix(q.question_text)} />
                           </div>
                         </div>
                       </div>
@@ -1004,8 +1004,8 @@ export function ExamCreateForm({
                               {isMC ? 'TN' : 'TL'}
                             </Badge>
 
-                            <div className="truncate text-xs font-medium text-slate-900 dark:text-slate-100 [&_.katex]:text-slate-900 dark:[&_.katex]:text-slate-100">
-                              <MathText content={qData.question_text} />
+                            <div className="line-clamp-2 break-words text-xs font-medium text-slate-900 dark:text-slate-100 [&_.katex]:text-slate-900 dark:[&_.katex]:text-slate-100">
+                              <MathText content={stripLeadingQuestionPrefix(qData.question_text)} />
                             </div>
                           </div>
 

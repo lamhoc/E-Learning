@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MathText } from '@/components/ui/math-text';
+import { MathText, stripLeadingQuestionPrefix } from '@/components/ui/math-text';
 import { fetchAttemptReviewAction } from '@/app/student/exams/[examId]/review-action';
 import type { AttemptReviewData, AttemptReviewQuestion } from '@/lib/student-exam-review';
 
@@ -294,7 +294,7 @@ export function ExamAnswerReviewModal({
 
                       {/* Nội dung đề bài */}
                       <div className="text-sm font-medium text-slate-800 dark:text-slate-100 leading-relaxed">
-                        <MathText content={q.questionText} />
+                        <MathText content={stripLeadingQuestionPrefix(q.questionText)} />
                       </div>
 
                       {/* Các phương án Trắc nghiệm */}
@@ -358,8 +358,12 @@ export function ExamAnswerReviewModal({
                             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                               Bài làm của bạn:
                             </span>
-                            <div className="text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-mono">
-                              {q.studentText || <span className="italic text-slate-400">Không có câu trả lời</span>}
+                            <div className="text-xs text-slate-800 dark:text-slate-200">
+                              {q.studentText ? (
+                                <MathText content={q.studentText} />
+                              ) : (
+                                <span className="italic text-slate-400">Không có câu trả lời</span>
+                              )}
                             </div>
                           </div>
 
@@ -379,7 +383,7 @@ export function ExamAnswerReviewModal({
                               <span className="text-[11px] font-bold text-blue-800 dark:text-blue-300 flex items-center gap-1">
                                 <MessageSquare className="size-3.5" /> Nhận xét chấm bài:
                               </span>
-                              <p className="text-xs text-blue-950 dark:text-blue-200">{q.teacherFeedback}</p>
+                              <MathText content={q.teacherFeedback} className="text-xs text-blue-950 dark:text-blue-200" />
                             </div>
                           )}
                         </div>

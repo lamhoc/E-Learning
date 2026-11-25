@@ -69,7 +69,7 @@ export function exportGradeReportToExcel(options: ExcelExportOptions) {
  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
  xmlns:html="http://www.w3.org/TR/REC-html40">
  <DocumentProperties xmlns="urn:schemas-microsoft-com:office:office">
-  <Author>${escapeXml(metadata?.teacherName || 'Mầm Học E-Learning')}</Author>
+  <Author>${escapeXml(metadata?.teacherName || 'Đại học Lạc Hồng E-Learning')}</Author>
   <Created>${new Date().toISOString()}</Created>
   <Title>${escapeXml(metadata?.examTitle || 'Bảng điểm')}</Title>
  </DocumentProperties>
