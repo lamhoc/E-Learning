@@ -749,3 +749,28 @@
     + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 routes).
     + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
     + Cập nhật commit hash `3ad7cf9` vào `.antigravity/plans/active.md`.
+
+- [x] **Phase 73 (Commit `1187ebe`)**: Nâng cấp lõi AI toàn hệ thống — Chống lỗi kết nối, chống cắt cụt chữ, hiểu đúng Tự luận/Trắc nghiệm & Đồng bộ cho cả 3 giao diện (Admin, Giảng viên, Học sinh):
+  - [x] **Mục tiêu 1 (Khắc phục triệt để lỗi kết nối khi chat nhiều lượt)**:
+    + Cập nhật API route AI: Thêm `export const maxDuration = 60;` và `export const dynamic = 'force-dynamic';` tại `app/api/chat/route.ts`, `app/api/chat-ai/route.ts`, `app/api/student/exam-tutor/route.ts`.
+    + Làm sạch & Chuẩn hóa mảng lịch sử (`sanitizeChatHistory`): Chỉ giữ `{ role, content }`, lọc sạch các tin nhắn lỗi cũ `⚠️ Lỗi kết nối...` và tin rỗng, gộp các tin cùng role đứng liền kề, sliding window tối đa 10 tin nhắn gần nhất (~12.000 ký tự) để chống 429 TPM của Groq.
+    + Cơ chế Fast Failover và Timeout thông minh: Giảm timeout từng lượt thử xuống 12–15s; tự động xoay vòng qua các model có quota TPM riêng biệt (Gemini -> Groq Llama 3.3 -> Scout 17B -> Llama 3.1 8B -> Qwen 3 -> Pollinations Free Gateway).
+    + Sửa nút đỏ "Thử gửi lại" ở Frontend (`/teacher/ai-tutor`, `/student/ai-tutor`): Xóa sạch bong bóng lỗi cũ, không duplicate tin nhắn user trong state.
+  - [x] **Mục tiêu 2 (Sửa triệt để lỗi câu trả lời bị cắt cụt giữa chừng)**:
+    + Đặt `max_tokens: 4096` cho Gia sư AI và Gia sư AI chữa đề.
+    + Đặt `max_tokens: 4096 - 6000` cho Sinh câu hỏi AI và Chấm tự luận.
+    + Tự động xử lý khi `finish_reason === 'length'` để đảm bảo câu trả lời luôn trọn vẹn, không bị cụt giữa từ.
+    + Không sử dụng `.slice()` cắt ngắn chuỗi phản hồi.
+  - [x] **Mục tiêu 3 (Nâng cấp khả năng hiểu đúng yêu cầu Tự luận vs Trắc nghiệm & Sửa lỗi lặp chữ "chi tiết:")**:
+    + Cập nhật System Prompt tại `app/api/chat-ai/route.ts`: Phân biệt tuyệt đối Tự luận và Trắc nghiệm; khi người dùng yêu cầu hoặc sửa đổi sang Tự luận (ví dụ *"tự luận cơ không phải trắc nghiệm"*), tuyệt đối không sinh phương án A-B-C-D mà bám sát chủ đề trước và sinh câu hỏi tự luận mở + gợi ý đáp án + rubric; ưu tiên tuyệt đối ý định sửa đổi ở tin nhắn mới nhất.
+    + Sửa lỗi lặp tiền tố trong `<ChatMessageRenderer />`: Đặt cụm dài lên trước cụm ngắn trong regex bóc tách giải thích (`giải thích chi tiết|lời giải chi tiết|hướng dẫn giải|giải thích|lời giải|explanation`) và làm sạch triệt để, không còn chữ `"chi tiết:"` bị in thừa.
+    + Bổ sung giao diện hiển thị chuyên biệt cho câu Tự luận (Đề bài, Gợi ý trả lời, Thang điểm).
+  - [x] **Mục tiêu 4 (Kiểm tra & Đồng bộ toàn bộ tính năng AI trên cả 3 giao diện)**:
+    + Giảng viên: `/teacher/ai-tutor`, `/teacher/ai-generator`, `/teacher/questions` (modal AI), chấm tự luận và upload đề thi.
+    + Sinh viên: `/student/ai-tutor`, `/chat`, ngăn kéo `/student/exams/[examId]` & `/student/results`.
+    + Admin: Rà soát `/admin/**` đảm bảo không có route AI gọi model cố định hay cấu hình cũ.
+  - [x] **Mục tiêu 5 (Kiểm thử thực tế, nghiệm thu có chứng cứ & commit an toàn)**:
+    + Test hội thoại nhiều lượt: Lượt 1 hỏi chủ đề, Lượt 2 yêu cầu "tự luận cơ không phải trắc nghiệm" -> trả về đúng câu tự luận, không lỗi kết nối, không cắt cụt chữ, không lặp "chi tiết:".
+    + Chạy `npx tsc --noEmit` & `npm run build` đạt 0 lỗi (36/36 routes).
+    + Tạo Local Commit an toàn theo quy định `AGENTS.md` (tuyệt đối không tự ý push).
+    + Cập nhật commit hash `1187ebe` vào `.antigravity/plans/active.md`.
