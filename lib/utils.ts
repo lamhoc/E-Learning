@@ -14,7 +14,7 @@ export function sanitizeVietnameseText(text?: string | null): string {
     .replace(/vi\?n/gi, 'viên')
     .replace(/Sinh\s*vi\?n/gi, 'Sinh viên')
     .replace(/Qu\?n\s*tr\?/gi, 'Quản trị')
-    .replace(/M\?m\s*H\?c/gi, 'Mầm Học')
+    .replace(/(?:M\?m\s*H\?c|Mầm\s*Học|Mam\s*Hoc)/gi, 'E-Learning')
     .replace(/L\?c\s*H\?ng/gi, 'Lạc Hồng')
     .replace(/Gi\?i\s*thi\?u/gi, 'Giới thiệu');
 }

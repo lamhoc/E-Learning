@@ -167,8 +167,8 @@ function MetricCard({
 
 function EmptyState({ children }: { children: string }) {
   return (
-    <div className="flex min-h-32 flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 px-5 py-6 text-center">
-      <p className="max-w-md text-sm leading-6 text-slate-500">{children}</p>
+    <div className="flex min-h-32 flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 dark:border-slate-700/80 bg-slate-50 dark:bg-[#111C2D] px-5 py-6 text-center">
+      <p className="max-w-md text-sm leading-6 text-slate-600 dark:text-slate-300">{children}</p>
     </div>
   );
 }
@@ -615,7 +615,7 @@ export default async function StudentDashboardPage() {
 
           <Separator />
           <footer className="pb-2 text-center text-xs text-slate-400">
-            Đại học Lạc Hồng · Cùng bạn học tốt hơn mỗi ngày
+            E-Learning · Đại học Lạc Hồng (LHU) · Cùng bạn học tốt hơn mỗi ngày
           </footer>
         </div>
       </div>
