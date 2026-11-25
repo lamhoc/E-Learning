@@ -95,23 +95,13 @@ export default function StudentAiTutorPage() {
     e.target.style.height = Math.min(e.target.scrollHeight, 140) + 'px';
   };
 
-  async function sendContent(contentToSend: string) {
-    const content = contentToSend.trim();
-    if (!content || loading) return;
-
-    const nextMessages: ChatMessage[] = [...messages, { role: 'user', content }];
-    setMessages(nextMessages);
-    setInput('');
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
+  async function executeChat(chatHistory: ChatMessage[]) {
     setLoading(true);
-
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: nextMessages.slice(-20) }),
+        body: JSON.stringify({ messages: chatHistory.slice(-20) }),
       });
       const data = await response.json();
 
@@ -131,6 +121,22 @@ export default function StudentAiTutorPage() {
     }
   }
 
+  async function sendContent(contentToSend: string) {
+    const content = contentToSend.trim();
+    if (!content || loading) return;
+
+    // Lọc bỏ tin nhắn lỗi cũ trước khi thêm tin mới
+    const cleanCurrent = messages.filter((m) => !m.content.startsWith('⚠️'));
+    const nextMessages: ChatMessage[] = [...cleanCurrent, { role: 'user', content }];
+    setMessages(nextMessages);
+    setInput('');
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+
+    await executeChat(nextMessages);
+  }
+
   function sendMessage(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
     sendContent(input);
@@ -140,18 +146,19 @@ export default function StudentAiTutorPage() {
     sendContent(prompt);
   }
 
-  function retryLastMessage() {
+  async function retryLastMessage() {
+    if (loading) return;
     // Tìm tin nhắn user cuối cùng
-    const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
-    if (!lastUserMsg) return;
+    const lastUserIndex = messages.map((m) => m.role).lastIndexOf('user');
+    if (lastUserIndex === -1) return;
 
-    // Loại bỏ tin nhắn lỗi cuối
-    setMessages((cur) => {
-      const filtered = cur.filter((m, idx) => idx !== cur.length - 1);
-      return filtered;
-    });
+    // Giữ lại lịch sử đến tin nhắn user cuối cùng và loại bỏ hoàn toàn các bong bóng lỗi
+    const cleanHistory = messages
+      .slice(0, lastUserIndex + 1)
+      .filter((m) => !m.content.startsWith('⚠️'));
 
-    sendContent(lastUserMsg.content);
+    setMessages(cleanHistory);
+    await executeChat(cleanHistory);
   }
 
   function startNewChat() {

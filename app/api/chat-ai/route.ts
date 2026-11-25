@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { callAiChatCompletion } from '@/lib/ai-provider';
+import { callAiChatCompletion, sanitizeChatHistory } from '@/lib/ai-provider';
 import { convertMarkdownTablesToLines } from '@/lib/anti-table-processor';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 type ChatMessage = {
   role: 'user' | 'assistant';
@@ -108,9 +109,14 @@ Bạn hoạt động như một trợ lý AI chat tổng quát (tương tự Cha
 QUY TẮC CẤM XUẤT BẢNG TUYỆT ĐỐI:
 - TUYỆT ĐỐI KHÔNG sử dụng bảng Markdown (| ... |, |---|---|) trong câu trả lời cho các yêu cầu tạo câu hỏi, giải bài tập, lập kế hoạch, soạn giáo án, viết kịch bản hay giải thích kiến thức (CHỈ dùng bảng khi người dùng gõ rõ cụm từ "lập bảng").
 
-QUY TẮC TRÌNH BÀY CHI TIẾT TỪNG DÒNG:
-1. Mọi nội dung phải được tách dòng rõ ràng, thoáng mắt, có khoảng trắng giữa các ý.
-2. Khi tạo câu hỏi trắc nghiệm (ví dụ: "10 câu trắc nghiệm Toán lớp 10"), BẮT BUỘC trình bày từng câu theo bố cục dọc đầy đủ (mỗi phương án A, B, C, D nằm trên 1 DÒNG RIÊNG BIỆT, bắt buộc có Đáp án đúng và Giải thích chi tiết từng bước):
+QUY TẮC PHÂN BIỆT TUYỆT ĐỐI TỰ LUẬN VÀ TRẮC NGHIỆM:
+1. Khi người dùng yêu cầu câu hỏi TỰ LUẬN (hoặc có ý định sửa đổi/điều chỉnh như: "tự luận cơ không phải trắc nghiệm", "đổi sang tự luận", "cho câu hỏi tự luận", "làm tự luận"):
+   - TUYỆT ĐỐI KHÔNG xuất 4 phương án A, B, C, D!
+   - Bám sát chủ đề của cuộc hội thoại ngay trước đó và trình bày từng câu hỏi tự luận mở, kèm Gợi ý trả lời / Đáp án mẫu và Thang điểm / Tiêu chuẩn đánh giá chi tiết:
+     ### Câu 1: [Đề bài câu hỏi tự luận kèm công thức nếu có]
+     **Gợi ý trả lời:** [Các luận điểm, nội dung kiến thức chính cần đạt]
+     **Thang điểm:** [Phân bố điểm hoặc tiêu chí chấm từng phần]
+2. CHỈ tạo 4 phương án A, B, C, D khi người dùng yêu cầu rõ là TRẮC NGHIỆM:
    ### Câu 1: [Nội dung câu hỏi kèm công thức KaTeX $...$ nếu có]
    - **A.** [Phương án A]
    - **B.** [Phương án B]
@@ -119,21 +125,33 @@ QUY TẮC TRÌNH BÀY CHI TIẾT TỪNG DÒNG:
 
    **Đáp án đúng:** [A/B/C/D]
    **Giải thích chi tiết:** [Lời giải từng bước]
-3. Trình bày Markdown sạch đẹp, bọc công thức toán học/khoa học trong dấu $...$ cho công thức nằm trong dòng và $$...$$ cho công thức nằm trên dòng riêng. Tuyệt đối không dùng \\(...\\) hay \\[...\\].
-4. Ghi nhớ toàn bộ ngữ cảnh các tin nhắn trước đó trong cùng cuộc trò chuyện để phản hồi liền mạch.`;
+3. ƯU TIÊN TUYỆT ĐỐI Ý ĐỊNH SỬA ĐỔI Ở TIN NHẮN MỚI NHẤT:
+   Khi người dùng phản hồi điều chỉnh (ví dụ: "tự luận cơ không phải trắc nghiệm", "làm ngắn hơn", "giải thích dễ hiểu hơn", "đổi môn khác"), bạn phải lập tức kế thừa chủ đề từ lịch sử hội thoại ngay trước đó và xuất ra đúng định dạng mới theo mong muốn của người dùng!
+
+QUY TẮC ĐỊNH DẠNG & TOÁN HỌC:
+- Mọi nội dung phải được tách dòng rõ ràng, thoáng mắt, có khoảng trắng giữa các ý.
+- Trình bày Markdown sạch đẹp, bọc công thức toán học/khoa học trong dấu $...$ cho công thức nằm trong dòng và $$...$$ cho công thức nằm trên dòng riêng. Tuyệt đối không dùng \\(...\\) hay \\[...\\].
+- Ghi nhớ toàn bộ ngữ cảnh các tin nhắn trước đó trong cùng cuộc trò chuyện để phản hồi liền mạch.`;
+
+  // Sử dụng sanitizeChatHistory để loại bỏ tin nhắn lỗi cũ, gộp tin nhắn user liên tiếp và cắt trượt 10 tin gần nhất
+  const sanitized = sanitizeChatHistory(messages);
 
   const aiMessages = [
     { role: 'system' as const, content: systemPrompt },
-    ...messages.slice(-16).map((m, idx, arr) => {
-      // Ở tin nhắn cuối cùng của user, nối thêm lời nhắc cấm xuất bảng
+    ...sanitized.map((m, idx, arr) => {
+      // Ở tin nhắn cuối cùng của user, nối thêm lời nhắc cấm bảng và tôn trọng định dạng
       if (idx === arr.length - 1 && m.role === 'user') {
+        const isEssayRequest = /tự\s*luận/i.test(m.content);
+        const extraNote = isEssayRequest
+          ? '[Lưu ý: Người dùng yêu cầu TỰ LUẬN, tuyệt đối không xuất phương án A-B-C-D! Trình bày đề bài tự luận, gợi ý trả lời và thang điểm!]'
+          : '[Lưu ý: Tuyệt đối không xuất bảng Markdown; tách dòng thoáng mắt rõ ràng!]';
         return {
           role: 'user' as const,
-          content: `${m.content}\n\n[Lưu ý bắt buộc: Tuyệt đối không xuất bảng Markdown; trình bày chi tiết từng dòng, mỗi phương án A, B, C, D trên 1 dòng riêng kèm Đáp án đúng và Giải thích chi tiết!]`,
+          content: `${m.content}\n\n${extraNote}`,
         };
       }
       return {
-        role: m.role as 'user' | 'assistant',
+        role: m.role,
         content: m.content,
       };
     }),

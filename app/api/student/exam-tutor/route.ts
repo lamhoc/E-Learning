@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { callAiChatStream } from '@/lib/ai-provider';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 import {
   authorizeReleasedAttempt,
   ExamTutorError,
@@ -153,10 +157,7 @@ export async function POST(request: Request) {
     }
     if (!conversation) throw new ExamTutorError('Không tìm thấy cuộc hội thoại này.', 404);
 
-    const apiKey = process.env.GROQ_API_KEY;
-    if (!apiKey) {
-      throw new ExamTutorError('Gia sư AI chưa được cấu hình trên máy chủ.', 503);
-    }
+
 
     const { data: savedMessages, error: historyError } = await supabase
       .from('ai_tutor_messages')

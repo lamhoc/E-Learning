@@ -14,11 +14,11 @@ export type AiCompletionOptions = {
   preferredModel?: string;
 };
 
-// Danh sách các model Groq theo thứ tự ưu tiên giảm dần
+// Danh sách các model Groq theo thứ tự ưu tiên giảm dần (xoay vòng qua các model có hạn mức TPM/RPM riêng biệt)
 const DEFAULT_CANDIDATE_MODELS: string[] = [
   'llama-3.3-70b-versatile',
-  'llama-3.1-8b-instant',
   'meta-llama/llama-4-scout-17b-16e-instruct',
+  'llama-3.1-8b-instant',
   'qwen/qwen3-32b',
   'gemma2-9b-it',
   'mixtral-8x7b-32768',
@@ -41,6 +41,94 @@ export function stripThinkingTags(text: string): string {
     .replace(/<think>[\s\S]*?<\/think>/gi, '')
     .replace(/^[\s\r\n]+/, '')
     .trim();
+}
+
+/**
+ * Chuẩn hóa và làm sạch mảng lịch sử hội thoại trước khi gửi lên bất kỳ LLM nào:
+ * 1. Lọc sạch các tin nhắn rác, tin nhắn thông báo lỗi kết nối cũ ("⚠️ Lỗi kết nối...")
+ * 2. Chỉ giữ lại role chuẩn ('system' | 'user' | 'assistant') và content sạch
+ * 3. Gộp các tin nhắn liên tiếp cùng vai trò (đảm bảo không bao giờ có 2 tin 'user' đứng liền nhau gây lỗi 400 Bad Request)
+ * 4. Cắt trượt thông minh (Sliding Window): Chỉ gửi tối đa 10 tin nhắn gần nhất và không vượt quá ~12.000 ký tự (chống 429 TPM)
+ */
+export function sanitizeChatHistory(
+  rawMessages: Array<{ role: string; content?: string | null }>
+): AiChatMessage[] {
+  if (!Array.isArray(rawMessages) || rawMessages.length === 0) return [];
+
+  // Bước 1: Lọc bỏ tin rỗng và tin nhắn lỗi
+  const cleanedList: AiChatMessage[] = [];
+  for (const m of rawMessages) {
+    if (!m || typeof m.content !== 'string') continue;
+    const trimmed = m.content.trim();
+    if (!trimmed) continue;
+
+    // Loại bỏ tin nhắn lỗi kết nối hoặc thông báo lỗi từ hệ thống
+    if (
+      trimmed.startsWith('⚠️') ||
+      trimmed.startsWith('Lỗi kết nối:') ||
+      trimmed.includes('Hiện không thể kết nối tới máy chủ AI') ||
+      trimmed.includes('Failed to fetch')
+    ) {
+      continue;
+    }
+
+    const role =
+      m.role === 'system'
+        ? 'system'
+        : m.role === 'assistant'
+        ? 'assistant'
+        : 'user';
+
+    cleanedList.push({ role, content: trimmed });
+  }
+
+  if (cleanedList.length === 0) return [];
+
+  // Tách tin nhắn system (nếu có)
+  const systemMsg = cleanedList.find((m) => m.role === 'system');
+  const chatMsgs = cleanedList.filter((m) => m.role !== 'system');
+
+  if (chatMsgs.length === 0) {
+    return systemMsg ? [systemMsg] : [];
+  }
+
+  // Bước 2: Gộp các tin nhắn có cùng role đứng liền kề
+  const merged: AiChatMessage[] = [];
+  for (const m of chatMsgs) {
+    const last = merged[merged.length - 1];
+    if (last && last.role === m.role) {
+      last.content = `${last.content}\n\n${m.content}`;
+    } else {
+      merged.push({ role: m.role, content: m.content });
+    }
+  }
+
+  // Bước 3: Sliding window thông minh: tối đa 10 tin gần nhất
+  let windowed = merged.slice(-10);
+
+  // Đảm bảo tin đầu tiên của chat window là 'user' (nếu là assistant đứng đầu thì bỏ)
+  if (windowed.length > 0 && windowed[0].role === 'assistant') {
+    windowed = windowed.slice(1);
+  }
+
+  // Bước 4: Giới hạn tổng ký tự ~12.000 ký tự để không vượt Token-Per-Minute (TPM)
+  const MAX_TOTAL_CHARS = 12000;
+  let totalChars = windowed.reduce((sum, m) => sum + m.content.length, 0);
+
+  while (totalChars > MAX_TOTAL_CHARS && windowed.length > 2) {
+    // Cắt bớt cặp tin nhắn cũ nhất (user + assistant) từ đầu
+    const removed1 = windowed.shift();
+    const removed2 = windowed.shift();
+    totalChars -= (removed1?.content.length || 0) + (removed2?.content.length || 0);
+
+    // Đảm bảo tin đầu tiên luôn là 'user'
+    if (windowed.length > 0 && windowed[0].role === 'assistant') {
+      const removedLead = windowed.shift();
+      totalChars -= removedLead?.content.length || 0;
+    }
+  }
+
+  return systemMsg ? [systemMsg, ...windowed] : windowed;
 }
 
 // Cache model đang hoạt động tốt trên môi trường hiện tại
@@ -80,6 +168,7 @@ export function getAiConfig() {
 
 /**
  * Cổng 1: Google Gemini REST API chính thức (gemini-2.5-flash / gemini-2.0-flash / gemini-1.5-flash)
+ * Timeout thông minh 14s cho mỗi lượt thử để kịp thời failover sang model tiếp theo.
  */
 export async function callGoogleGeminiChatCompletion(options: AiCompletionOptions): Promise<{
   content: string;
@@ -90,7 +179,6 @@ export async function callGoogleGeminiChatCompletion(options: AiCompletionOption
     throw new Error('Chưa cấu hình GEMINI_API_KEY hoặc GOOGLE_GENERATIVE_AI_API_KEY.');
   }
 
-  // Tách system message và user/assistant message
   const systemMessages = options.messages.filter((m) => m.role === 'system');
   const chatMessages = options.messages.filter((m) => m.role !== 'system');
   const systemInstructionText = systemMessages.map((m) => m.content).join('\n\n').trim();
@@ -115,7 +203,6 @@ export async function callGoogleGeminiChatCompletion(options: AiCompletionOption
     throw new Error('Không có tin nhắn nào để gửi tới Google Gemini.');
   }
 
-  // Gemini yêu cầu lượt đầu tiên trong contents phải là user
   if (contents[0].role !== 'user') {
     contents.unshift({ role: 'user', parts: [{ text: 'Bắt đầu cuộc trò chuyện.' }] });
   }
@@ -157,7 +244,7 @@ export async function callGoogleGeminiChatCompletion(options: AiCompletionOption
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(25000),
+        signal: AbortSignal.timeout(14000), // Timeout 14s mỗi model để failover siêu nhanh
       });
 
       if (!res.ok) {
@@ -170,6 +257,7 @@ export async function callGoogleGeminiChatCompletion(options: AiCompletionOption
           content?: {
             parts?: Array<{ text?: string }>;
           };
+          finishReason?: string;
         }>;
       };
 
@@ -193,7 +281,6 @@ export async function callGoogleGeminiChatCompletion(options: AiCompletionOption
  */
 export async function discoverAvailableModels(apiKey: string, baseUrl: string): Promise<string[]> {
   const now = Date.now();
-  // Cache danh sách trong 10 phút
   if (cachedDiscoveredModels && cachedDiscoveredModels.length > 0 && now - lastDiscoveryTime < 600000) {
     return cachedDiscoveredModels;
   }
@@ -205,19 +292,16 @@ export async function discoverAvailableModels(apiKey: string, baseUrl: string): 
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      // Hạn chế timeout 5 giây
       signal: AbortSignal.timeout(5000),
     });
 
     if (!res.ok) {
-      console.warn(`[AI-Provider] Không thể lấy danh sách /models (HTTP ${res.status}):`, await res.text());
       return DEFAULT_CANDIDATE_MODELS;
     }
 
     const json = (await res.json()) as { data?: Array<{ id?: string; active?: boolean }> };
     const rawList = Array.isArray(json?.data) ? json.data : [];
 
-    // Lọc lấy các model text/chat (loại trừ whisper, guard, vision, embedding)
     const chatModels = rawList
       .map((m) => m.id || '')
       .filter((id) => {
@@ -238,7 +322,6 @@ export async function discoverAvailableModels(apiKey: string, baseUrl: string): 
     if (chatModels.length > 0) {
       cachedDiscoveredModels = chatModels;
       lastDiscoveryTime = now;
-      console.log('[AI-Provider] Đã tự động dò tìm các model khả dụng:', chatModels);
       return chatModels;
     }
   } catch (err) {
@@ -279,7 +362,7 @@ async function buildCandidateList(
 /**
  * Cổng 3: Cổng AI dự phòng trực tuyến miễn phí (Free AI Gateway)
  * Sử dụng endpoint tương thích chuẩn OpenAI Chat Completions không yêu cầu API key.
- * Đảm bảo hệ thống luôn phản hồi AI thật 100% theo thời gian thực kể cả khi chưa cấu hình API key.
+ * Timeout 14s.
  */
 export async function callFreeAiChatCompletion(options: AiCompletionOptions): Promise<{
   content: string;
@@ -305,7 +388,7 @@ export async function callFreeAiChatCompletion(options: AiCompletionOptions): Pr
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(25000), // 25s timeout cho mạng chậm
+      signal: AbortSignal.timeout(14000),
     });
 
     if (res.ok) {
@@ -320,13 +403,13 @@ export async function callFreeAiChatCompletion(options: AiCompletionOptions): Pr
         return { content: cleanText, modelUsed: 'pollinations-free-openai' };
       }
     } else {
-      console.warn(`[AI-Provider] Free AI OpenAI POST trả về HTTP ${res.status}, chuyển sang thử direct POST/GET fallback.`);
+      console.warn(`[AI-Provider] Free AI OpenAI POST trả về HTTP ${res.status}`);
     }
   } catch (postErr) {
-    console.warn('[AI-Provider] Free AI OpenAI POST thất bại, chuyển sang thử direct POST/GET fallback:', postErr);
+    console.warn('[AI-Provider] Free AI OpenAI POST thất bại:', postErr);
   }
 
-  // 2. Thử Direct POST endpoint của Pollinations (hỗ trợ đầy đủ messages, không yêu cầu credit)
+  // 2. Thử Direct POST endpoint của Pollinations
   try {
     const directPostRes = await fetch('https://text.pollinations.ai/', {
       method: 'POST',
@@ -339,7 +422,7 @@ export async function callFreeAiChatCompletion(options: AiCompletionOptions): Pr
           content: m.content,
         })),
       }),
-      signal: AbortSignal.timeout(25000),
+      signal: AbortSignal.timeout(14000),
     });
 
     if (directPostRes.ok) {
@@ -348,8 +431,6 @@ export async function callFreeAiChatCompletion(options: AiCompletionOptions): Pr
       if (cleanText && !cleanText.startsWith('<!DOCTYPE') && !cleanText.startsWith('<html')) {
         return { content: cleanText, modelUsed: 'pollinations-free-direct-post' };
       }
-    } else {
-      console.warn(`[AI-Provider] Free AI Direct POST trả về HTTP ${directPostRes.status}`);
     }
   } catch (directPostErr) {
     console.warn('[AI-Provider] Free AI Direct POST thất bại:', directPostErr);
@@ -366,7 +447,7 @@ export async function callFreeAiChatCompletion(options: AiCompletionOptions): Pr
 
       const resGet = await fetch(getUrl, {
         method: 'GET',
-        signal: AbortSignal.timeout(20000),
+        signal: AbortSignal.timeout(14000),
       });
 
       if (resGet.ok) {
@@ -387,21 +468,28 @@ export async function callFreeAiChatCompletion(options: AiCompletionOptions): Pr
 /**
  * Gọi chat completion với cơ chế Đa Cổng Chuẩn Gemini (Multi-Provider Cascade):
  * - Cổng 1: Google Gemini REST API chính thức (gemini-2.5-flash / gemini-2.0-flash / gemini-1.5-flash)
- * - Cổng 2: Groq Cloud LLM với Dynamic Discovery & Candidate Cascade (Llama 3.3, Scout 17B, Qwen 3...)
+ * - Cổng 2: Groq Cloud LLM với Fast Failover (Llama 3.3, Scout 17B, Llama 3.1, Qwen 3...)
  * - Cổng 3: Cổng AI Trực Tuyến Miễn Phí (Pollinations POST/GET)
- * - Cổng 4: Offline Smart Academic Fallback (Caller tự động kích hoạt khi mất mạng)
  */
 export async function callAiChatCompletion(options: AiCompletionOptions): Promise<{
   content: string;
   modelUsed: string;
 }> {
+  // Đảm bảo lịch sử đã được làm sạch trước khi gọi bất kỳ cổng nào
+  const sanitizedMessages = sanitizeChatHistory(options.messages);
+  const cleanOptions: AiCompletionOptions = {
+    ...options,
+    messages: sanitizedMessages.length > 0 ? sanitizedMessages : options.messages,
+    max_tokens: options.max_tokens ?? 4096,
+  };
+
   // =========================================================================
   // CỔNG 1: Google Gemini REST API chính thức (Nếu có cấu hình key)
   // =========================================================================
   const { apiKey: geminiKey } = getGeminiConfig();
   if (geminiKey) {
     try {
-      const geminiResult = await callGoogleGeminiChatCompletion(options);
+      const geminiResult = await callGoogleGeminiChatCompletion(cleanOptions);
       return geminiResult;
     } catch (geminiErr) {
       console.warn('[AI-Provider] Cổng 1 Google Gemini gặp sự cố, tự động chuyển sang Cổng 2 Groq:', geminiErr);
@@ -415,19 +503,24 @@ export async function callAiChatCompletion(options: AiCompletionOptions): Promis
   if (groqKey) {
     try {
       const groq = new Groq({ apiKey: groqKey, baseURL: groqBaseUrl });
-      let candidateList = await buildCandidateList(groqKey, groqBaseUrl, options.preferredModel, groqModel);
+      let candidateList = await buildCandidateList(groqKey, groqBaseUrl, cleanOptions.preferredModel, groqModel);
       let hasTriedDiscovery = false;
 
       for (let i = 0; i < candidateList.length; i++) {
         const currentModel = candidateList[i];
         try {
-          const response = await groq.chat.completions.create({
-            model: currentModel,
-            messages: options.messages,
-            temperature: options.temperature ?? 0.2,
-            max_tokens: options.max_tokens ?? 4096,
-            ...(options.response_format ? { response_format: options.response_format } : {}),
-          });
+          const response = await groq.chat.completions.create(
+            {
+              model: currentModel,
+              messages: cleanOptions.messages,
+              temperature: cleanOptions.temperature ?? 0.25,
+              max_tokens: cleanOptions.max_tokens ?? 4096,
+              ...(cleanOptions.response_format ? { response_format: cleanOptions.response_format } : {}),
+            },
+            {
+              signal: AbortSignal.timeout(14000), // Timeout 14s cho mỗi model Groq
+            }
+          );
 
           const rawText = response.choices?.[0]?.message?.content?.trim() ?? '';
           const text = stripThinkingTags(rawText);
@@ -437,14 +530,19 @@ export async function callAiChatCompletion(options: AiCompletionOptions): Promis
           }
         } catch (err: unknown) {
           const errMsg = err instanceof Error ? err.message : String(err);
-          console.warn(`[AI-Provider] Model Groq "${currentModel}" thất bại: ${errMsg}`);
+          const status = (err as { status?: number })?.status;
+          console.warn(`[AI-Provider] Model Groq "${currentModel}" thất bại (HTTP ${status || 'err'}): ${errMsg}`);
 
+          const isRateLimit = status === 429 || errMsg.includes('429') || errMsg.includes('rate_limit');
           const isModelNotFound =
+            status === 404 ||
             errMsg.includes('model_not_found') ||
             errMsg.includes('does not exist') ||
-            errMsg.includes('decommissioned') ||
-            errMsg.includes('not have access') ||
-            (err as { status?: number })?.status === 404;
+            errMsg.includes('decommissioned');
+
+          if (isRateLimit) {
+            console.warn(`[AI-Provider] Groq rate limit (429) trên "${currentModel}", tự động chuyển sang model tiếp theo có quota riêng.`);
+          }
 
           if (isModelNotFound && !hasTriedDiscovery) {
             hasTriedDiscovery = true;
@@ -470,10 +568,10 @@ export async function callAiChatCompletion(options: AiCompletionOptions): Promis
   // CỔNG 3: Cổng AI Trực Tuyến Miễn Phí (Không cần key)
   // =========================================================================
   try {
-    const freeAi = await callFreeAiChatCompletion(options);
+    const freeAi = await callFreeAiChatCompletion(cleanOptions);
     return freeAi;
   } catch (freeAiErr) {
-    console.warn('[AI-Provider] Cổng 3 Free AI Gateway không phản hồi (có thể do mất kết nối mạng):', freeAiErr);
+    console.warn('[AI-Provider] Cổng 3 Free AI Gateway không phản hồi:', freeAiErr);
   }
 
   throw new Error('Tất cả các cổng AI trực tuyến (Gemini, Groq và Free Gateway) đều không phản hồi.');
@@ -485,37 +583,49 @@ export async function callAiChatCompletion(options: AiCompletionOptions): Promis
 export async function callAiChatStream(
   options: AiCompletionOptions
 ): Promise<{ stream: AsyncIterable<Groq.Chat.Completions.ChatCompletionChunk>; modelUsed: string }> {
+  const sanitizedMessages = sanitizeChatHistory(options.messages);
+  const cleanOptions: AiCompletionOptions = {
+    ...options,
+    messages: sanitizedMessages.length > 0 ? sanitizedMessages : options.messages,
+    max_tokens: options.max_tokens ?? 4096,
+  };
+
   const { apiKey: groqKey, envModel: groqModel, baseUrl: groqBaseUrl } = getAiConfig();
 
   // 1. Thử stream trực tiếp qua Groq nếu có Groq key
   if (groqKey) {
     try {
       const groq = new Groq({ apiKey: groqKey, baseURL: groqBaseUrl });
-      let candidateList = await buildCandidateList(groqKey, groqBaseUrl, options.preferredModel, groqModel);
+      let candidateList = await buildCandidateList(groqKey, groqBaseUrl, cleanOptions.preferredModel, groqModel);
       let hasTriedDiscovery = false;
 
       for (let i = 0; i < candidateList.length; i++) {
         const currentModel = candidateList[i];
         try {
-          const stream = await groq.chat.completions.create({
-            model: currentModel,
-            messages: options.messages,
-            temperature: options.temperature ?? 0.3,
-            max_tokens: options.max_tokens ?? 4096,
-            stream: true,
-          });
+          const stream = await groq.chat.completions.create(
+            {
+              model: currentModel,
+              messages: cleanOptions.messages,
+              temperature: cleanOptions.temperature ?? 0.3,
+              max_tokens: cleanOptions.max_tokens ?? 4096,
+              stream: true,
+            },
+            {
+              signal: AbortSignal.timeout(15000),
+            }
+          );
 
           cachedWorkingModel = currentModel;
           return { stream, modelUsed: currentModel };
         } catch (err: unknown) {
           const errMsg = err instanceof Error ? err.message : String(err);
-          console.warn(`[AI-Provider Stream] Model Groq "${currentModel}" thất bại: ${errMsg}`);
+          const status = (err as { status?: number })?.status;
+          console.warn(`[AI-Provider Stream] Model Groq "${currentModel}" thất bại (HTTP ${status || 'err'}): ${errMsg}`);
 
           const isModelNotFound =
+            status === 404 ||
             errMsg.includes('model_not_found') ||
-            errMsg.includes('does not exist') ||
-            errMsg.includes('decommissioned') ||
-            (err as { status?: number })?.status === 404;
+            errMsg.includes('does not exist');
 
           if (isModelNotFound && !hasTriedDiscovery) {
             hasTriedDiscovery = true;
@@ -538,9 +648,8 @@ export async function callAiChatStream(
   }
 
   // 2. Fallback streaming qua Gemini hoặc Free AI Gateway
-  const { content, modelUsed } = await callAiChatCompletion(options);
+  const { content, modelUsed } = await callAiChatCompletion(cleanOptions);
   async function* mockChunkStream() {
-    // Tách thành từng từ hoặc dòng để stream tự nhiên
     const parts = content.split(' ');
     for (let i = 0; i < parts.length; i++) {
       const part = (i === 0 ? '' : ' ') + parts[i];

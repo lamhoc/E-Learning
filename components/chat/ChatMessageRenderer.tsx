@@ -30,6 +30,8 @@ type BlockItem =
   | { type: 'horizontal-rule' }
   | { type: 'option-item'; optKey: string; text: string }
   | { type: 'answer-item'; label: string; text: string }
+  | { type: 'suggestion-item'; label: string; text: string }
+  | { type: 'rubric-item'; label: string; text: string }
   | { type: 'explain-item'; text: string }
   | { type: 'list-item'; prefix?: string; text: string }
   | { type: 'paragraph'; text: string };
@@ -429,12 +431,39 @@ function parseBlocks(rawText: string): BlockItem[] {
     }
 
     // 7. Khối Dòng Giải thích chi tiết (ví dụ: "**Giải thích chi tiết:** ..." hoặc "💡 Giải thích: ...")
-    const explainMatch = line.match(/^(?:💡\s*)?(?:\*\*)?(?:giải thích|giải thích chi tiết|hướng dẫn giải|explanation)[:\s]*(?:\*\*)?\s*(.*)$/i);
+    const explainMatch = line.match(/^(?:💡\s*)?(?:\*\*)?(?:giải thích chi tiết|lời giải chi tiết|hướng dẫn giải|giải thích|lời giải|explanation)[:\s]*(?:\*\*)?\s*(.*)$/i);
     if (explainMatch) {
-      const explainText = explainMatch[1].replace(/^\*\*/, '').trim();
+      let explainText = explainMatch[1].replace(/^\*\*/, '').trim();
+      explainText = explainText.replace(/^(?:chi tiết|lời giải)\s*[:\-–]?\s*/i, '').trim();
       blocks.push({
         type: 'explain-item',
         text: explainText,
+      });
+      continue;
+    }
+
+    // 7b. Khối Gợi ý trả lời / Đáp án tham khảo (Dành cho câu Tự luận)
+    const suggestionMatch = line.match(/^(?:📝|✍️\s*)?(?:\*\*)?(?:gợi ý trả lời|đáp án tham khảo|hướng dẫn trả lời|gợi ý đáp án|gợi ý|câu trả lời mẫu)[:\s]*(?:\*\*)?\s*(.*)$/i);
+    if (suggestionMatch) {
+      let suggText = suggestionMatch[1].replace(/^\*\*/, '').trim();
+      suggText = suggText.replace(/^(?:chi tiết|trả lời|tham khảo)\s*[:\-–]?\s*/i, '').trim();
+      blocks.push({
+        type: 'suggestion-item',
+        label: 'Gợi ý trả lời / Đáp án tham khảo',
+        text: suggText,
+      });
+      continue;
+    }
+
+    // 7c. Khối Thang điểm / Rubric (Dành cho câu Tự luận)
+    const rubricMatch = line.match(/^(?:📊|🎯\s*)?(?:\*\*)?(?:thang điểm|tiêu chuẩn chấm|tiêu chí chấm|rubric chấm|rubric|biểu điểm)[:\s]*(?:\*\*)?\s*(.*)$/i);
+    if (rubricMatch) {
+      let rubText = rubricMatch[1].replace(/^\*\*/, '').trim();
+      rubText = rubText.replace(/^(?:chi tiết|chấm)\s*[:\-–]?\s*/i, '').trim();
+      blocks.push({
+        type: 'rubric-item',
+        label: 'Thang điểm & Tiêu chí chấm',
+        text: rubText,
       });
       continue;
     }
@@ -585,6 +614,40 @@ export const ChatMessageRenderer = React.memo(
                 >
                   <div className="font-semibold text-blue-700 dark:text-blue-400 mb-1 flex items-center gap-1.5 select-none text-xs text-left">
                     <span>💡 Giải thích chi tiết:</span>
+                  </div>
+                  <div className="leading-relaxed text-left">
+                    {renderInlineTokens(tokens)}
+                  </div>
+                </div>
+              );
+            }
+
+            case 'suggestion-item': {
+              const tokens = tokenizeInline(block.text);
+              return (
+                <div
+                  key={idx}
+                  className="my-2 p-3 rounded-xl bg-amber-50/50 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-800/50 text-sm leading-relaxed text-slate-800 dark:text-slate-200 shadow-2xs text-left"
+                >
+                  <div className="font-semibold text-amber-800 dark:text-amber-400 mb-1 flex items-center gap-1.5 select-none text-xs text-left">
+                    <span>📝 {block.label}:</span>
+                  </div>
+                  <div className="leading-relaxed text-left">
+                    {renderInlineTokens(tokens)}
+                  </div>
+                </div>
+              );
+            }
+
+            case 'rubric-item': {
+              const tokens = tokenizeInline(block.text);
+              return (
+                <div
+                  key={idx}
+                  className="my-2 p-3 rounded-xl bg-purple-50/50 dark:bg-purple-950/30 border border-purple-200/70 dark:border-purple-800/50 text-sm leading-relaxed text-slate-800 dark:text-slate-200 shadow-2xs text-left"
+                >
+                  <div className="font-semibold text-purple-800 dark:text-purple-400 mb-1 flex items-center gap-1.5 select-none text-xs text-left">
+                    <span>🎯 {block.label}:</span>
                   </div>
                   <div className="leading-relaxed text-left">
                     {renderInlineTokens(tokens)}
