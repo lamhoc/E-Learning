@@ -10,7 +10,25 @@ Kiến trúc triển khai này tận dụng toàn bộ CPU/RAM của máy trạm
 - Miễn phí 100%, không cần mua tên miền, không hiện trang cảnh báo, không bao giờ đổi link khi khởi động lại máy.
 - Tailscale chạy ngầm sẵn như Windows Service và tự giữ cấu hình `tailscale funnel --bg 3000`.
 
-### Vận hành hàng ngày (1-click)
+### Tự động chạy ngầm khi bật máy Windows (Đã cài sẵn)
+
+Hệ thống đã được đăng ký **Windows Scheduled Task (`AutoBankELearningServer`)** chạy ngầm dưới quyền `SYSTEM` ngay khi bật máy (không cần mở cửa sổ PowerShell hay bấm `start-deploy.bat`):
+
+- **Cài đặt / khởi động lại dịch vụ nền**:
+  ```powershell
+  npm run autostart:install
+  ```
+- **Gỡ tự động khởi động**:
+  ```powershell
+  npm run autostart:uninstall
+  ```
+- **Sau khi sửa code muốn build lại và áp dụng**:
+  ```powershell
+  npm run build
+  npm run autostart:install
+  ```
+
+### Vận hành thủ công (tùy chọn)
 
 1. Nhấp đúp file **`start-deploy.bat`** ở thư mục gốc dự án, hoặc mở PowerShell tại thư mục dự án chạy:
    ```powershell

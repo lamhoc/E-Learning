@@ -10,7 +10,9 @@
     "db:init": "tsx scripts/db-init.ts",
     "db:verify": "tsx scripts/db-verify.ts",
     "deploy:local": "powershell -ExecutionPolicy Bypass -File scripts/deploy-workstation.ps1",
-    "deploy:stop": "powershell -ExecutionPolicy Bypass -File scripts/stop-workstation.ps1"
+    "deploy:stop": "powershell -ExecutionPolicy Bypass -File scripts/stop-workstation.ps1",
+    "autostart:install": "powershell -ExecutionPolicy Bypass -File scripts/install-autostart.ps1",
+    "autostart:uninstall": "powershell -ExecutionPolicy Bypass -File scripts/uninstall-autostart.ps1"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

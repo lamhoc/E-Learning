@@ -916,3 +916,9 @@
   - [x] Xác thực tài khoản Tailscale và kích hoạt `tailscale funnel --bg 3000` (chạy ngầm như Windows Service, không cần mở port router, không hiện trang cảnh báo).
   - [x] Cập nhật `scripts/deploy-workstation.ps1` và `DEPLOY.md` ưu tiên Tailscale Funnel cố định.
   - [x] Xác minh thực tế qua HTTPS cố định (`GET /login` 200, `POST /api/auth/login` 200 + `autobank_session` cookie). Local commit an toàn.
+
+- [x] **Phase 82**: Hoàn thiện vận hành Production máy trạm (`SITE_URL` cố định, sẵn sàng cấu hình Email OTP, và tự khởi động Next.js cùng Windows):
+  - [x] Cập nhật `.env.local`: dọn 3 biến Supabase cũ, cấu hình `SITE_URL=https://desktop-bbe9lgh.tail3de3b4.ts.net`, bổ sung mẫu `SMTP_USER`/`SMTP_PASS`.
+  - [x] Tạo bộ script chạy ngầm tự khởi động lại khi crash (`scripts/start-background-service.ps1`, `scripts/install-autostart.ps1`, `scripts/uninstall-autostart.ps1`), npm scripts `autostart:install` / `autostart:uninstall`, cập nhật `DEPLOY.md`.
+  - [x] Đăng ký & kích hoạt Windows Scheduled Task `AutoBankELearningServer` (`AtStartup`, `SYSTEM`), kiểm thử thực tế `https://desktop-bbe9lgh.tail3de3b4.ts.net` (`TASK_STATE=Running`, `GET /login` 200, `POST /api/auth/login` 200 + `autobank_session` cookie).
+  - [x] Tạo Local Commit an toàn (không tự ý push) và ghi nhận mã commit hash.
