@@ -886,3 +886,27 @@
     + Chạy `cmd /c "npx tsc --noEmit"`: 0 lỗi.
     + Chạy `cmd /c "npm run build"`: Compiled successfully, 31/31 static/dynamic pages tối ưu 100%.
     + Tạo local commit an toàn theo `AGENTS.md` (tuyệt đối không `git push` tự ý). Ghi nhận commit hash `28939a7`.
+
+- [x] **Phase 79 (Commit `ee6266f`)**: Sửa tận gốc lỗi vỡ LaTeX, câu hỏi rỗng, lộ `\n` & mất kết nối cổng AI tại "Sinh câu hỏi AI" (chống tái phát toàn hệ thống):
+  - **Nguyên nhân gốc**: LLM bị ép nhét LaTeX vào chuỗi JSON → `\b`, `\f`, `\n`, `\r`, `\t` bị `JSON.parse` nuốt thành ký tự điều khiển (`\boldsymbol` → `☒oldsymbol`, `\frac` → `▲rac`, `\neq` → xuống dòng + `eq`, `\root` → CR + `oot`); `response_format: json_object` gây `400 json_validate_failed` trên Groq; không có bộ kiểm duyệt nên câu rỗng/thiếu phương án lọt ra UI.
+  - [x] **Mục tiêu 1 (Định dạng XML Tags thay JSON)**:
+    + Module isomorphic mới `lib/ai-structured-parser.ts`: `buildStructuredQuestionPrompts` (mẫu `<question><type>…<content>…<option_a..d>…<correct>…<explanation>` / `<sample_answer>`, `<rubric>`), quy tắc KaTeX (cấm `\boldsymbol`, `\root`; `cases`/`pmatrix` bọc `$$…$$`; xuống dòng thật, không viết `\n`).
+    + `parseStructuredAIQuestions(rawText)`: Lớp 1 regex `<question>…</question>` (không qua `JSON.parse`, tránh va chạm bất đẳng thức `$x<a$`), Lớp 2 dự phòng JSON qua `safeParseAIQuestionsJson` (có gọi `protectLatexBackslashesInJson` TRƯỚC cả Fast-Path `JSON.parse`).
+    + `lib/ai-question-generator.ts`: bỏ hoàn toàn `response_format: json_object`, dùng prompt XML.
+  - [x] **Mục tiêu 2 (Strict Validation + Zero-Red-Text Gate + Auto Top-up)**:
+    + `validateAndCleanQuestions(rawItems, expectedType)`: `content ≥ 8` ký tự; MC đủ 4 phương án khác rỗng và khác nhau, `correct ∈ {A,B,C,D}` (không mặc định ngầm `'A'`); Essay `sample_answer ≥ 5` + `rubric` khác rỗng.
+    + `sanitizeAndRepairLatex` chạy trên mọi trường; `checkKatexRenderable` kiểm tra từng đoạn `$…$`/`$$…$$` bằng `katex.renderToString(..., { throwOnError: true, strict: false })` — câu nào còn lỗi KaTeX bị loại.
+    + Thiếu câu sau khi lọc → tự gọi bù (Auto Top-up / Retry) xoay `skipModels` sang model dự phòng kế tiếp.
+  - [x] **Mục tiêu 3 (Lưới bảo vệ `<MathText />` toàn web)**:
+    + Tách hàm thuần sang `lib/math-normalize.ts` (isomorphic, re-export từ `components/ui/math-text.tsx` để giữ tương thích 100%; `lib/document-parser.ts` server import trực tiếp từ lib).
+    + `lib/latex-repair.ts` → `repairLatexAndText(raw)`: phục hồi ký tự điều khiển (`\u0008oldsymbol`, `\u000Crac`, `\u0009ext`, `\u000Doot`, `\u000Dight`…), sửa lệnh thiếu `\` (`boldsymbol{`, `frac{`, `oot{..}oot`, `oot17oot`), gộp `\n`+`eq` trong `$…$`, chuyển literal `\n` / `\\n` ngoài toán thành xuống dòng thật (giữ `\neq`, `\nabla`, `\nu`, `\\n = 2` trong `cases`), sửa `\` đơn trong `cases/pmatrix/bmatrix/aligned` → `\\`, nâng `$…\begin{cases}…$` → `$$…$$`.
+    + Sửa bug bọc đè `$$...$$` quanh môi trường đã ở trong `$$`; áp dụng `whitespace-pre-line` đồng bộ tại `MathText`, `ai-generator-standalone`, `ai-generator-modal`, `question-manager`.
+  - [x] **Mục tiêu 4 (Ổn định cổng AI)**:
+    + `lib/ai-provider.ts`: Gemini `2.5-flash → 2.0-flash` timeout 20s; Groq xoay vòng 4 model đang sống (`llama-3.3-70b-versatile`, `llama-4-scout-17b-16e-instruct`, `llama-3.1-8b-instant`, `qwen3-32b`), gặp 429 chuyển model ngay + chờ 1200ms thử lại 1 lần; Free Gateway dùng `POST https://text.pollinations.ai/openai` chỉ gửi `{ model: 'openai', messages }` (timeout 35s cho Tự luận dài) + dự phòng `GET …/${prompt}?model=openai` (cắt ≤ 750 ký tự chống 404/414).
+    + Log `console.error` rõ mã HTTP + nguyên nhân từng cổng; thêm `export const maxDuration = 60` tại `app/teacher/ai-generator/page.tsx` và `app/teacher/questions/page.tsx`.
+    + UI: khử lỗi `..` trong câu báo lỗi và đặt sẵn nút **`Thử sinh lại ngay`** trong hộp cảnh báo đỏ ở cả trang standalone lẫn modal.
+  - [x] **Mục tiêu 5 (Regression test & nghiệm thu)**:
+    + Unit test độc lập (`test_phase79.mjs`): 11/11 passed (phục hồi control chars, `\y`/`\z` trong `cases`, `$\n\begin{cases}`, literal `\n`, parser XML + JSON fallback, Strict Gate, KaTeX Gate).
+    + Live test 3 kịch bản (qua Free Gateway do máy local không cấu hình `GEMINI/GROQ` key): Kịch bản 1 (Tọa độ MC) đạt 5/5 câu (19.0s), Kịch bản 2 (Hàm số bậc hai MC) đạt 5/5 câu (19.4s), Kịch bản 3 (Tọa độ Tự luận kèm Rubric) đạt 3/3 câu (23.9s) — toàn bộ `emptyFields=0`, `katexErrs=0`, `literal\n=0`.
+    + `npx tsc --noEmit`: 0 lỗi; `npm run build`: Compiled successfully (31/31 routes, 0 lỗi).
+    + Local Commit `ee6266f` (tuyệt đối không `git push`).
