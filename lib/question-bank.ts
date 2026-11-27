@@ -1,8 +1,17 @@
-import { sanitizeVietnameseText } from '@/lib/utils';
 import 'server-only';
 
 import { redirect } from 'next/navigation';
-import { getCurrentUser, getCurrentRoleRecord } from '@/lib/auth-cache';
+import { In, IsNull } from 'typeorm';
+import { getCurrentUserWithRole, getCurrentProfile } from '@/lib/auth-cache';
+import { getDataSource } from '@/lib/db/data-source';
+import {
+  QuestionAnswerKeySchema,
+  QuestionBankSchema,
+  QuestionOptionSchema,
+  SubjectSchema,
+  TeacherSubjectAssignmentSchema,
+} from '@/lib/db/entities';
+import { sanitizeVietnameseText } from '@/lib/utils';
 
 export type QuestionOption = {
   option_key: 'A' | 'B' | 'C' | 'D';
@@ -57,119 +66,112 @@ export async function getTeacherQuestionsData(params?: {
   type?: string;
   query?: string;
 }): Promise<TeacherQuestionsData> {
-  const { user, error: authError, supabase } = await getCurrentUser();
+  const { user, role } = await getCurrentUserWithRole();
 
-  if (authError || !user) redirect('/login');
+  if (!user) redirect('/login');
+  if (role !== 'teacher' && role !== 'admin') redirect('/subjects');
 
-  const { data: roleRecord, error: roleError } = await getCurrentRoleRecord();
+  const { fullName } = await getCurrentProfile();
+  const teacherName = sanitizeVietnameseText(fullName) || user.email || 'Giảng viên';
 
-  const userRole = roleRecord?.role as 'admin' | 'teacher' | 'student' | undefined;
-  if (roleError || !userRole || (userRole !== 'teacher' && userRole !== 'admin')) {
-    redirect('/subjects');
-  }
+  const ds = await getDataSource();
 
-  // 1. Fetch Teacher Profile Name
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  const teacherName = sanitizeVietnameseText(profile?.full_name) || user.email || 'Giảng viên';
-
-  // 2. Fetch Assigned Subjects (or all subjects if admin)
   let assignedSubjects: SubjectSummary[] = [];
-
-  if (userRole === 'admin') {
-    const { data: subjectsData } = await supabase
-      .from('subjects')
-      .select('id, name, code')
-      .order('name');
-    assignedSubjects = subjectsData ?? [];
+  if (role === 'admin') {
+    const subjectsData = await ds.getRepository(SubjectSchema).find({
+      select: { id: true, name: true, code: true },
+      order: { name: 'ASC' },
+    });
+    assignedSubjects = subjectsData;
   } else {
-    const { data: assignments } = await supabase
-      .from('teacher_subject_assignments')
-      .select('subject:subjects(id, name, code)')
-      .eq('teacher_id', user.id);
-
-    assignedSubjects = (assignments ?? [])
-      .map((item) => {
-        const s = item.subject as SubjectSummary | SubjectSummary[] | null;
-        return Array.isArray(s) ? s[0] : s;
-      })
-      .filter((s): s is SubjectSummary => Boolean(s?.id))
-      .sort((a, b) => a.name.localeCompare(b.name));
+    const assignments = await ds.getRepository(TeacherSubjectAssignmentSchema).find({
+      select: { subject_id: true },
+      where: { teacher_id: user.id },
+    });
+    const assignedIds = assignments.map((a) => a.subject_id);
+    if (assignedIds.length > 0) {
+      assignedSubjects = await ds.getRepository(SubjectSchema).find({
+        select: { id: true, name: true, code: true },
+        where: { id: In(assignedIds) },
+        order: { name: 'ASC' },
+      });
+    }
   }
 
-  // 3. Fetch Questions
   const subjectFilter = params?.subjectId ?? 'all';
   const typeFilter = params?.type ?? 'all';
   const searchFilter = (params?.query ?? '').trim();
 
-  let questionsQuery = supabase
-    .from('question_bank')
-    .select(
-      `
-      id,
-      subject_id,
-      created_by,
-      question_type,
-      question_text,
-      explanation,
-      created_at,
-      updated_at,
-      subject:subjects(id, name, code),
-      options:question_options(option_key, option_text, position),
-      answer_key:question_answer_keys(correct_option_key, model_answer, grading_rubric)
-    `,
-    )
-    .is('archived_at', null)
-    .order('created_at', { ascending: false });
+  const qb = ds
+    .getRepository(QuestionBankSchema)
+    .createQueryBuilder('q')
+    .where('q.archived_at IS NULL')
+    .orderBy('q.created_at', 'DESC');
 
-  if (userRole === 'teacher') {
-    questionsQuery = questionsQuery.eq('created_by', user.id);
+  if (role === 'teacher') {
+    qb.andWhere('q.created_by = :userId', { userId: user.id });
   }
-
   if (subjectFilter !== 'all') {
-    questionsQuery = questionsQuery.eq('subject_id', subjectFilter);
+    qb.andWhere('q.subject_id = :subjectId', { subjectId: subjectFilter });
   }
-
   if (typeFilter === 'multiple_choice' || typeFilter === 'essay') {
-    questionsQuery = questionsQuery.eq('question_type', typeFilter);
+    qb.andWhere('q.question_type = :qType', { qType: typeFilter });
   }
-
   if (searchFilter) {
-    questionsQuery = questionsQuery.ilike('question_text', `%${searchFilter}%`);
+    qb.andWhere('LOWER(q.question_text) LIKE :search', {
+      search: `%${searchFilter.toLowerCase()}%`,
+    });
   }
 
-  const { data: rawQuestions, error: questionsError } = await questionsQuery;
+  const rawQuestions = await qb.getMany();
+  const qIds = rawQuestions.map((q) => q.id);
+  const sIds = Array.from(new Set(rawQuestions.map((q) => q.subject_id)));
 
-  if (questionsError) {
-    console.error('Could not fetch questions from question_bank:', questionsError.code, questionsError.message);
+  const [subjects, optionsRows, keysRows] = qIds.length
+    ? await Promise.all([
+        sIds.length
+          ? ds.getRepository(SubjectSchema).find({ select: { id: true, name: true, code: true }, where: { id: In(sIds) } })
+          : Promise.resolve([]),
+        ds.getRepository(QuestionOptionSchema).find({ where: { question_id: In(qIds) } }),
+        ds.getRepository(QuestionAnswerKeySchema).find({ where: { question_id: In(qIds) } }),
+      ])
+    : [[], [], []];
+
+  const subjectMap = new Map(subjects.map((s) => [s.id, s]));
+  const optionsByQ = new Map<string, QuestionOption[]>();
+  for (const opt of optionsRows) {
+    const arr = optionsByQ.get(opt.question_id) ?? [];
+    arr.push({
+      option_key: opt.option_key.trim() as 'A' | 'B' | 'C' | 'D',
+      option_text: opt.option_text,
+      position: opt.position,
+    });
+    optionsByQ.set(opt.question_id, arr);
   }
+  const keyByQ = new Map(keysRows.map((k) => [k.question_id, k]));
 
-  const questions: BankQuestion[] = (rawQuestions ?? []).map((row) => {
-    const rawSubject = row.subject as SubjectSummary | SubjectSummary[] | null;
-    const subject = Array.isArray(rawSubject) ? rawSubject[0] ?? null : rawSubject ?? null;
-
-    const rawOptions = (row.options ?? []) as QuestionOption[];
-    const sortedOptions = [...rawOptions].sort((a, b) => a.position - b.position);
-
-    const rawAnswerKey = row.answer_key as QuestionAnswerKey | QuestionAnswerKey[] | null;
-    const answerKey = Array.isArray(rawAnswerKey) ? rawAnswerKey[0] ?? null : rawAnswerKey ?? null;
+  const questions: BankQuestion[] = rawQuestions.map((row) => {
+    const opts = (optionsByQ.get(row.id) ?? []).sort((a, b) => a.position - b.position);
+    const keyRow = keyByQ.get(row.id);
 
     return {
       id: row.id,
       subject_id: row.subject_id,
       created_by: row.created_by,
-      question_type: row.question_type as 'multiple_choice' | 'essay',
+      question_type: row.question_type,
       question_text: row.question_text,
       explanation: row.explanation,
       created_at: row.created_at,
       updated_at: row.updated_at,
-      subject,
-      options: sortedOptions,
-      answer_key: answerKey,
+      subject: subjectMap.get(row.subject_id) ?? null,
+      options: opts,
+      answer_key: keyRow
+        ? {
+            correct_option_key: (keyRow.correct_option_key?.trim() as 'A' | 'B' | 'C' | 'D') ?? null,
+            model_answer: keyRow.model_answer,
+            grading_rubric: keyRow.grading_rubric,
+          }
+        : null,
     };
   });
 
@@ -178,7 +180,7 @@ export async function getTeacherQuestionsData(params?: {
 
   return {
     teacherName,
-    userRole,
+    userRole: role,
     userId: user.id,
     assignedSubjects,
     questions,

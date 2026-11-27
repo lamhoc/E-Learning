@@ -2,7 +2,16 @@ import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { BookOpen } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { In, IsNull } from 'typeorm';
 import { getCurrentUserWithRole } from '@/lib/auth-cache';
+import { getDataSource } from '@/lib/db/data-source';
+import {
+  ClassSchema,
+  ProfileSchema,
+  SubjectSchema,
+  TeacherSubjectAssignmentSchema,
+  UserRoleSchema,
+} from '@/lib/db/entities';
 import { sanitizeVietnameseText } from '@/lib/utils';
 import {
   SubjectsManagerClient,
@@ -16,7 +25,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminSubjectsPage() {
-  const { user, role, supabase } = await getCurrentUserWithRole();
+  const { user, role } = await getCurrentUserWithRole();
 
   if (!user) {
     redirect('/login');
@@ -30,38 +39,43 @@ export default async function AdminSubjectsPage() {
     redirect('/subjects');
   }
 
+  const ds = await getDataSource();
+
   // Truy vấn dữ liệu song song tối ưu hiệu năng
-  const [subjectsResult, assignmentsResult, classesResult, teachersResult] = await Promise.all([
-    supabase
-      .from('subjects')
-      .select('id, code, name, description, created_at, archived_at')
-      .order('created_at', { ascending: false }),
-    supabase
-      .from('teacher_subject_assignments')
-      .select('teacher_id, subject_id, assigned_at')
-      .order('assigned_at', { ascending: false }),
-    supabase
-      .from('classes')
-      .select('id, subject_id, archived_at')
-      .is('archived_at', null),
-    supabase
-      .from('user_roles')
-      .select('user_id')
-      .eq('role', 'teacher'),
+  const [subjectsData, assignmentsData, classesData, teachersData] = await Promise.all([
+    ds.getRepository(SubjectSchema).find({
+      select: { id: true, code: true, name: true, description: true, created_at: true, archived_at: true },
+      order: { created_at: 'DESC' },
+    }),
+    ds.getRepository(TeacherSubjectAssignmentSchema).find({
+      select: { teacher_id: true, subject_id: true, assigned_at: true },
+      order: { assigned_at: 'DESC' },
+    }),
+    ds.getRepository(ClassSchema).find({
+      select: { id: true, subject_id: true, archived_at: true },
+      where: { archived_at: IsNull() },
+    }),
+    ds.getRepository(UserRoleSchema).find({
+      select: { user_id: true },
+      where: { role: 'teacher' },
+    }),
   ]);
 
-  const teacherIds = (teachersResult.data ?? []).map((row) => row.user_id);
+  const teacherIds = teachersData.map((row) => row.user_id);
 
   // Lấy thông tin họ tên giảng viên từ bảng profiles
-  const profilesResult = teacherIds.length > 0
-    ? await supabase.from('profiles').select('id, full_name').in('id', teacherIds)
-    : { data: [] };
+  const profilesData = teacherIds.length > 0
+    ? await ds.getRepository(ProfileSchema).find({
+        select: { id: true, full_name: true },
+        where: { id: In(teacherIds) },
+      })
+    : [];
 
   const teacherNameMap = new Map(
-    (profilesResult.data ?? []).map((p) => [
+    profilesData.map((p) => [
       p.id,
       sanitizeVietnameseText(p.full_name) || 'Giảng viên',
-    ])
+    ]),
   );
 
   const availableTeachers: AvailableTeacher[] = teacherIds.map((id) => ({
@@ -71,7 +85,7 @@ export default async function AdminSubjectsPage() {
 
   // Gom nhóm phân công theo subject_id
   const assignmentsBySubject = new Map<string, { id: string; name: string }[]>();
-  for (const item of assignmentsResult.data ?? []) {
+  for (const item of assignmentsData) {
     const teacherName = teacherNameMap.get(item.teacher_id) || 'Giảng viên';
     const list = assignmentsBySubject.get(item.subject_id) ?? [];
     list.push({ id: item.teacher_id, name: teacherName });
@@ -80,13 +94,13 @@ export default async function AdminSubjectsPage() {
 
   // Gom nhóm đếm số lớp đang mở theo subject_id
   const classesCountBySubject = new Map<string, number>();
-  for (const c of classesResult.data ?? []) {
+  for (const c of classesData) {
     const current = classesCountBySubject.get(c.subject_id) ?? 0;
     classesCountBySubject.set(c.subject_id, current + 1);
   }
 
   // Chuẩn bị danh sách môn học kèm quan hệ
-  const subjects: SubjectWithRelations[] = (subjectsResult.data ?? []).map((s) => ({
+  const subjects: SubjectWithRelations[] = subjectsData.map((s) => ({
     id: s.id,
     code: s.code,
     name: s.name,

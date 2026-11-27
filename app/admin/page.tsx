@@ -10,7 +10,8 @@ import {
   UserCheck,
   Users,
 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/server';
+import { getDataSource } from '@/lib/db/data-source';
+import { SubjectSchema, TeacherApplicationSchema, UserRoleSchema } from '@/lib/db/entities';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
@@ -20,36 +21,15 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminHubPage() {
-  const supabase = await createClient();
+  const ds = await getDataSource();
 
   // Truy vấn thống kê thời gian thực phục vụ Admin Hub
-  const [
-    { count: pendingApplicationsCount },
-    { count: totalTeachersCount },
-    { count: totalStudentsCount },
-    { count: totalSubjectsCount },
-  ] = await Promise.all([
-    supabase
-      .from('teacher_applications')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'pending'),
-    supabase
-      .from('user_roles')
-      .select('user_id', { count: 'exact', head: true })
-      .eq('role', 'teacher'),
-    supabase
-      .from('user_roles')
-      .select('user_id', { count: 'exact', head: true })
-      .eq('role', 'student'),
-    supabase
-      .from('subjects')
-      .select('id', { count: 'exact', head: true }),
+  const [pendingCount, teacherCount, studentCount, subjectCount] = await Promise.all([
+    ds.getRepository(TeacherApplicationSchema).count({ where: { status: 'pending' } }),
+    ds.getRepository(UserRoleSchema).count({ where: { role: 'teacher' } }),
+    ds.getRepository(UserRoleSchema).count({ where: { role: 'student' } }),
+    ds.getRepository(SubjectSchema).count(),
   ]);
-
-  const pendingCount = pendingApplicationsCount ?? 0;
-  const teacherCount = totalTeachersCount ?? 0;
-  const studentCount = totalStudentsCount ?? 0;
-  const subjectCount = totalSubjectsCount ?? 0;
 
   return (
     <div className="w-full max-w-6xl min-w-0 mx-auto space-y-6 sm:space-y-8 px-3.5 sm:px-8 py-6 sm:py-10">

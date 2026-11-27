@@ -25,7 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUserWithRole } from '@/lib/auth-cache';
 import { getAssignmentDetails } from '@/lib/assignments';
 import { GradeSubmissionDialog } from '@/components/teacher/grade-submission-dialog';
 
@@ -63,30 +63,9 @@ export default async function AssignmentSubmissionsPage({
     notFound();
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) redirect('/login');
-
-  const { data: roleRecord } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  const role = roleRecord?.role;
+  const { user, role } = await getCurrentUserWithRole();
+  if (!user) redirect('/login');
   if (role !== 'admin' && role !== 'teacher') redirect('/subjects');
-
-  // Lấy tên giảng viên cho Sidebar
-  const { data: teacherProfile } = await supabase
-    .from('profiles')
-    .select('full_name')
-    .eq('id', user.id)
-    .maybeSingle();
-  const teacherName = teacherProfile?.full_name ?? 'Giảng viên';
 
   const assignment = await getAssignmentDetails(assignmentId);
   if (!assignment || assignment.class_id !== classId) {

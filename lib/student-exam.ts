@@ -1,10 +1,25 @@
 import { sanitizeVietnameseText } from '@/lib/utils';
-import { isCameraRequired, cleanExamInstructions, isAutoGradeEssay, isShowAnswersAfterSubmit } from '@/lib/exam-auto-grade';
+import {
+  isCameraRequired,
+  cleanExamInstructions,
+  isAutoGradeEssay,
+  isShowAnswersAfterSubmit,
+} from '@/lib/exam-auto-grade';
 import 'server-only';
 
 import { redirect } from 'next/navigation';
+import { In } from 'typeorm';
 import { getCurrentUser } from '@/lib/auth-cache';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { getRepo } from '@/lib/db/data-source';
+import {
+  AttemptResultSchema,
+  ExamAttemptSchema,
+  ExamQuestionSchema,
+  ExamSchema,
+  ProfileSchema,
+  StudentAnswerSchema,
+  SubjectSchema,
+} from '@/lib/db/entities';
 
 export type ExamQuestionOption = {
   key: 'A' | 'B' | 'C' | 'D';
@@ -55,7 +70,10 @@ export type ActiveAttemptData = {
   started_at: string;
   ends_at: string;
   status: 'in_progress';
-  savedAnswers: Record<string, { selected_option?: 'A' | 'B' | 'C' | 'D' | null; answer_text?: string | null }>;
+  savedAnswers: Record<
+    string,
+    { selected_option?: 'A' | 'B' | 'C' | 'D' | null; answer_text?: string | null }
+  >;
   tabSwitchCount?: number;
 };
 
@@ -72,59 +90,52 @@ export type StudentExamPageData = {
 };
 
 export async function getStudentExamPageData(examId: string): Promise<StudentExamPageData> {
-  const { user, error: authError, supabase } = await getCurrentUser();
+  const { user, error: authError } = await getCurrentUser();
 
   if (authError || !user) {
     redirect('/login');
   }
 
-  // Tối ưu waterfall: hồ sơ, câu hỏi và lượt thi không phụ thuộc truy vấn đề thi nên khởi chạy song song ngay
-  // (query builder của Supabase chỉ chạy khi được await/then → bọc Promise.resolve để kích hoạt sớm).
-  const profileQuery = Promise.resolve(
-    supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
-  );
-  const questionsQuery = Promise.resolve(
-    supabase
-      .from('exam_questions')
-      .select('id, position, question_type, question_text, options, points')
-      .eq('exam_id', examId)
-      .order('position', { ascending: true }),
-  );
-  const attemptsQuery = Promise.resolve(
-    supabase
-      .from('exam_attempts')
-      .select('id, attempt_no, started_at, ends_at, submitted_at, status, result:attempt_results(total_score, released_at)')
-      .eq('exam_id', examId)
-      .eq('student_id', user.id)
-      .order('attempt_no', { ascending: false }),
-  );
+  const [
+    examRepo,
+    subjectRepo,
+    profileRepo,
+    questionRepo,
+    attemptRepo,
+    resultRepo,
+    answerRepo,
+  ] = await Promise.all([
+    getRepo(ExamSchema),
+    getRepo(SubjectSchema),
+    getRepo(ProfileSchema),
+    getRepo(ExamQuestionSchema),
+    getRepo(ExamAttemptSchema),
+    getRepo(AttemptResultSchema),
+    getRepo(StudentAnswerSchema),
+  ]);
 
-  // 1. Fetch Exam Detail (hỗ trợ zero-crash fallback nếu DB chưa cập nhật cột require_camera)
-  let rawExam: any = null;
-  const firstQuery = await supabase
-    .from('exams')
-    .select('id, title, instructions, duration_minutes, max_attempts, available_from, available_until, status, subject:subjects(id, name, code), require_camera')
-    .eq('id', examId)
-    .maybeSingle();
+  const [rawExam, profile, rawQuestions, rawAttempts] = await Promise.all([
+    examRepo.findOne({ where: { id: examId } }),
+    profileRepo.findOne({ where: { id: user.id } }),
+    questionRepo.find({
+      where: { exam_id: examId },
+      order: { position: 'ASC' },
+    }),
+    attemptRepo.find({
+      where: { exam_id: examId, student_id: user.id },
+      order: { attempt_no: 'DESC' },
+    }),
+  ]);
 
-  if (firstQuery.error || !firstQuery.data) {
-    const fallbackQuery = await supabase
-      .from('exams')
-      .select('id, title, instructions, duration_minutes, max_attempts, available_from, available_until, status, subject:subjects(id, name, code)')
-      .eq('id', examId)
-      .maybeSingle();
-
-    if (fallbackQuery.error || !fallbackQuery.data) {
-      redirect('/student/dashboard');
-    }
-    rawExam = fallbackQuery.data;
-  } else {
-    rawExam = firstQuery.data;
+  if (!rawExam) {
+    redirect('/student/dashboard');
   }
 
-  const subjectRecord = Array.isArray(rawExam.subject) ? rawExam.subject[0] : rawExam.subject;
-  const isReqCam = isCameraRequired(rawExam);
-  const isAutoGrade = isAutoGradeEssay(rawExam);
+  const attemptIds = rawAttempts.map((a) => a.id);
+  const [subjectRecord, results] = await Promise.all([
+    subjectRepo.findOne({ where: { id: rawExam.subject_id } }),
+    attemptIds.length > 0 ? resultRepo.find({ where: { attempt_id: In(attemptIds) } }) : Promise.resolve([]),
+  ]);
 
   const exam: StudentExamDetail = {
     id: rawExam.id,
@@ -135,42 +146,23 @@ export async function getStudentExamPageData(examId: string): Promise<StudentExa
     available_from: rawExam.available_from,
     available_until: rawExam.available_until,
     status: rawExam.status,
-    subject: subjectRecord ?? null,
-    require_camera: isReqCam,
-    auto_grade_essay: isAutoGrade,
+    subject: subjectRecord
+      ? { id: subjectRecord.id, name: subjectRecord.name, code: subjectRecord.code }
+      : null,
+    require_camera: isCameraRequired(rawExam),
+    auto_grade_essay: isAutoGradeEssay(rawExam),
     show_answers_after_submit: isShowAnswersAfterSubmit(rawExam),
   };
 
-  // 2. Fetch User Profile
-  const { data: profile } = await profileQuery;
-
   const studentName = sanitizeVietnameseText(profile?.full_name) || user.email || 'Sinh viên';
-
-  // 3. Fetch Questions of the Exam
-  const { data: questionsData, error: qError } = await questionsQuery;
-
-  const rawQuestions = (questionsData ?? []) as {
-    id: string;
-    position: number;
-    question_type: 'multiple_choice' | 'essay';
-    question_text: string;
-    options: unknown;
-    points: number | string;
-  }[];
 
   const questions: StudentExamQuestion[] = rawQuestions.map((q) => {
     let optionsList: ExamQuestionOption[] = [];
     if (Array.isArray(q.options)) {
-      optionsList = q.options.map((opt: unknown) => {
-        if (typeof opt === 'object' && opt !== null) {
-          const item = opt as Record<string, unknown>;
-          return {
-            key: (String(item.key || '').toUpperCase() as 'A' | 'B' | 'C' | 'D') || 'A',
-            text: String(item.text || ''),
-          };
-        }
-        return { key: 'A', text: String(opt) };
-      });
+      optionsList = q.options.map((opt) => ({
+        key: (String(opt.key || '').toUpperCase() as 'A' | 'B' | 'C' | 'D') || 'A',
+        text: String(opt.text || ''),
+      }));
     }
 
     return {
@@ -183,21 +175,10 @@ export async function getStudentExamPageData(examId: string): Promise<StudentExa
     };
   });
 
-  // 4. Fetch Attempts of this Student for this Exam
-  const { data: attemptsData } = await attemptsQuery;
-
-  const rawAttempts = (attemptsData ?? []) as {
-    id: string;
-    attempt_no: number;
-    started_at: string;
-    ends_at: string;
-    submitted_at: string | null;
-    status: 'in_progress' | 'pending_grading' | 'completed' | 'voided';
-    result: { total_score: number | string; released_at: string | null } | { total_score: number | string; released_at: string | null }[] | null;
-  }[];
+  const resultMap = new Map(results.map((r) => [r.attempt_id, r]));
 
   const attempts: AttemptHistoryItem[] = rawAttempts.map((att) => {
-    const resultObj = Array.isArray(att.result) ? att.result[0] : att.result;
+    const resultObj = resultMap.get(att.id);
     return {
       id: att.id,
       attempt_no: att.attempt_no,
@@ -209,29 +190,26 @@ export async function getStudentExamPageData(examId: string): Promise<StudentExa
     };
   });
 
-  // Check for any currently active in_progress attempt
   const now = Date.now();
   const currentActive = rawAttempts.find((att) => {
     if (att.status !== 'in_progress') return false;
-    const ends = Date.parse(att.ends_at);
-    return ends > now;
+    return Date.parse(att.ends_at) > now;
   });
 
   let activeAttempt: ActiveAttemptData | null = null;
   if (currentActive) {
-    // Fetch saved answers for this attempt
-    const { data: answersData } = await supabase
-      .from('student_answers')
-      .select('exam_question_id, selected_option, answer_text')
-      .eq('attempt_id', currentActive.id);
+    const answersData = await answerRepo.find({ where: { attempt_id: currentActive.id } });
+    const savedMap: Record<
+      string,
+      { selected_option?: 'A' | 'B' | 'C' | 'D' | null; answer_text?: string | null }
+    > = {};
 
-    const savedMap: Record<string, { selected_option?: 'A' | 'B' | 'C' | 'D' | null; answer_text?: string | null }> = {};
-    (answersData ?? []).forEach((ans) => {
+    for (const ans of answersData) {
       savedMap[ans.exam_question_id] = {
         selected_option: ans.selected_option as 'A' | 'B' | 'C' | 'D' | null,
         answer_text: ans.answer_text,
       };
-    });
+    }
 
     activeAttempt = {
       id: currentActive.id,
@@ -244,7 +222,6 @@ export async function getStudentExamPageData(examId: string): Promise<StudentExa
     };
   }
 
-  // Calculate timing & permissions
   const startsAt = exam.available_from ? Date.parse(exam.available_from) : Number.NEGATIVE_INFINITY;
   const endsAt = exam.available_until ? Date.parse(exam.available_until) : Number.POSITIVE_INFINITY;
   const isOpenNow = startsAt <= now && now < endsAt && exam.status === 'published';

@@ -9,7 +9,10 @@ import {
   PlusCircle,
   Users,
 } from 'lucide-react';
+import { In } from 'typeorm';
 import { requireRole } from '@/lib/auth-cache';
+import { getDataSource } from '@/lib/db/data-source';
+import { ClassMembershipSchema } from '@/lib/db/entities';
 import { getTeacherDashboardData } from '@/lib/teacher-dashboard';
 import { sanitizeVietnameseText } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -23,7 +26,7 @@ export const metadata = {
 };
 
 export default async function TeacherClassesPage() {
-  const { user, supabase } = await requireRole('teacher');
+  await requireRole('teacher');
   const data = await getTeacherDashboardData();
 
   // Đếm số lượng sinh viên cho từng lớp
@@ -31,15 +34,14 @@ export default async function TeacherClassesPage() {
   const studentCountMap = new Map<string, number>();
 
   if (classIds.length > 0) {
-    const { data: memberships } = await supabase
-      .from('class_memberships')
-      .select('class_id')
-      .in('class_id', classIds);
+    const ds = await getDataSource();
+    const memberships = await ds.getRepository(ClassMembershipSchema).find({
+      select: { class_id: true },
+      where: { class_id: In(classIds) },
+    });
 
-    if (memberships) {
-      for (const m of memberships) {
-        studentCountMap.set(m.class_id, (studentCountMap.get(m.class_id) || 0) + 1);
-      }
+    for (const m of memberships) {
+      studentCountMap.set(m.class_id, (studentCountMap.get(m.class_id) || 0) + 1);
     }
   }
 

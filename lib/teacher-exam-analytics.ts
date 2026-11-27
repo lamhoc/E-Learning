@@ -4,8 +4,26 @@ import { isShowAnswersAfterSubmit } from '@/lib/exam-auto-grade';
 import 'server-only';
 
 import { redirect } from 'next/navigation';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { In } from 'typeorm';
 import { getCurrentUser, getCurrentRoleRecord } from '@/lib/auth-cache';
+import { getRepo } from '@/lib/db/data-source';
+import {
+  AttemptResultSchema,
+  ClassMembershipSchema,
+  ClassSchema,
+  ExamAnswerKeySchema,
+  ExamAttemptSchema,
+  ExamClassSchema,
+  ExamProctoringLogSchema,
+  ExamQuestionSchema,
+  ExamSchema,
+  ProfileSchema,
+  StudentAnswerGradeSchema,
+  StudentAnswerSchema,
+  SubjectSchema,
+  TeacherSubjectAssignmentSchema,
+  UserSchema,
+} from '@/lib/db/entities';
 
 export type ExamScoreDistributionItem = {
   range: string;
@@ -94,7 +112,7 @@ function calculateMedian(numbers: number[]): number {
 }
 
 export async function getTeacherExamAnalytics(examId: string): Promise<TeacherExamAnalyticsData> {
-  const { user, error: authError, supabase } = await getCurrentUser();
+  const { user, error: authError } = await getCurrentUser();
 
   if (authError || !user) {
     redirect('/login');
@@ -107,121 +125,83 @@ export async function getTeacherExamAnalytics(examId: string): Promise<TeacherEx
     redirect('/subjects');
   }
 
-  const { data: teacherProfile } = await supabase
-    .from('profiles')
-    .select('full_name')
-    .eq('id', user.id)
-    .maybeSingle();
+  const [
+    profileRepo,
+    examRepo,
+    subjectRepo,
+    examClassRepo,
+    classRepo,
+    assignmentRepo,
+    questionRepo,
+    keyRepo,
+    attemptRepo,
+    resultRepo,
+    answerRepo,
+    gradeRepo,
+    userRepo,
+    membershipRepo,
+    procRepo,
+  ] = await Promise.all([
+    getRepo(ProfileSchema),
+    getRepo(ExamSchema),
+    getRepo(SubjectSchema),
+    getRepo(ExamClassSchema),
+    getRepo(ClassSchema),
+    getRepo(TeacherSubjectAssignmentSchema),
+    getRepo(ExamQuestionSchema),
+    getRepo(ExamAnswerKeySchema),
+    getRepo(ExamAttemptSchema),
+    getRepo(AttemptResultSchema),
+    getRepo(StudentAnswerSchema),
+    getRepo(StudentAnswerGradeSchema),
+    getRepo(UserSchema),
+    getRepo(ClassMembershipSchema),
+    getRepo(ExamProctoringLogSchema),
+  ]);
+
+  const [teacherProfile, examRecord] = await Promise.all([
+    profileRepo.findOne({ where: { id: user.id } }),
+    examRepo.findOne({ where: { id: examId } }),
+  ]);
 
   const teacherName = sanitizeVietnameseText(teacherProfile?.full_name) || user.email || 'Giảng viên';
 
-  const adminClient = process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : supabase;
-
-  // 1. Lấy thông tin chi tiết đề thi (hỗ trợ zero-crash fallback)
-  let examRecord: any = null;
-  const firstExamQuery = await adminClient
-    .from('exams')
-    .select(`
-      id, title, duration_minutes, status, created_at, created_by, instructions, require_camera,
-      subject:subjects(id, name, code),
-      exam_classes(
-        class:classes(id, name)
-      )
-    `)
-    .eq('id', examId)
-    .maybeSingle();
-
-  if (firstExamQuery.error || !firstExamQuery.data) {
-    const fallbackExamQuery = await adminClient
-      .from('exams')
-      .select(`
-        id, title, duration_minutes, status, created_at, created_by, instructions,
-        subject:subjects(id, name, code),
-        exam_classes(
-          class:classes(id, name)
-        )
-      `)
-      .eq('id', examId)
-      .maybeSingle();
-
-    if (fallbackExamQuery.error || !fallbackExamQuery.data) {
-      console.error('Failed to load exam for analytics:', fallbackExamQuery.error);
-      redirect('/teacher/dashboard');
-    }
-    examRecord = fallbackExamQuery.data;
-  } else {
-    examRecord = firstExamQuery.data;
+  if (!examRecord) {
+    redirect('/teacher/dashboard');
   }
 
-  // Nếu là giáo viên, kiểm tra quyền quản lý đề
   if (userRole === 'teacher' && examRecord.created_by !== user.id) {
-    const { data: assignment } = await adminClient
-      .from('teacher_subject_assignments')
-      .select('teacher_id')
-      .eq('teacher_id', user.id)
-      .eq('subject_id', (examRecord.subject as unknown as { id: string })?.id)
-      .maybeSingle();
-
+    const assignment = await assignmentRepo.findOne({
+      where: { teacher_id: user.id, subject_id: examRecord.subject_id },
+    });
     if (!assignment) {
       redirect('/teacher/dashboard');
     }
   }
 
-  const rawSubject = examRecord.subject as unknown as
-    | { id: string; name: string; code: string }
-    | Array<{ id: string; name: string; code: string }>
-    | null;
-  const subject = Array.isArray(rawSubject) ? rawSubject[0] : rawSubject;
+  const [subject, examClassLinks, questionList, attemptList] = await Promise.all([
+    subjectRepo.findOne({ where: { id: examRecord.subject_id } }),
+    examClassRepo.find({ where: { exam_id: examId } }),
+    questionRepo.find({ where: { exam_id: examId }, order: { position: 'ASC' } }),
+    attemptRepo.find({ where: { exam_id: examId }, order: { submitted_at: 'DESC' } }),
+  ]);
 
-  const rawClasses = examRecord.exam_classes as unknown as Array<{
-    class: { id: string; name: string } | Array<{ id: string; name: string }> | null;
-  }> | null;
+  const examClassIds = examClassLinks.map((ec) => ec.class_id);
+  const examClasses =
+    examClassIds.length > 0 ? await classRepo.find({ where: { id: In(examClassIds) } }) : [];
+  const classes = examClasses.map((c) => c.name);
 
-  const classes = (rawClasses ?? []).flatMap((ec) => {
-    const c = ec.class;
-    if (!c) return [];
-    if (Array.isArray(c)) {
-      return c.map((item) => item?.name).filter(Boolean) as string[];
-    }
-    return typeof c === 'object' && 'name' in c && c.name ? [c.name] : [];
-  });
-
-  // 2. Lấy danh sách câu hỏi trong đề
-  const { data: rawQuestions } = await adminClient
-    .from('exam_questions')
-    .select('id, position, question_type, points, question_text')
-    .eq('exam_id', examId)
-    .order('position', { ascending: true });
-
-  const questionList = rawQuestions ?? [];
   const mcQuestions = questionList.filter((q) => q.question_type === 'multiple_choice');
   const essayQuestions = questionList.filter((q) => q.question_type === 'essay');
   const maxScore = questionList.reduce((acc, q) => acc + Number(q.points || 0), 0);
 
-  // 3. Lấy đáp án đúng cho các câu trắc nghiệm
   const mcQuestionIds = mcQuestions.map((q) => q.id);
-  const { data: rawAnswerKeys } = mcQuestionIds.length
-    ? await adminClient
-        .from('exam_answer_keys')
-        .select('exam_question_id, correct_option_key')
-        .in('exam_question_id', mcQuestionIds)
-    : { data: [] };
+  const rawAnswerKeys =
+    mcQuestionIds.length > 0
+      ? await keyRepo.find({ where: { exam_question_id: In(mcQuestionIds) } })
+      : [];
 
-  const correctKeyMap = new Map(
-    (rawAnswerKeys ?? []).map((k) => [k.exam_question_id, k.correct_option_key]),
-  );
-
-  // 4. Lấy tất cả lượt thi của đề
-  const { data: rawAttempts } = await adminClient
-    .from('exam_attempts')
-    .select(`
-      id, student_id, attempt_no, submitted_at, status,
-      student:profiles(id, full_name, student_code)
-    `)
-    .eq('exam_id', examId)
-    .order('submitted_at', { ascending: false });
-
-  const attemptList = rawAttempts ?? [];
+  const correctKeyMap = new Map(rawAnswerKeys.map((k) => [k.exam_question_id, k.correct_option_key]));
   const attemptIds = attemptList.map((a) => a.id);
 
   if (attemptIds.length === 0) {
@@ -280,60 +260,37 @@ export async function getTeacherExamAnalytics(examId: string): Promise<TeacherEx
     };
   }
 
-  // 5. Lấy kết quả điểm (attempt_results), câu trả lời, điểm tự luận, emails, class memberships, vi phạm
   const studentIds = Array.from(new Set(attemptList.map((a) => a.student_id)));
 
-  const [
-    resultsRes,
-    answersRes,
-    gradesRes,
-    authUsersRes,
-    membershipsRes,
-    proctoringLogsRes,
-  ] = await Promise.all([
-    adminClient
-      .from('attempt_results')
-      .select('attempt_id, total_score, released_at')
-      .in('attempt_id', attemptIds),
-    attemptIds.length && mcQuestionIds.length
-      ? adminClient
-          .from('student_answers')
-          .select('attempt_id, exam_question_id, selected_option')
-          .in('attempt_id', attemptIds)
-          .in('exam_question_id', mcQuestionIds)
-      : { data: [] },
-    attemptIds.length && essayQuestions.length
-      ? adminClient
-          .from('student_answer_grades')
-          .select('attempt_id, exam_question_id, awarded_points')
-          .in('attempt_id', attemptIds)
-      : { data: [] },
-    adminClient.auth.admin.listUsers({ page: 1, perPage: 1000 }),
-    studentIds.length
-      ? adminClient
-          .from('class_memberships')
-          .select('student_id, class:classes(name)')
-          .in('student_id', studentIds)
-      : { data: [] },
-    attemptIds.length
-      ? adminClient
-          .from('exam_proctoring_logs')
-          .select('attempt_id, switch_count')
-          .in('attempt_id', attemptIds)
-      : { data: [] },
-  ]);
+  const [students, rawResults, rawAnswers, rawGrades, authUsers, memberships, proctoringLogs] =
+    await Promise.all([
+      profileRepo.find({ where: { id: In(studentIds) } }),
+      resultRepo.find({ where: { attempt_id: In(attemptIds) } }),
+      mcQuestionIds.length > 0
+        ? answerRepo.find({
+            where: { attempt_id: In(attemptIds), exam_question_id: In(mcQuestionIds) },
+          })
+        : Promise.resolve([]),
+      essayQuestions.length > 0
+        ? gradeRepo.find({ where: { attempt_id: In(attemptIds) } })
+        : Promise.resolve([]),
+      userRepo.find({ where: { id: In(studentIds) } }),
+      membershipRepo.find({ where: { student_id: In(studentIds) } }),
+      procRepo.find({ where: { attempt_id: In(attemptIds) } }),
+    ]);
 
-  const rawResults = resultsRes.data ?? [];
+  const memberClassIds = Array.from(new Set(memberships.map((m) => m.class_id)));
+  const memberClasses =
+    memberClassIds.length > 0 ? await classRepo.find({ where: { id: In(memberClassIds) } }) : [];
+  const memberClassNameMap = new Map(memberClasses.map((c) => [c.id, c.name]));
+
+  const studentProfileMap = new Map(students.map((s) => [s.id, s]));
   const resultMap = new Map(rawResults.map((r) => [r.attempt_id, r]));
+  const authEmailMap = new Map(authUsers.map((u) => [u.id, u.email]));
 
-  // Lập bản đồ Email
-  const authEmailMap = new Map((authUsersRes.data?.users ?? []).map((u) => [u.id, u.email ?? '']));
-
-  // Lập bản đồ Lớp sinh viên
   const studentClassMap = new Map<string, string[]>();
-  for (const m of membershipsRes.data ?? []) {
-    const c = m.class as unknown as { name: string } | Array<{ name: string }> | null;
-    const className = Array.isArray(c) ? c[0]?.name : c?.name;
+  for (const m of memberships) {
+    const className = memberClassNameMap.get(m.class_id);
     if (className) {
       const list = studentClassMap.get(m.student_id) || [];
       if (!list.includes(className)) {
@@ -343,9 +300,8 @@ export async function getTeacherExamAnalytics(examId: string): Promise<TeacherEx
     }
   }
 
-  // Lập bản đồ Vi phạm
   const violationCountMap = new Map<string, number>();
-  for (const log of proctoringLogsRes.data ?? []) {
+  for (const log of proctoringLogs) {
     const cur = violationCountMap.get(log.attempt_id) || 0;
     const val = Number(log.switch_count || 0);
     if (val > cur) {
@@ -353,17 +309,21 @@ export async function getTeacherExamAnalytics(examId: string): Promise<TeacherEx
     }
   }
 
-  // Gom câu trả lời trắc nghiệm theo attemptId & questionId
-  const answersByAttempt = new Map<string, Array<{ exam_question_id: string; selected_option: string | null }>>();
-  for (const ans of answersRes.data ?? []) {
+  const answersByAttempt = new Map<
+    string,
+    Array<{ exam_question_id: string; selected_option: string | null }>
+  >();
+  for (const ans of rawAnswers) {
     const list = answersByAttempt.get(ans.attempt_id) || [];
-    list.push(ans);
+    list.push({ exam_question_id: ans.exam_question_id, selected_option: ans.selected_option });
     answersByAttempt.set(ans.attempt_id, list);
   }
 
-  // Gom điểm tự luận theo attemptId & questionId
-  const essayGradesByAttempt = new Map<string, Array<{ exam_question_id: string; awarded_points: number }>>();
-  for (const grade of gradesRes.data ?? []) {
+  const essayGradesByAttempt = new Map<
+    string,
+    Array<{ exam_question_id: string; awarded_points: number }>
+  >();
+  for (const grade of rawGrades) {
     const list = essayGradesByAttempt.get(grade.attempt_id) || [];
     list.push({
       exam_question_id: grade.exam_question_id,
@@ -374,12 +334,10 @@ export async function getTeacherExamAnalytics(examId: string): Promise<TeacherEx
 
   const questionPointMap = new Map(questionList.map((q) => [q.id, Number(q.points || 0)]));
 
-  // 6. Xử lý danh sách kết quả sinh viên chi tiết
   const studentResults: StudentExamResultItem[] = attemptList.map((attempt) => {
     const result = resultMap.get(attempt.id);
-    const student = Array.isArray(attempt.student) ? attempt.student[0] : attempt.student;
+    const student = studentProfileMap.get(attempt.student_id);
 
-    // Tính điểm trắc nghiệm
     const studentAnswers = answersByAttempt.get(attempt.id) || [];
     let mcScore = 0;
     for (const ans of studentAnswers) {
@@ -389,11 +347,9 @@ export async function getTeacherExamAnalytics(examId: string): Promise<TeacherEx
       }
     }
 
-    // Tính điểm tự luận
     const essayGrades = essayGradesByAttempt.get(attempt.id) || [];
     const essayScore = essayGrades.reduce((acc, g) => acc + g.awarded_points, 0);
 
-    // Tính tổng điểm
     let totalScore = 0;
     if (result && result.total_score !== null) {
       totalScore = Number(result.total_score);
@@ -401,7 +357,6 @@ export async function getTeacherExamAnalytics(examId: string): Promise<TeacherEx
       totalScore = Number((mcScore + essayScore).toFixed(2));
     }
 
-    // Xác định trạng thái chấm
     let gradingStatus = 'Chưa công bố';
     if (result?.released_at) {
       gradingStatus = 'Đã công bố điểm';
@@ -414,7 +369,8 @@ export async function getTeacherExamAnalytics(examId: string): Promise<TeacherEx
     }
 
     const assignedClasses = studentClassMap.get(attempt.student_id) || [];
-    const displayClass = assignedClasses.length > 0 ? assignedClasses.join(', ') : (classes.join(', ') || 'Chưa xếp lớp');
+    const displayClass =
+      assignedClasses.length > 0 ? assignedClasses.join(', ') : classes.join(', ') || 'Chưa xếp lớp';
 
     return {
       attemptId: attempt.id,
@@ -435,18 +391,18 @@ export async function getTeacherExamAnalytics(examId: string): Promise<TeacherEx
     };
   });
 
-  // 7. Thống kê tổng hợp (tính trên các bài thi đã nộp)
   const submittedResults = studentResults.filter((r) => r.submittedAt !== null);
   const totalGraded = submittedResults.length;
   const scores = submittedResults.map((r) => r.totalScore);
-  const averageScore = totalGraded ? Number((scores.reduce((a, b) => a + b, 0) / totalGraded).toFixed(2)) : 0;
+  const averageScore = totalGraded
+    ? Number((scores.reduce((a, b) => a + b, 0) / totalGraded).toFixed(2))
+    : 0;
   const medianScore = calculateMedian(scores);
   const highestScore = totalGraded ? Math.max(...scores) : 0;
   const lowestScore = totalGraded ? Math.min(...scores) : 0;
   const passedCount = submittedResults.filter((r) => r.isPassed).length;
   const passRate = totalGraded ? Number(((passedCount / totalGraded) * 100).toFixed(1)) : 0;
 
-  // 8. Phân bố phổ điểm 5 khoảng chuẩn
   let bucket02 = 0;
   let bucket34 = 0;
   let bucket56 = 0;
@@ -454,61 +410,24 @@ export async function getTeacherExamAnalytics(examId: string): Promise<TeacherEx
   let bucket910 = 0;
 
   for (const score of scores) {
-    if (score < 3.0) {
-      bucket02++;
-    } else if (score < 5.0) {
-      bucket34++;
-    } else if (score < 7.0) {
-      bucket56++;
-    } else if (score < 9.0) {
-      bucket78++;
-    } else {
-      bucket910++;
-    }
+    if (score < 3.0) bucket02++;
+    else if (score < 5.0) bucket34++;
+    else if (score < 7.0) bucket56++;
+    else if (score < 9.0) bucket78++;
+    else bucket910++;
   }
 
-  const calcPct = (count: number) => (totalGraded ? Number(((count / totalGraded) * 100).toFixed(1)) : 0);
+  const calcPct = (count: number) =>
+    totalGraded ? Number(((count / totalGraded) * 100).toFixed(1)) : 0;
 
   const distribution: ExamScoreDistributionItem[] = [
-    {
-      range: '0 - 2.9',
-      label: '0 - 2.9 (Kém)',
-      count: bucket02,
-      percentage: calcPct(bucket02),
-      fillColor: '#f43f5e', // rose
-    },
-    {
-      range: '3.0 - 4.9',
-      label: '3.0 - 4.9 (Yếu)',
-      count: bucket34,
-      percentage: calcPct(bucket34),
-      fillColor: '#f59e0b', // amber
-    },
-    {
-      range: '5.0 - 6.9',
-      label: '5.0 - 6.9 (Trung bình)',
-      count: bucket56,
-      percentage: calcPct(bucket56),
-      fillColor: '#0ea5e9', // sky
-    },
-    {
-      range: '7.0 - 8.9',
-      label: '7.0 - 8.9 (Khá)',
-      count: bucket78,
-      percentage: calcPct(bucket78),
-      fillColor: '#10b981', // emerald
-    },
-    {
-      range: '9.0 - 10',
-      label: '9.0 - 10 (Giỏi)',
-      count: bucket910,
-      percentage: calcPct(bucket910),
-      fillColor: '#154C99', // brand navy
-    },
+    { range: '0 - 2.9', label: '0 - 2.9 (Kém)', count: bucket02, percentage: calcPct(bucket02), fillColor: '#f43f5e' },
+    { range: '3.0 - 4.9', label: '3.0 - 4.9 (Yếu)', count: bucket34, percentage: calcPct(bucket34), fillColor: '#f59e0b' },
+    { range: '5.0 - 6.9', label: '5.0 - 6.9 (Trung bình)', count: bucket56, percentage: calcPct(bucket56), fillColor: '#0ea5e9' },
+    { range: '7.0 - 8.9', label: '7.0 - 8.9 (Khá)', count: bucket78, percentage: calcPct(bucket78), fillColor: '#10b981' },
+    { range: '9.0 - 10', label: '9.0 - 10 (Giỏi)', count: bucket910, percentage: calcPct(bucket910), fillColor: '#154C99' },
   ];
 
-  // 9. Phân tích Độ khó & Độ phân biệt từng câu hỏi (Item Analysis)
-  // Sắp xếp các bài thi theo tổng điểm giảm dần để chia nhóm 27% cao nhất và 27% thấp nhất
   const sortedAttempts = [...submittedResults].sort((a, b) => b.totalScore - a.totalScore);
   const totalSubmissions = sortedAttempts.length;
   const groupSize = totalSubmissions > 0 ? Math.max(1, Math.round(totalSubmissions * 0.27)) : 0;
@@ -517,20 +436,18 @@ export async function getTeacherExamAnalytics(examId: string): Promise<TeacherEx
   const lowGroupAttemptIds = new Set(
     totalSubmissions >= 2
       ? sortedAttempts.slice(Math.max(groupSize, totalSubmissions - groupSize)).map((a) => a.attemptId)
-      : sortedAttempts.map((a) => a.attemptId)
+      : sortedAttempts.map((a) => a.attemptId),
   );
 
-  // Tạo map tra cứu câu trả lời theo [attemptId_questionId]
   const answerLookup = new Map<string, string>();
-  for (const ans of answersRes.data ?? []) {
+  for (const ans of rawAnswers) {
     if (ans.selected_option) {
       answerLookup.set(`${ans.attempt_id}_${ans.exam_question_id}`, ans.selected_option);
     }
   }
 
-  // Tạo map tra cứu điểm tự luận theo [attemptId_questionId]
   const essayLookup = new Map<string, number>();
-  for (const grade of gradesRes.data ?? []) {
+  for (const grade of rawGrades) {
     essayLookup.set(`${grade.attempt_id}_${grade.exam_question_id}`, Number(grade.awarded_points || 0));
   }
 
@@ -564,7 +481,6 @@ export async function getTeacherExamAnalytics(examId: string): Promise<TeacherEx
           }
         }
       } else {
-        // Tự luận
         const awarded = essayLookup.get(`${attempt.attemptId}_${q.id}`);
         if (awarded !== undefined) {
           totalResponses++;
@@ -578,18 +494,16 @@ export async function getTeacherExamAnalytics(examId: string): Promise<TeacherEx
       }
     }
 
-    const averageScore = totalResponses > 0 ? Number((totalScoreAwarded / totalResponses).toFixed(2)) : 0;
+    const averageScoreQ = totalResponses > 0 ? Number((totalScoreAwarded / totalResponses).toFixed(2)) : 0;
     const correctPercentage = totalResponses > 0 ? Number(((correctResponses / totalResponses) * 100).toFixed(1)) : 0;
 
-    // Tính Chỉ số Độ khó P (Difficulty Index: 0 đến 1)
     let difficultyIndex = 0;
     if (qType === 'multiple_choice') {
       difficultyIndex = totalResponses > 0 ? Number((correctResponses / totalResponses).toFixed(2)) : 0;
     } else {
-      difficultyIndex = qPoints > 0 && totalResponses > 0 ? Number((averageScore / qPoints).toFixed(2)) : 0;
+      difficultyIndex = qPoints > 0 && totalResponses > 0 ? Number((averageScoreQ / qPoints).toFixed(2)) : 0;
     }
 
-    // Tính Chỉ số Độ phân biệt D (Discrimination Index: -1 đến +1)
     let discriminationIndex = 0;
     if (groupSize > 0) {
       if (qType === 'multiple_choice') {
@@ -601,28 +515,18 @@ export async function getTeacherExamAnalytics(examId: string): Promise<TeacherEx
       }
     }
 
-    // Đánh giá nhãn Độ khó
     let difficultyLabel: 'Dễ' | 'Chuẩn' | 'Khó' = 'Chuẩn';
-    if (difficultyIndex > 0.8) {
-      difficultyLabel = 'Dễ';
-    } else if (difficultyIndex < 0.3) {
-      difficultyLabel = 'Khó';
-    }
+    if (difficultyIndex > 0.8) difficultyLabel = 'Dễ';
+    else if (difficultyIndex < 0.3) difficultyLabel = 'Khó';
 
-    // Đánh giá nhãn Độ phân biệt
     let discriminationLabel: 'Phân hóa rất tốt' | 'Phân hóa tốt' | 'Tạm được' | 'Phân hóa kém' = 'Phân hóa tốt';
-    if (discriminationIndex >= 0.4) {
-      discriminationLabel = 'Phân hóa rất tốt';
-    } else if (discriminationIndex >= 0.3) {
-      discriminationLabel = 'Phân hóa tốt';
-    } else if (discriminationIndex >= 0.2) {
-      discriminationLabel = 'Tạm được';
-    } else {
-      discriminationLabel = 'Phân hóa kém';
-    }
+    if (discriminationIndex >= 0.4) discriminationLabel = 'Phân hóa rất tốt';
+    else if (discriminationIndex >= 0.3) discriminationLabel = 'Phân hóa tốt';
+    else if (discriminationIndex >= 0.2) discriminationLabel = 'Tạm được';
+    else discriminationLabel = 'Phân hóa kém';
 
-    // Nhãn tổng thể và Badge màu
-    let overallEvaluation: 'Câu quá dễ' | 'Câu chuẩn (Phân hóa tốt)' | 'Câu khó / Cần xem lại' | 'Chưa đủ dữ liệu' = 'Câu chuẩn (Phân hóa tốt)';
+    let overallEvaluation: 'Câu quá dễ' | 'Câu chuẩn (Phân hóa tốt)' | 'Câu khó / Cần xem lại' | 'Chưa đủ dữ liệu' =
+      'Câu chuẩn (Phân hóa tốt)';
     let badgeVariant: 'emerald' | 'blue' | 'amber' | 'rose' | 'slate' = 'emerald';
 
     if (totalResponses === 0) {
@@ -651,7 +555,7 @@ export async function getTeacherExamAnalytics(examId: string): Promise<TeacherEx
       totalResponses,
       correctResponses,
       correctPercentage,
-      averageScore,
+      averageScore: averageScoreQ,
       difficultyIndex,
       discriminationIndex,
       difficultyLabel,

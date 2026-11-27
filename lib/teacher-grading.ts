@@ -3,10 +3,27 @@ import 'server-only';
 
 import { revalidatePath } from 'next/cache';
 import { redirect, notFound } from 'next/navigation';
+import { In } from 'typeorm';
 import { z } from 'zod';
 import { getCurrentUser, getCurrentRoleRecord } from '@/lib/auth-cache';
-import { createAdminClient } from '@/lib/supabase/admin';
-import { createClient } from '@/lib/supabase/server';
+import { getDataSource, getRepo } from '@/lib/db/data-source';
+import {
+  AttemptResultSchema,
+  ClassMembershipSchema,
+  ClassSchema,
+  ExamAnswerKeySchema,
+  ExamAttemptSchema,
+  ExamProctoringLogSchema,
+  ExamQuestionSchema,
+  ExamSchema,
+  NotificationSchema,
+  ProfileSchema,
+  StudentAnswerGradeSchema,
+  StudentAnswerSchema,
+  SubjectSchema,
+  UserRoleSchema,
+  UserSchema,
+} from '@/lib/db/entities';
 
 export type EssayQuestionGradingItem = {
   questionId: string;
@@ -53,10 +70,8 @@ export type TeacherGradingPageData = {
     subjectCode: string;
   };
   teacherName: string;
-  // Questions split by type
   essayQuestions: EssayQuestionGradingItem[];
   mcQuestions: MultipleChoiceSummaryItem[];
-  // Score statistics
   mcAwardedScore: number;
   mcTotalScore: number;
   essayMaxScore: number;
@@ -74,12 +89,10 @@ export type TeacherGradingPageData = {
 };
 
 /**
- * Đọc log giám thị của 1 lượt thi (chạy song song với các truy vấn khác trong getTeacherGradingData).
- * Giữ nguyên logic cũ: ưu tiên bảng exam_proctoring_logs, nếu rỗng thì dự phòng bằng notifications.
- * Mọi lỗi đều được nuốt (chỉ cảnh báo) để không làm hỏng trang chấm bài.
+ * Đọc log giám thị của 1 lượt thi.
+ * Ưu tiên bảng exam_proctoring_logs, nếu rỗng thì dự phòng bằng notifications.
  */
 async function loadAttemptProctoring(
-  adminClient: ReturnType<typeof createAdminClient> | Awaited<ReturnType<typeof createClient>>,
   attemptId: string,
 ): Promise<NonNullable<TeacherGradingPageData['proctoring']>> {
   let proctoring: NonNullable<TeacherGradingPageData['proctoring']> = {
@@ -88,25 +101,25 @@ async function loadAttemptProctoring(
   };
 
   try {
-    const { data: procLogs } = await adminClient
-      .from('exam_proctoring_logs')
-      .select('violation_type, switch_count, created_at')
-      .eq('attempt_id', attemptId)
-      .order('created_at', { ascending: false });
+    const procRepo = await getRepo(ExamProctoringLogSchema);
+    const procLogs = await procRepo.find({
+      where: { attempt_id: attemptId },
+      order: { created_at: 'DESC' },
+    });
 
-    if (procLogs && procLogs.length > 0) {
+    if (procLogs.length > 0) {
       let maxCount = 0;
       let tabSwitches = 0;
       let fullscreenExits = 0;
       let cameraBlocked = 0;
 
-      procLogs.forEach((log) => {
+      for (const log of procLogs) {
         const count = Number(log.switch_count || 0);
         if (count > maxCount) maxCount = count;
         if (log.violation_type === 'fullscreen_exit') fullscreenExits++;
         else if (log.violation_type === 'camera_blocked') cameraBlocked++;
         else tabSwitches++;
-      });
+      }
 
       proctoring = {
         tabSwitchCount: Math.max(maxCount, procLogs.length),
@@ -118,14 +131,21 @@ async function loadAttemptProctoring(
         },
       };
     } else {
-      const { data: notifs } = await adminClient
-        .from('notifications')
-        .select('data')
-        .eq('data->>type', 'exam_proctoring_violation')
-        .eq('data->>attempt_id', attemptId);
+      const notifRepo = await getRepo(NotificationSchema);
+      const notifs = await notifRepo
+        .createQueryBuilder('n')
+        .where('n.data LIKE :typePat', { typePat: '%exam_proctoring_violation%' })
+        .andWhere('n.data LIKE :attemptPat', { attemptPat: `%${attemptId}%` })
+        .getMany();
 
-      if (notifs && notifs.length > 0) {
-        const counts = notifs.map((n) => Number((n.data as Record<string, unknown>)?.switch_count || 1));
+      const matched = notifs.filter(
+        (n) =>
+          n.data?.type === 'exam_proctoring_violation' &&
+          String(n.data?.attempt_id ?? '').toLowerCase() === attemptId.toLowerCase(),
+      );
+
+      if (matched.length > 0) {
+        const counts = matched.map((n) => Number(n.data?.switch_count || 1));
         const maxCount = Math.max(...counts, 0);
         proctoring = {
           tabSwitchCount: maxCount,
@@ -146,7 +166,7 @@ async function loadAttemptProctoring(
 }
 
 export async function getTeacherGradingData(attemptId: string): Promise<TeacherGradingPageData> {
-  const { user, error: authError, supabase } = await getCurrentUser();
+  const { user, error: authError } = await getCurrentUser();
 
   if (authError || !user) {
     redirect('/login');
@@ -159,87 +179,70 @@ export async function getTeacherGradingData(attemptId: string): Promise<TeacherG
     redirect('/subjects');
   }
 
-  // Use Admin Client if service role key is present, otherwise fall back to authenticated supabase client
-  const adminClient = process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : supabase;
+  const [
+    profileRepo,
+    attemptRepo,
+    examRepo,
+    subjectRepo,
+    questionRepo,
+    answerRepo,
+    gradeRepo,
+    resultRepo,
+    keyRepo,
+  ] = await Promise.all([
+    getRepo(ProfileSchema),
+    getRepo(ExamAttemptSchema),
+    getRepo(ExamSchema),
+    getRepo(SubjectSchema),
+    getRepo(ExamQuestionSchema),
+    getRepo(StudentAnswerSchema),
+    getRepo(StudentAnswerGradeSchema),
+    getRepo(AttemptResultSchema),
+    getRepo(ExamAnswerKeySchema),
+  ]);
 
-  // Vòng 1 (song song): hồ sơ giảng viên + bản ghi lượt thi — hai truy vấn độc lập, không còn chờ nối tiếp.
-  const [{ data: teacherProfile }, { data: attempt, error: attemptError }] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select('full_name')
-      .eq('id', user.id)
-      .maybeSingle(),
-    adminClient
-      .from('exam_attempts')
-      .select(`
-      id, exam_id, student_id, attempt_no, started_at, submitted_at, status,
-      student:profiles!exam_attempts_student_id_fkey(id, full_name, student_code),
-      exam:exams!exam_attempts_exam_id_fkey(
-        id, title, duration_minutes,
-        subject:subjects!exams_subject_id_fkey(name, code)
-      )
-    `)
-      .eq('id', attemptId)
-      .maybeSingle(),
+  const [teacherProfile, attempt] = await Promise.all([
+    profileRepo.findOne({ where: { id: user.id } }),
+    attemptRepo.findOne({ where: { id: attemptId } }),
   ]);
 
   const teacherName = sanitizeVietnameseText(teacherProfile?.full_name) || user.email || 'Giảng viên';
 
-  if (attemptError || !attempt) {
-    console.error('Failed to load attempt for grading:', attemptError);
+  if (!attempt) {
     notFound();
   }
 
-  const examRecord = Array.isArray(attempt.exam) ? attempt.exam[0] : attempt.exam;
-  const studentRecord = Array.isArray(attempt.student) ? attempt.student[0] : attempt.student;
-  const subjectRecord = examRecord && typeof examRecord === 'object' && 'subject' in examRecord
-    ? (Array.isArray(examRecord.subject) ? examRecord.subject[0] : examRecord.subject)
-    : null;
-
-  // Vòng 2 (song song): câu hỏi, đáp án SV, điểm đã chấm, kết quả, log giám thị — 5 truy vấn độc lập.
-  const proctoringPromise = loadAttemptProctoring(adminClient, attemptId);
   const [
-    { data: rawQuestions },
-    { data: rawAnswers },
-    { data: rawGrades },
-    { data: result },
+    studentRecord,
+    examRecord,
+    rawQuestions,
+    rawAnswers,
+    rawGrades,
+    result,
     proctoring,
   ] = await Promise.all([
-    adminClient
-      .from('exam_questions')
-      .select('id, position, question_type, question_text, points')
-      .eq('exam_id', attempt.exam_id)
-      .order('position', { ascending: true }),
-    adminClient
-      .from('student_answers')
-      .select('exam_question_id, selected_option, answer_text')
-      .eq('attempt_id', attemptId),
-    adminClient
-      .from('student_answer_grades')
-      .select('exam_question_id, awarded_points, feedback, graded_at')
-      .eq('attempt_id', attemptId),
-    adminClient
-      .from('attempt_results')
-      .select('total_score, released_at')
-      .eq('attempt_id', attemptId)
-      .maybeSingle(),
-    proctoringPromise,
+    profileRepo.findOne({ where: { id: attempt.student_id } }),
+    examRepo.findOne({ where: { id: attempt.exam_id } }),
+    questionRepo.find({
+      where: { exam_id: attempt.exam_id },
+      order: { position: 'ASC' },
+    }),
+    answerRepo.find({ where: { attempt_id: attemptId } }),
+    gradeRepo.find({ where: { attempt_id: attemptId } }),
+    resultRepo.findOne({ where: { attempt_id: attemptId } }),
+    loadAttemptProctoring(attemptId),
   ]);
 
-  const questionList = rawQuestions ?? [];
-  const answerMap = new Map((rawAnswers ?? []).map((a) => [a.exam_question_id, a]));
-  const gradeMap = new Map((rawGrades ?? []).map((g) => [g.exam_question_id, g]));
+  const questionIds = rawQuestions.map((q) => q.id);
+  const [subjectRecord, rawKeys] = await Promise.all([
+    examRecord?.subject_id ? subjectRepo.findOne({ where: { id: examRecord.subject_id } }) : Promise.resolve(null),
+    questionIds.length > 0 ? keyRepo.find({ where: { exam_question_id: In(questionIds) } }) : Promise.resolve([]),
+  ]);
 
-  // Vòng 3: Answer Keys (phụ thuộc danh sách id câu hỏi nên phải chờ vòng 2)
-  const questionIds = questionList.map((q) => q.id);
-  const { data: rawKeys } = await adminClient
-    .from('exam_answer_keys')
-    .select('exam_question_id, correct_option_key, model_answer, grading_rubric, explanation')
-    .in('exam_question_id', questionIds);
+  const answerMap = new Map(rawAnswers.map((a) => [a.exam_question_id, a]));
+  const gradeMap = new Map(rawGrades.map((g) => [g.exam_question_id, g]));
+  const keyMap = new Map(rawKeys.map((k) => [k.exam_question_id, k]));
 
-  const keyMap = new Map((rawKeys ?? []).map((k) => [k.exam_question_id, k]));
-
-  // 7. Partition Essay vs Multiple Choice Questions
   const essayQuestions: EssayQuestionGradingItem[] = [];
   const mcQuestions: MultipleChoiceSummaryItem[] = [];
 
@@ -247,7 +250,7 @@ export async function getTeacherGradingData(attemptId: string): Promise<TeacherG
   let mcTotalScore = 0;
   let essayMaxScore = 0;
 
-  for (const q of questionList) {
+  for (const q of rawQuestions) {
     const qPoints = Number(q.points) || 1;
     const ansKey = keyMap.get(q.id);
     const studentAns = answerMap.get(q.id);
@@ -325,8 +328,6 @@ export async function getTeacherGradingData(attemptId: string): Promise<TeacherG
   };
 }
 
-
-
 export type TeacherGradingQueueItem = {
   attemptId: string;
   examId: string;
@@ -358,7 +359,7 @@ export type TeacherGradingQueueData = {
 };
 
 export async function getTeacherGradingQueue(): Promise<TeacherGradingQueueData> {
-  const { user, error: authError, supabase } = await getCurrentUser();
+  const { user, error: authError } = await getCurrentUser();
 
   if (authError || !user) {
     redirect('/login');
@@ -371,27 +372,40 @@ export async function getTeacherGradingQueue(): Promise<TeacherGradingQueueData>
     redirect('/subjects');
   }
 
-  const { data: teacherProfile } = await supabase
-    .from('profiles')
-    .select('full_name')
-    .eq('id', user.id)
-    .maybeSingle();
+  const [
+    profileRepo,
+    examRepo,
+    subjectRepo,
+    questionRepo,
+    attemptRepo,
+    resultRepo,
+    procRepo,
+    userRepo,
+    membershipRepo,
+    classRepo,
+    gradeRepo,
+  ] = await Promise.all([
+    getRepo(ProfileSchema),
+    getRepo(ExamSchema),
+    getRepo(SubjectSchema),
+    getRepo(ExamQuestionSchema),
+    getRepo(ExamAttemptSchema),
+    getRepo(AttemptResultSchema),
+    getRepo(ExamProctoringLogSchema),
+    getRepo(UserSchema),
+    getRepo(ClassMembershipSchema),
+    getRepo(ClassSchema),
+    getRepo(StudentAnswerGradeSchema),
+  ]);
+
+  const [teacherProfile, exams] = await Promise.all([
+    profileRepo.findOne({ where: { id: user.id } }),
+    examRepo.find({ where: { created_by: user.id } }),
+  ]);
 
   const teacherName = sanitizeVietnameseText(teacherProfile?.full_name) || user.email || 'Giảng viên';
 
-  const adminClient = process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : supabase;
-
-  // 1. Lấy danh sách đề thi do giáo viên này tạo
-  const { data: exams, error: examsError } = await adminClient
-    .from('exams')
-    .select(`
-      id, title,
-      subject:subjects(name, code),
-      exam_questions(id, question_type)
-    `)
-    .eq('created_by', user.id);
-
-  if (examsError || !exams || exams.length === 0) {
+  if (exams.length === 0) {
     return {
       teacherName,
       teacherId: user.id,
@@ -402,79 +416,82 @@ export async function getTeacherGradingQueue(): Promise<TeacherGradingQueueData>
     };
   }
 
-  // Lập bản đồ thông tin đề thi
-  const examMap = new Map<string, {
-    title: string;
-    subjectName: string;
-    subjectCode: string;
-    essayCount: number;
-  }>();
+  const examIds = exams.map((e) => e.id);
+  const subjectIds = Array.from(new Set(exams.map((e) => e.subject_id)));
+
+  const [subjects, examQuestions, rawAttempts] = await Promise.all([
+    subjectRepo.find({ where: { id: In(subjectIds) } }),
+    questionRepo.find({ where: { exam_id: In(examIds) } }),
+    attemptRepo.find({
+      where: {
+        exam_id: In(examIds),
+        status: In(['pending_grading', 'completed']),
+      },
+      order: { submitted_at: 'DESC' },
+    }),
+  ]);
+
+  if (rawAttempts.length === 0) {
+    return {
+      teacherName,
+      teacherId: user.id,
+      pendingAttempts: [],
+      completedAttempts: [],
+      totalPendingCount: 0,
+      totalCompletedCount: 0,
+    };
+  }
+
+  const subjectMap = new Map(subjects.map((s) => [s.id, s]));
+  const essayCountByExam = new Map<string, number>();
+  for (const q of examQuestions) {
+    if (q.question_type === 'essay') {
+      essayCountByExam.set(q.exam_id, (essayCountByExam.get(q.exam_id) ?? 0) + 1);
+    }
+  }
+
+  const examMap = new Map<
+    string,
+    {
+      title: string;
+      subjectName: string;
+      subjectCode: string;
+      essayCount: number;
+    }
+  >();
 
   for (const e of exams) {
-    const questions = e.exam_questions ?? [];
-    const essayCount = questions.filter((q) => q.question_type === 'essay').length;
-    const subj = Array.isArray(e.subject) ? e.subject[0] : e.subject;
+    const subj = subjectMap.get(e.subject_id);
     examMap.set(e.id, {
       title: e.title,
       subjectName: subj?.name || 'Môn học',
       subjectCode: subj?.code || '',
-      essayCount,
+      essayCount: essayCountByExam.get(e.id) ?? 0,
     });
   }
 
-  const examIds = Array.from(examMap.keys());
-
-  // 2. Lấy tất cả lượt thi của các đề này (pending_grading hoặc completed)
-  const { data: rawAttempts, error: attemptsError } = await adminClient
-    .from('exam_attempts')
-    .select(`
-      id, exam_id, student_id, attempt_no, status, submitted_at,
-      student:profiles!exam_attempts_student_id_fkey(id, full_name, student_code),
-      result:attempt_results(total_score, released_at)
-    `)
-    .in('exam_id', examIds)
-    .in('status', ['pending_grading', 'completed'])
-    .order('submitted_at', { ascending: false });
-
-  if (attemptsError || !rawAttempts) {
-    return {
-      teacherName,
-      teacherId: user.id,
-      pendingAttempts: [],
-      completedAttempts: [],
-      totalPendingCount: 0,
-      totalCompletedCount: 0,
-    };
-  }
-
-  // 3. Lấy thông tin vi phạm tab switch proctoring, emails, lớp học và điểm tự luận
   const attemptIds = rawAttempts.map((a) => a.id);
   const studentIds = Array.from(new Set(rawAttempts.map((a) => a.student_id)));
 
-  const [procLogsRes, authUsersRes, membershipsRes, gradesRes] = await Promise.all([
-    attemptIds.length
-      ? adminClient
-          .from('exam_proctoring_logs')
-          .select('attempt_id, switch_count')
-          .in('attempt_id', attemptIds)
-      : { data: [] },
-    adminClient.auth.admin.listUsers({ page: 1, perPage: 1000 }),
-    studentIds.length
-      ? adminClient
-          .from('class_memberships')
-          .select('student_id, class:classes(name)')
-          .in('student_id', studentIds)
-      : { data: [] },
-    attemptIds.length
-      ? adminClient
-          .from('student_answer_grades')
-          .select('attempt_id, awarded_points')
-          .in('attempt_id', attemptIds)
-      : { data: [] },
+  const [students, results, procLogs, users, memberships, grades] = await Promise.all([
+    profileRepo.find({ where: { id: In(studentIds) } }),
+    resultRepo.find({ where: { attempt_id: In(attemptIds) } }),
+    procRepo.find({ where: { attempt_id: In(attemptIds) } }),
+    userRepo.find({ where: { id: In(studentIds) } }),
+    membershipRepo.find({ where: { student_id: In(studentIds) } }),
+    gradeRepo.find({ where: { attempt_id: In(attemptIds) } }),
   ]);
 
+  const classIds = Array.from(new Set(memberships.map((m) => m.class_id)));
+  const classes = classIds.length > 0 ? await classRepo.find({ where: { id: In(classIds) } }) : [];
+  const classNameMap = new Map(classes.map((c) => [c.id, c.name]));
+
+  const studentMap = new Map(students.map((s) => [s.id, s]));
+  const resultMap = new Map(results.map((r) => [r.attempt_id, r]));
+  const authEmailMap = new Map(users.map((u) => [u.id, u.email]));
+
   const proctoringMap = new Map<string, number>();
-  for (const log of procLogsRes.data ?? []) {
+  for (const log of procLogs) {
     const current = proctoringMap.get(log.attempt_id) || 0;
     const count = Number(log.switch_count || 0);
     if (count > current) {
@@ -482,12 +499,9 @@ export async function getTeacherGradingQueue(): Promise<TeacherGradingQueueData>
     }
   }
 
-  const authEmailMap = new Map((authUsersRes.data?.users ?? []).map((u) => [u.id, u.email ?? '']));
-
   const studentClassMap = new Map<string, string[]>();
-  for (const m of membershipsRes.data ?? []) {
-    const c = m.class as unknown as { name: string } | Array<{ name: string }> | null;
-    const className = Array.isArray(c) ? c[0]?.name : c?.name;
+  for (const m of memberships) {
+    const className = classNameMap.get(m.class_id);
     if (className) {
       const list = studentClassMap.get(m.student_id) || [];
       if (!list.includes(className)) {
@@ -497,9 +511,8 @@ export async function getTeacherGradingQueue(): Promise<TeacherGradingQueueData>
     }
   }
 
-  // Điểm tự luận theo attempt
   const essayScoresMap = new Map<string, number>();
-  for (const g of gradesRes.data ?? []) {
+  for (const g of grades) {
     const cur = essayScoresMap.get(g.attempt_id) || 0;
     essayScoresMap.set(g.attempt_id, cur + Number(g.awarded_points || 0));
   }
@@ -509,11 +522,16 @@ export async function getTeacherGradingQueue(): Promise<TeacherGradingQueueData>
 
   for (const a of rawAttempts) {
     const examInfo = examMap.get(a.exam_id);
-    const student = Array.isArray(a.student) ? a.student[0] : a.student;
-    const result = Array.isArray(a.result) ? a.result[0] : a.result;
+    const student = studentMap.get(a.student_id);
+    const result = resultMap.get(a.id);
 
     const totalScoreNum = result && result.total_score !== null ? Number(result.total_score) : null;
-    const essayScoreNum = essayScoresMap.has(a.id) ? Number(essayScoresMap.get(a.id)!.toFixed(2)) : (examInfo?.essayCount === 0 ? 0 : null);
+    const essayScoreNum = essayScoresMap.has(a.id)
+      ? Number(essayScoresMap.get(a.id)!.toFixed(2))
+      : examInfo?.essayCount === 0
+        ? 0
+        : null;
+
     let mcScoreNum: number | null = null;
     if (totalScoreNum !== null && essayScoreNum !== null) {
       mcScoreNum = Number(Math.max(0, totalScoreNum - essayScoreNum).toFixed(2));
@@ -583,7 +601,6 @@ export type SaveEssayGradesResult = {
   isReleased?: boolean;
 };
 
-// Zod Schema xác thực dữ liệu chấm điểm
 export const gradeItemSchema = z.object({
   questionId: z.string().uuid('ID câu hỏi không hợp lệ.'),
   awardedPoints: z.coerce.number().min(0, 'Điểm không được là số âm.'),
@@ -598,26 +615,14 @@ export const saveEssayGradesSchema = z.object({
   releaseResult: z.boolean(),
 });
 
-function getDbClient(supabase: Awaited<ReturnType<typeof createClient>>) {
-  if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    try {
-      return createAdminClient();
-    } catch {
-      return supabase;
-    }
-  }
-  return supabase;
-}
-
 /**
  * Hàm nghiệp vụ lưu điểm tự luận và cập nhật kết quả bài thi.
  * Được dùng chung bởi cả REST Route Handler và Server Action.
  */
 export async function saveEssayGrades(
-  payload: SaveEssayGradesPayload
+  payload: SaveEssayGradesPayload,
 ): Promise<SaveEssayGradesResult> {
   try {
-    // 1. Xác thực schema với Zod trên máy chủ
     const parseResult = saveEssayGradesSchema.safeParse(payload);
     if (!parseResult.success) {
       const errorMsg = parseResult.error.issues.map((i) => i.message).join(', ');
@@ -626,43 +631,31 @@ export async function saveEssayGrades(
 
     const { attemptId, examId, studentId, grades, releaseResult } = parseResult.data;
 
-    // 2. Xác thực phiên đăng nhập & vai trò giảng viên
-    const { user, error: authError, supabase } = await getCurrentUser();
-
+    const { user, error: authError } = await getCurrentUser();
     if (authError || !user) {
       return { status: 'error', message: 'Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.' };
     }
 
-    const { data: roleRecord } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    const roleRepo = await getRepo(UserRoleSchema);
+    const roleRecord = await roleRepo.findOne({ where: { user_id: user.id } });
 
     if (!roleRecord || (roleRecord.role !== 'teacher' && roleRecord.role !== 'admin')) {
       return { status: 'error', message: 'Bạn không có quyền chấm bài thi này.' };
     }
 
-    const dbClient = getDbClient(supabase);
+    const [examRepo, questionRepo] = await Promise.all([
+      getRepo(ExamSchema),
+      getRepo(ExamQuestionSchema),
+    ]);
 
-    // 3. Kiểm tra thông tin đề thi & điểm tối đa của từng câu hỏi
-    const { data: examData } = await dbClient
-      .from('exams')
-      .select('id, title')
-      .eq('id', examId)
-      .maybeSingle();
+    const [examData, questionList] = await Promise.all([
+      examRepo.findOne({ where: { id: examId } }),
+      questionRepo.find({ where: { exam_id: examId } }),
+    ]);
 
     const examTitle = examData?.title || 'Đề thi';
-
-    const { data: examQuestions } = await dbClient
-      .from('exam_questions')
-      .select('id, points, question_type')
-      .eq('exam_id', examId);
-
-    const questionList = examQuestions ?? [];
     const maxPointsMap = new Map(questionList.map((q) => [q.id, Number(q.points) || 1]));
 
-    // Xác thực điểm không vượt quá điểm tối đa của câu hỏi
     for (const item of grades) {
       const maxPoints = maxPointsMap.get(item.questionId) ?? 10;
       if (item.awardedPoints > maxPoints) {
@@ -674,41 +667,41 @@ export async function saveEssayGrades(
     }
 
     const nowIso = new Date().toISOString();
-
-    // 4. Lưu câu trả lời & điểm số vào student_answer_grades
-    // Tối ưu N+1: 1 SELECT + (nếu cần) 1 bulk INSERT + 1 bulk UPSERT thay vì 2–3 lệnh cho mỗi câu.
-    // Dedupe theo questionId (giữ bản cuối) để bulk upsert không vướng lỗi "affect row a second time".
     const gradesByQuestion = new Map(grades.map((item) => [item.questionId, item]));
     const uniqueGrades = Array.from(gradesByQuestion.values());
 
-    if (uniqueGrades.length > 0) {
-      const { data: existingAnswers } = await dbClient
-        .from('student_answers')
-        .select('exam_question_id')
-        .eq('attempt_id', attemptId)
-        .in('exam_question_id', uniqueGrades.map((item) => item.questionId));
+    const ds = await getDataSource();
+    const { totalScore, releasedAtValue } = await ds.transaction(async (manager) => {
+      const ansRepo = manager.getRepository(StudentAnswerSchema);
+      const gradeRepo = manager.getRepository(StudentAnswerGradeSchema);
+      const keyRepo = manager.getRepository(ExamAnswerKeySchema);
+      const resultRepo = manager.getRepository(AttemptResultSchema);
+      const attemptRepo = manager.getRepository(ExamAttemptSchema);
 
-      const answeredIds = new Set((existingAnswers ?? []).map((row) => row.exam_question_id as string));
-      const missingAnswers = uniqueGrades
-        .filter((item) => !answeredIds.has(item.questionId))
-        .map((item) => ({
-          attempt_id: attemptId,
-          exam_id: examId,
-          exam_question_id: item.questionId,
-          answer_text: '',
-          updated_at: nowIso,
-        }));
+      if (uniqueGrades.length > 0) {
+        const qIds = uniqueGrades.map((item) => item.questionId);
+        const existingAnswers = await ansRepo.find({
+          where: { attempt_id: attemptId, exam_question_id: In(qIds) },
+        });
+        const answeredIds = new Set(existingAnswers.map((row) => row.exam_question_id));
 
-      if (missingAnswers.length > 0) {
-        const { error: insAnsErr } = await dbClient.from('student_answers').insert(missingAnswers);
-        if (insAnsErr) {
-          console.warn('Notice inserting blank student_answer:', insAnsErr.message);
+        const missingAnswers = uniqueGrades
+          .filter((item) => !answeredIds.has(item.questionId))
+          .map((item) => ({
+            attempt_id: attemptId,
+            exam_id: examId,
+            exam_question_id: item.questionId,
+            selected_option: null,
+            answer_text: '',
+            created_at: nowIso,
+            updated_at: nowIso,
+          }));
+
+        if (missingAnswers.length > 0) {
+          await ansRepo.insert(missingAnswers);
         }
-      }
 
-      const { error: gradeErr } = await dbClient
-        .from('student_answer_grades')
-        .upsert(
+        await gradeRepo.save(
           uniqueGrades.map((item) => ({
             attempt_id: attemptId,
             exam_question_id: item.questionId,
@@ -717,95 +710,68 @@ export async function saveEssayGrades(
             graded_by: user.id,
             graded_at: nowIso,
           })),
-          { onConflict: 'attempt_id,exam_question_id' }
         );
-
-      if (gradeErr) {
-        console.error('Failed to save student_answer_grades:', gradeErr);
-        return { status: 'error', message: `Lỗi khi lưu điểm câu hỏi tự luận: ${gradeErr.message}` };
       }
-    }
 
-    // 5. Tính tổng điểm toàn bộ bài thi: Điểm trắc nghiệm + Điểm tự luận
-    const mcQuestions = questionList.filter((q) => q.question_type === 'multiple_choice');
-    let mcAwardedScore = 0;
+      // Tính tổng điểm: Trắc nghiệm + Tự luận
+      const mcQuestions = questionList.filter((q) => q.question_type === 'multiple_choice');
+      let mcAwardedScore = 0;
 
-    if (mcQuestions.length > 0) {
-      const mcIds = mcQuestions.map((q) => q.id);
-      const [{ data: keys }, { data: answers }, { data: existingGrades }] = await Promise.all([
-        dbClient.from('exam_answer_keys').select('exam_question_id, correct_option_key').in('exam_question_id', mcIds),
-        dbClient.from('student_answers').select('exam_question_id, selected_option').eq('attempt_id', attemptId).in('exam_question_id', mcIds),
-        dbClient.from('student_answer_grades').select('exam_question_id, awarded_points').eq('attempt_id', attemptId).in('exam_question_id', mcIds),
-      ]);
+      if (mcQuestions.length > 0) {
+        const mcIds = mcQuestions.map((q) => q.id);
+        const [keys, answers, existingMcGrades] = await Promise.all([
+          keyRepo.find({ where: { exam_question_id: In(mcIds) } }),
+          ansRepo.find({ where: { attempt_id: attemptId, exam_question_id: In(mcIds) } }),
+          gradeRepo.find({ where: { attempt_id: attemptId, exam_question_id: In(mcIds) } }),
+        ]);
 
-      const keyMap = new Map((keys ?? []).map((k) => [k.exam_question_id, k.correct_option_key]));
-      const ansMap = new Map((answers ?? []).map((a) => [a.exam_question_id, a.selected_option]));
-      const gradeMap = new Map((existingGrades ?? []).map((g) => [g.exam_question_id, Number(g.awarded_points)]));
+        const keyMap = new Map(keys.map((k) => [k.exam_question_id, k.correct_option_key]));
+        const ansMap = new Map(answers.map((a) => [a.exam_question_id, a.selected_option]));
+        const gradeMap = new Map(existingMcGrades.map((g) => [g.exam_question_id, Number(g.awarded_points)]));
 
-      for (const q of mcQuestions) {
-        const qPoints = Number(q.points) || 1;
-        if (gradeMap.has(q.id)) {
-          mcAwardedScore += gradeMap.get(q.id)!;
-        } else {
-          const correctKey = keyMap.get(q.id);
-          const studentKey = ansMap.get(q.id);
-          if (correctKey && studentKey && correctKey === studentKey) {
-            mcAwardedScore += qPoints;
+        for (const q of mcQuestions) {
+          const qPoints = Number(q.points) || 1;
+          if (gradeMap.has(q.id)) {
+            mcAwardedScore += gradeMap.get(q.id)!;
+          } else {
+            const correctKey = keyMap.get(q.id);
+            const studentKey = ansMap.get(q.id);
+            if (correctKey && studentKey && correctKey === studentKey) {
+              mcAwardedScore += qPoints;
+            }
           }
         }
       }
-    }
 
-    const essayScore = grades.reduce((sum, g) => sum + (Number(g.awardedPoints) || 0), 0);
-    const totalScore = Math.round((mcAwardedScore + essayScore) * 100) / 100;
+      const essayScore = uniqueGrades.reduce((sum, g) => sum + (Number(g.awardedPoints) || 0), 0);
+      const computedTotal = Math.round((mcAwardedScore + essayScore) * 100) / 100;
 
-    // 6. Cập nhật kết quả vào attempt_results và quản lý released_at
-    const { data: currentResult } = await dbClient
-      .from('attempt_results')
-      .select('released_at')
-      .eq('attempt_id', attemptId)
-      .maybeSingle();
+      const currentResult = await resultRepo.findOne({ where: { attempt_id: attemptId } });
+      const releasedAt = releaseResult ? nowIso : currentResult?.released_at || null;
 
-    const releasedAtValue = releaseResult ? nowIso : currentResult?.released_at || null;
+      await resultRepo.save({
+        attempt_id: attemptId,
+        total_score: computedTotal,
+        released_at: releasedAt,
+        graded_by: user.id,
+        updated_at: nowIso,
+      });
 
-    const { error: resultErr } = await dbClient
-      .from('attempt_results')
-      .upsert(
-        {
-          attempt_id: attemptId,
-          total_score: totalScore,
-          released_at: releasedAtValue,
-          graded_by: user.id,
-          updated_at: nowIso,
-        },
-        { onConflict: 'attempt_id' }
-      );
+      if (releaseResult) {
+        await attemptRepo.update({ id: attemptId }, { status: 'completed' });
 
-    if (resultErr) {
-      console.error('Failed to update attempt_results:', resultErr);
-      return { status: 'error', message: `Lỗi khi cập nhật kết quả bài thi: ${resultErr.message}` };
-    }
-
-    // 7. Chốt trạng thái bài thi thành 'completed' khi công bố điểm
-    if (releaseResult) {
-      await dbClient
-        .from('exam_attempts')
-        .update({
-          status: 'completed',
-        })
-        .eq('id', attemptId);
-
-      try {
-        await dbClient.from('notifications').insert({
+        await manager.getRepository(NotificationSchema).insert({
           user_id: studentId,
           title: 'Bài thi đã có kết quả chính thức',
-          message: `Giảng viên đã hoàn thành chấm điểm bài thi "${examTitle}". Tổng điểm của bạn: ${totalScore} điểm.`,
-          data: { exam_id: examId, attempt_id: attemptId, total_score: totalScore },
+          message: `Giảng viên đã hoàn thành chấm điểm bài thi "${examTitle}". Tổng điểm của bạn: ${computedTotal} điểm.`,
+          data: { exam_id: examId, attempt_id: attemptId, total_score: computedTotal },
+          created_at: nowIso,
+          read_at: null,
         });
-      } catch (notifErr) {
-        console.warn('Could not insert student grading notification:', notifErr);
       }
-    }
+
+      return { totalScore: computedTotal, releasedAtValue: releasedAt };
+    });
 
     try {
       revalidatePath('/student/results');

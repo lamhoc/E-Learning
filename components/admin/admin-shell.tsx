@@ -16,7 +16,6 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import { cn } from '@/lib/utils';
@@ -74,8 +73,7 @@ export function AdminShell({ children, adminEmail = 'admin@lhu.edu.vn' }: AdminS
     if (isLoggingOut) return;
     setIsLoggingOut(true);
     try {
-      const supabase = createClient();
-      await supabase.auth.signOut();
+      await fetch('/api/auth/logout', { method: 'POST' });
     } catch (err) {
       console.error('SignOut error:', err);
     } finally {

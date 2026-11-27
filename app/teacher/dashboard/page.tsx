@@ -270,7 +270,7 @@ async function TeacherDashboardDataContent() {
           <div>
             <p className="font-semibold">Một số dữ liệu chưa tải được</p>
             <p className="mt-1 text-amber-900/80">
-              {data.errorMessage} Kiểm tra các policy RLS trên Supabase rồi tải lại trang.
+              {data.errorMessage} Kiểm tra kết nối SQL Server rồi tải lại trang.
             </p>
           </div>
         </div>

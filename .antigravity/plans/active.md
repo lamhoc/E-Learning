@@ -886,3 +886,21 @@
     + Chạy `cmd /c "npx tsc --noEmit"`: 0 lỗi.
     + Chạy `cmd /c "npm run build"`: Compiled successfully, 31/31 static/dynamic pages tối ưu 100%.
     + Tạo local commit an toàn theo `AGENTS.md` (tuyệt đối không `git push` tự ý). Ghi nhận commit hash `28939a7`.
+
+- [x] **Phase 79**: Chuyển đổi toàn bộ hạ tầng CSDL & Auth từ Supabase sang **SQL Server 2019 + TypeORM + JWT + Local Storage**:
+  - [x] **Mục tiêu 1 (TypeORM & SQL Server 2019 Core)**:
+    + Cài đặt `typeorm`, `mssql`, `@types/mssql`, `jose`, `bcryptjs`, `@types/bcryptjs`, `tsx`. Cấu hình `serverExternalPackages` trong `next.config.ts`.
+    + Tạo toàn bộ 29 `EntitySchema` TypeORM (`users`, `profiles`, `user_roles`, `subjects`, `classes`, `teacher_subject_assignments`, `class_memberships`, `question_bank`, `question_options`, `question_answer_keys`, `exams`, `exam_classes`, `exam_questions`, `exam_answer_keys`, `exam_attempts`, `student_answers`, `student_answer_grades`, `attempt_results`, `notifications`, `ai_generation_jobs`, `ai_tutor_conversations`, `ai_tutor_messages`, `invitation_tokens`, `teacher_applications`, `class_materials`, `exam_proctoring_logs`, `assignments`, `assignment_submissions`, `auth_otps`) trong `lib/db/entities/` và singleton `DataSource` tại `lib/db/data-source.ts`.
+    + Tạo script T-SQL chuẩn SQL Server 2019 (`sql/001_init_sqlserver2019.sql`), khởi tạo database `AutoBankELearning` trực tiếp trên SQL Server 2019 (`127.0.0.1:1433`), tạo sequence `student_code_seq` và seed tài khoản mẫu (`scripts/db-init.ts`, `scripts/db-verify.ts`).
+  - [x] **Mục tiêu 2 (Xác thực JWT + HTTP-only Cookie thay Supabase Auth)**:
+    + Tạo `lib/auth/password.ts`, `lib/auth/session.ts` (`jose` HS256), `lib/auth/user-service.ts`, API routes `/api/auth/login`, `/api/auth/logout`, `/api/auth/set-password`, `/api/auth/me`.
+    + Cập nhật `proxy.ts`, `lib/auth-cache.ts`, `app/login/*`, `app/register/*`, `app/auth/*`, 6 component sidebar/shell.
+  - [x] **Mục tiêu 3 (Lưu trữ file nội bộ thay Supabase Storage)**:
+    + Tạo `lib/storage/local-storage.ts` lưu vào `storage/uploads/` và route `/api/uploads/[...path]` kiểm tra quyền truy cập.
+    + Chuyển đổi `app/teacher/classes/[classId]/materials/actions.ts` và `app/teacher/classes/[classId]/assignments/actions.ts`.
+  - [x] **Mục tiêu 4 (Chuyển đổi toàn bộ nghiệp vụ, Thông báo & 8 RPC sang TypeORM)**:
+    + Viết lại toàn bộ `lib/*.ts`, `app/**/actions.ts`, `app/**/page.tsx`, `app/api/**/*.ts`, `hooks/use-realtime-notifications.ts` + `/api/notifications` sang TypeORM Repository / QueryBuilder / Transaction.
+    + Chuyển 8 hàm RPC Postgres (`publish_exam`, `claim_teacher_invitation`, `list_class_roster`, `find_student_for_class`, `enroll_student_in_class`, `unenroll_student_from_class`, `preview_class_enrollment_csv`, `bulk_enroll_students_in_class`) sang TypeScript service + transaction.
+  - [x] **Mục tiêu 5 (Dọn dẹp Supabase, Kiểm thử & Nghiệm thu)**:
+    + Gỡ `@supabase/ssr`, `@supabase/supabase-js` và thư mục `lib/supabase/`.
+    + Kiểm thử trực tiếp trên SQL Server 2019 (`scripts/db-init.ts`, `scripts/db-verify.ts`: 29 bảng, bcrypt + JWT HS256), `npx tsc --noEmit` (0 lỗi), `npm run build` (34/34 routes thành công). Local commit an toàn, không push tự ý.

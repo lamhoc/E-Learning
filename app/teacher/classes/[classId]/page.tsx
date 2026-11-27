@@ -4,7 +4,10 @@ import { ArrowLeft, FileCheck2, FileText, GraduationCap, Users } from 'lucide-re
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUserWithRole } from '@/lib/auth-cache';
+import { getDataSource } from '@/lib/db/data-source';
+import { ClassSchema, ProfileSchema, SubjectSchema } from '@/lib/db/entities';
+import { isClassStaff, listClassRoster } from '@/lib/db/class-roster-service';
 import { RosterManager, type ClassRosterStudent } from '../roster-manager';
 
 type ClassRosterPageProps = { params: Promise<{ classId: string }> };
@@ -13,50 +16,36 @@ export default async function ClassRosterPage({ params }: ClassRosterPageProps) 
   const { classId } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(classId)) notFound();
 
-  const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) redirect('/login');
+  const { user, role } = await getCurrentUserWithRole();
+  if (!user) redirect('/login');
+  if (role !== 'admin' && role !== 'teacher') redirect('/subjects');
 
-  const { data: roleRecord, error: roleError } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .maybeSingle();
-  const role = roleRecord?.role;
-  if (roleError || (role !== 'admin' && role !== 'teacher')) redirect('/subjects');
+  const ds = await getDataSource();
+  const classItem = await ds.getRepository(ClassSchema).findOne({
+    where: { id: classId },
+  });
+  if (!classItem) notFound();
 
-  // Lấy tên giảng viên để hiển thị sidebar
-  const { data: teacherProfile } = await supabase
-    .from('profiles')
-    .select('full_name')
-    .eq('id', user.id)
-    .maybeSingle();
-  const teacherName = teacherProfile?.full_name ?? 'Giảng viên';
+  const canManage = await isClassStaff(user.id, role, classId);
+  if (!canManage) redirect('/teacher/classes');
 
-  const { data: classItem, error: classError } = await supabase
-    .from('classes')
-    .select('id, name, class_code, academic_year, subject_id, teacher_id')
-    .eq('id', classId)
-    .maybeSingle();
-  if (classError || !classItem) notFound();
-
-  const [{ data: subject }, { data: teacher }, { data: roster, error: rosterError }] = await Promise.all([
-    supabase.from('subjects').select('name, code').eq('id', classItem.subject_id).maybeSingle(),
-    supabase.from('profiles').select('full_name').eq('id', classItem.teacher_id).maybeSingle(),
-    supabase.rpc('list_class_roster', { p_class_id: classId }),
+  let rosterErrorCode: string | null = null;
+  const [subject, teacher, rosterRows] = await Promise.all([
+    ds.getRepository(SubjectSchema).findOne({
+      select: { name: true, code: true },
+      where: { id: classItem.subject_id },
+    }),
+    ds.getRepository(ProfileSchema).findOne({
+      select: { full_name: true },
+      where: { id: classItem.teacher_id },
+    }),
+    listClassRoster(classId).catch((err) => {
+      console.error('Could not load class roster:', err);
+      rosterErrorCode = 'SQL_ERROR';
+      return [];
+    }),
   ]);
 
-  if (rosterError) {
-    console.error('Could not load class roster:', rosterError.code, rosterError.message);
-  }
-
-  const rosterRows = (roster ?? []) as {
-    student_id: string;
-    full_name: string;
-    student_email: string;
-    student_code: string;
-    enrolled_at: string;
-  }[];
   const students: ClassRosterStudent[] = rosterRows.map((student) => ({
     id: student.student_id,
     fullName: student.full_name,
@@ -132,9 +121,9 @@ export default async function ClassRosterPage({ params }: ClassRosterPageProps) 
               </div>
             </CardHeader>
             <CardContent>
-              {rosterError ? (
+              {rosterErrorCode ? (
                 <div role="alert" className="rounded-md border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                  Không tải được danh sách (mã lỗi {rosterError.code || 'không xác định'}). Kiểm tra mã lỗi trong log server để biết migration, schema cache hay quyền truy cập.
+                  Không tải được danh sách (mã lỗi {rosterErrorCode}). Kiểm tra mã lỗi trong log server để biết migration, schema cache hay quyền truy cập.
                 </div>
               ) : (
                 <RosterManager classId={classId} students={students} />

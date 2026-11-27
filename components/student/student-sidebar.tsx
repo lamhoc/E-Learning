@@ -17,7 +17,6 @@ import {
   X,
 } from 'lucide-react';
 import { signOut } from '@/app/subjects/actions';
-import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { BrandLogo } from '@/components/ui/brand-logo';
@@ -111,8 +110,7 @@ export function StudentSidebar({ studentName, activeRoute }: StudentSidebarProps
     if (isLoggingOut) return;
     setIsLoggingOut(true);
     try {
-      const supabase = createClient();
-      await supabase.auth.signOut();
+      await fetch('/api/auth/logout', { method: 'POST' });
     } catch (err) {
       console.error('Client student signOut error:', err);
     } finally {

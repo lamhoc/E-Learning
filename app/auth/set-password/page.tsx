@@ -1,11 +1,10 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/lib/auth-cache';
 import { PasswordForm } from './password-form';
 
 export default async function SetPasswordPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { user } = await getCurrentUser();
 
   if (!user) redirect('/login?auth=link-error');
 
@@ -21,7 +20,7 @@ export default async function SetPasswordPage() {
           </p>
           <h1 className="mt-2 text-2xl font-semibold">Đặt mật khẩu</h1>
           <p className="mb-6 mt-2 text-sm leading-6 text-[#68776e]">
-            Tạo mật khẩu riêng cho tài khoản giảng viên. Mật khẩu chỉ được gửi trực tiếp tới Supabase Auth.
+            Tạo mật khẩu riêng cho tài khoản của bạn. Mật khẩu được băm an toàn bằng bcrypt trước khi lưu vào SQL Server.
           </p>
           <PasswordForm />
         </section>

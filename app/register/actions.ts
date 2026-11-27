@@ -1,8 +1,10 @@
 'use server';
 
 import { createHash } from 'node:crypto';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { getCurrentUser } from '@/lib/auth-cache';
+import { getDataSource } from '@/lib/db/data-source';
+import { UserSchema } from '@/lib/db/entities';
+import { claimTeacherInvitationForUser, registerUserAccount } from '@/lib/auth/user-service';
 import { createAndSendOtp, verifyOtp } from '@/lib/email/otp-service';
 import { isResendConfigured } from '@/lib/email/resend';
 
@@ -46,49 +48,30 @@ export async function requestRegistrationOtpAction(
   if (validationError) return { success: false, message: validationError };
 
   const invitationToken = String(formData.get('invitationToken') ?? '').trim();
-  const adminClient = createAdminClient();
 
-  // Kiểm tra email đã tồn tại hay chưa
-  try {
-    const { data: usersList } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 100 });
-    const existingUser = usersList?.users?.find(
-      (u) => u.email?.toLowerCase() === email.toLowerCase(),
-    );
-    if (existingUser) {
-      return {
-        success: false,
-        message: 'Email này đã có tài khoản. Hãy đăng nhập hoặc dùng tính năng Quên mật khẩu.',
-      };
-    }
-  } catch {
-    // Tiếp tục nếu không kiểm tra được danh sách
+  const ds = await getDataSource();
+  const existingUser = await ds.getRepository(UserSchema).findOne({
+    where: { email },
+  });
+  if (existingUser) {
+    return {
+      success: false,
+      message: 'Email này đã có tài khoản. Hãy đăng nhập hoặc dùng tính năng Quên mật khẩu.',
+    };
   }
 
-  // Nếu Resend chưa được cấu hình, đăng ký trực tiếp (chế độ dự phòng dev)
+  // Nếu chưa cấu hình Email Service (SMTP/Resend), đăng ký trực tiếp ở môi trường dev
   if (!isResendConfigured()) {
-    const signupData: Record<string, string> = { full_name: fullName };
-    if (role === 'teacher') {
-      if (invitationToken) {
-        signupData.teacher_invitation_hash = createHash('sha256')
-          .update(invitationToken)
-          .digest('hex');
-      } else {
-        signupData.requested_role = 'teacher';
-      }
-    }
-
-    const { error } = await adminClient.auth.admin.createUser({
+    const created = await registerUserAccount({
       email,
       password,
-      email_confirm: true,
-      user_metadata: signupData,
+      fullName,
+      role,
+      invitationToken,
     });
 
-    if (error) {
-      return {
-        success: false,
-        message: 'Không thể tạo tài khoản: ' + error.message,
-      };
+    if (!created.success) {
+      return { success: false, message: created.message };
     }
 
     return {
@@ -99,7 +82,6 @@ export async function requestRegistrationOtpAction(
     };
   }
 
-  // Gửi mã OTP xác thực email qua Resend
   const otpResult = await createAndSendOtp({
     email,
     purpose: 'register_verify',
@@ -124,7 +106,7 @@ export async function requestRegistrationOtpAction(
 }
 
 /**
- * Xác thực mã OTP 6 số và chính thức tạo tài khoản người dùng
+ * Xác thực mã OTP 6 số và chính thức tạo tài khoản người dùng trên SQL Server
  */
 export async function completeRegistrationWithOtpAction(
   email: string,
@@ -140,43 +122,31 @@ export async function completeRegistrationWithOtpAction(
     return { success: false, message: verifyResult.message || 'Mã xác thực OTP không hợp lệ.' };
   }
 
-  const metadata = (verifyResult.metadata as {
-    fullName?: string;
-    password?: string;
-    role?: 'student' | 'teacher';
-    invitationToken?: string;
-  }) || {};
+  const metadata =
+    (verifyResult.metadata as {
+      fullName?: string;
+      password?: string;
+      role?: 'student' | 'teacher';
+      invitationToken?: string;
+    }) || {};
 
   const fullName = metadata.fullName || '';
   const password = metadata.password || '';
   const role = metadata.role || 'student';
   const invitationToken = metadata.invitationToken || '';
 
-  const adminClient = createAdminClient();
-  const signupData: Record<string, string> = { full_name: fullName };
-
-  if (role === 'teacher') {
-    if (invitationToken) {
-      signupData.teacher_invitation_hash = createHash('sha256')
-        .update(invitationToken)
-        .digest('hex');
-    } else {
-      signupData.requested_role = 'teacher';
-    }
-  }
-
-  const { error } = await adminClient.auth.admin.createUser({
+  const created = await registerUserAccount({
     email,
     password,
-    email_confirm: true,
-    user_metadata: signupData,
+    fullName,
+    role,
+    invitationToken,
   });
 
-  if (error) {
-    console.error('Lỗi tạo tài khoản sau xác thực OTP:', error);
+  if (!created.success) {
     return {
       success: false,
-      message: 'Không thể kích hoạt tài khoản: ' + error.message,
+      message: created.message,
     };
   }
 
@@ -187,7 +157,6 @@ export async function completeRegistrationWithOtpAction(
   };
 }
 
-// Giữ lại các hàm cũ để duy trì tương thích ngược
 export async function registerStudent(
   _previousState: RegistrationState,
   formData: FormData,
@@ -218,26 +187,11 @@ export async function claimTeacherInvitation(token: string): Promise<ClaimInvita
     return { success: false, message: 'Link mời không hợp lệ.' };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user) {
+  const { user } = await getCurrentUser();
+  if (!user) {
     return { success: false, message: 'Hãy đăng nhập bằng đúng email nhận mã mời trước.' };
   }
 
   const tokenHash = createHash('sha256').update(token).digest('hex');
-  const { error } = await supabase.rpc('claim_teacher_invitation', {
-    p_token_hash: tokenHash,
-  });
-
-  if (error) {
-    return {
-      success: false,
-      message: 'Không thể nhận mã mời. Hãy kiểm tra email đăng nhập, hạn dùng và trạng thái của link.',
-    };
-  }
-
-  return { success: true, message: 'Đã xác nhận mã mời giảng viên.' };
+  return claimTeacherInvitationForUser(user.id, user.email, tokenHash);
 }

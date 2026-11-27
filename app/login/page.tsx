@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { BookOpen, Brain, GraduationCap, Sparkles, Users } from 'lucide-react';
 import { LoginForm } from './login-form';
 import { getCurrentUserWithRole } from '@/lib/auth-cache';
+import { getDataSource } from '@/lib/db/data-source';
+import { TeacherApplicationSchema } from '@/lib/db/entities';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import { ThemeToggle } from '@/components/theme-toggle';
 
@@ -20,7 +22,7 @@ const HIGHLIGHTS = [
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
-  const { user, role, supabase } = await getCurrentUserWithRole();
+  const { user, role } = await getCurrentUserWithRole();
 
   // Redirect nếu đã đăng nhập
   if (user) {
@@ -36,15 +38,15 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
     if (userRole === 'admin') redirect('/admin');
     if (userRole === 'teacher') redirect('/teacher/dashboard');
-    if (userRole === 'student') redirect('/student/dashboard');
 
-    const { data: application } = await supabase
-      .from('teacher_applications')
-      .select('status')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    const ds = await getDataSource();
+    const application = await ds.getRepository(TeacherApplicationSchema).findOne({
+      where: { user_id: user.id },
+      select: { status: true },
+    });
 
     if (application) redirect('/register/teacher/pending');
+    if (userRole === 'student') redirect('/student/dashboard');
     redirect('/subjects');
   }
 

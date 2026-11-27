@@ -6,24 +6,22 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUserWithRole } from '@/lib/auth-cache';
+import { getDataSource } from '@/lib/db/data-source';
+import { TeacherApplicationSchema } from '@/lib/db/entities';
 import { signOut } from '@/app/subjects/actions';
 
 export default async function TeacherApplicationStatusPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { user, role } = await getCurrentUserWithRole();
   if (!user) redirect('/login');
 
-  const [{ data: roleRecord }, { data: application }] = await Promise.all([
-    supabase.from('user_roles').select('role').eq('user_id', user.id).maybeSingle(),
-    supabase
-      .from('teacher_applications')
-      .select('status, requested_at, reviewed_at, review_note')
-      .eq('user_id', user.id)
-      .maybeSingle(),
-  ]);
+  if (role === 'teacher') redirect('/teacher/dashboard');
 
-  if (roleRecord?.role === 'teacher') redirect('/teacher/dashboard');
+  const ds = await getDataSource();
+  const application = await ds.getRepository(TeacherApplicationSchema).findOne({
+    where: { user_id: user.id },
+  });
+
   if (!application) redirect('/subjects');
 
   const isRejected = application.status === 'rejected';

@@ -1,7 +1,18 @@
 import 'server-only';
 
+import { In } from 'typeorm';
 import { getCurrentUser } from '@/lib/auth-cache';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { getRepo } from '@/lib/db/data-source';
+import {
+  AttemptResultSchema,
+  ExamAnswerKeySchema,
+  ExamAttemptSchema,
+  ExamQuestionSchema,
+  ExamSchema,
+  StudentAnswerGradeSchema,
+  StudentAnswerSchema,
+  SubjectSchema,
+} from '@/lib/db/entities';
 import { isShowAnswersAfterSubmit } from '@/lib/exam-auto-grade';
 import { shuffleExamQuestions } from '@/lib/exam-shuffle';
 import type { StudentExamQuestion, ExamQuestionOption } from '@/lib/student-exam';
@@ -13,7 +24,7 @@ export type AttemptReviewOption = {
 };
 
 export type AttemptReviewQuestion = {
-  questionNumber: number; // 1..N (theo thứ tự thí sinh đã làm)
+  questionNumber: number;
   questionId: string;
   questionType: 'multiple_choice' | 'essay';
   questionText: string;
@@ -23,12 +34,11 @@ export type AttemptReviewQuestion = {
   studentText: string | null;
   awardedPoints: number | null;
   teacherFeedback: string | null;
-  // Các trường chỉ trả về khi showAnswers === true:
   correctOption?: 'A' | 'B' | 'C' | 'D' | null;
   modelAnswer?: string | null;
   rubric?: string | null;
   explanation?: string | null;
-  isCorrect?: boolean | null; // true = đúng, false = sai, null = chờ chấm / bỏ trống
+  isCorrect?: boolean | null;
 };
 
 export type AttemptReviewData = {
@@ -47,157 +57,123 @@ export type AttemptReviewData = {
 };
 
 export async function getStudentAttemptReviewData(
-  attemptId: string
+  attemptId: string,
 ): Promise<{ status: 'success'; data: AttemptReviewData } | { status: 'error'; message: string }> {
   try {
-    const { user, error: authErr, supabase } = await getCurrentUser();
+    const { user, error: authErr } = await getCurrentUser();
 
     if (authErr || !user) {
       return { status: 'error', message: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.' };
     }
 
-    const adminClient = process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : supabase;
+    const [
+      attemptRepo,
+      examRepo,
+      subjectRepo,
+      resultRepo,
+      questionRepo,
+      answerRepo,
+      gradeRepo,
+      keyRepo,
+    ] = await Promise.all([
+      getRepo(ExamAttemptSchema),
+      getRepo(ExamSchema),
+      getRepo(SubjectSchema),
+      getRepo(AttemptResultSchema),
+      getRepo(ExamQuestionSchema),
+      getRepo(StudentAnswerSchema),
+      getRepo(StudentAnswerGradeSchema),
+      getRepo(ExamAnswerKeySchema),
+    ]);
 
-    // 1. Lấy thông tin lượt thi
-    const { data: attempt, error: attemptErr } = await adminClient
-      .from('exam_attempts')
-      .select(`
-        id, exam_id, attempt_no, student_id, submitted_at, status,
-        exam:exams(
-          id, title, instructions, show_answers_after_submit,
-          subject:subjects(name)
-        ),
-        result:attempt_results(total_score, released_at)
-      `)
-      .eq('id', attemptId)
-      .maybeSingle();
-
-    if (attemptErr || !attempt) {
+    const attempt = await attemptRepo.findOne({ where: { id: attemptId } });
+    if (!attempt) {
       return { status: 'error', message: 'Không tìm thấy lượt làm bài thi này.' };
     }
 
-    // Bảo mật: Thí sinh chỉ được xem bài làm của chính mình
     if (attempt.student_id !== user.id) {
       return { status: 'error', message: 'Bạn không có quyền truy cập bài làm của thí sinh khác.' };
     }
 
-    const rawExam = Array.isArray(attempt.exam) ? attempt.exam[0] : attempt.exam;
+    const [rawExam, resultRecord, rawQuestionsData, rawAnswers, rawGrades] = await Promise.all([
+      examRepo.findOne({ where: { id: attempt.exam_id } }),
+      resultRepo.findOne({ where: { attempt_id: attemptId } }),
+      questionRepo.find({ where: { exam_id: attempt.exam_id }, order: { position: 'ASC' } }),
+      answerRepo.find({ where: { attempt_id: attemptId } }),
+      gradeRepo.find({ where: { attempt_id: attemptId } }),
+    ]);
+
     if (!rawExam) {
       return { status: 'error', message: 'Không tìm thấy dữ liệu đề thi gốc.' };
     }
 
-    const rawSubject = rawExam.subject as unknown as { name: string } | { name: string }[] | null;
-    const subjectName = Array.isArray(rawSubject)
-      ? rawSubject[0]?.name || 'Môn học'
-      : rawSubject?.name || 'Môn học';
-
-    const showAnswers = isShowAnswersAfterSubmit(rawExam);
-
-    // 2. Lấy toàn bộ câu hỏi của đề thi
-    const { data: rawQuestionsData, error: qErr } = await adminClient
-      .from('exam_questions')
-      .select('id, position, question_type, question_text, options, points')
-      .eq('exam_id', rawExam.id)
-      .order('position', { ascending: true });
-
-    if (qErr || !rawQuestionsData || rawQuestionsData.length === 0) {
+    if (rawQuestionsData.length === 0) {
       return { status: 'error', message: 'Không thể nạp danh sách câu hỏi của đề thi.' };
     }
+
+    const showAnswers = isShowAnswersAfterSubmit(rawExam);
+    const qIds = rawQuestionsData.map((q) => q.id);
+
+    const [subjectRecord, rawKeys] = await Promise.all([
+      subjectRepo.findOne({ where: { id: rawExam.subject_id } }),
+      showAnswers ? keyRepo.find({ where: { exam_question_id: In(qIds) } }) : Promise.resolve([]),
+    ]);
+
+    const subjectName = subjectRecord?.name || 'Môn học';
 
     const parsedQuestions: StudentExamQuestion[] = rawQuestionsData.map((q) => {
       let optionsList: ExamQuestionOption[] = [];
       if (Array.isArray(q.options)) {
-        optionsList = q.options.map((opt: unknown) => {
-          if (typeof opt === 'object' && opt !== null) {
-            const item = opt as Record<string, unknown>;
-            return {
-              key: (String(item.key || '').toUpperCase() as 'A' | 'B' | 'C' | 'D') || 'A',
-              text: String(item.text || ''),
-            };
-          }
-          return { key: 'A', text: String(opt) };
-        });
+        optionsList = q.options.map((opt) => ({
+          key: (String(opt.key || '').toUpperCase() as 'A' | 'B' | 'C' | 'D') || 'A',
+          text: String(opt.text || ''),
+        }));
       }
 
       return {
         id: q.id,
         position: q.position,
-        question_type: q.question_type as 'multiple_choice' | 'essay',
+        question_type: q.question_type,
         question_text: q.question_text,
         options: optionsList,
         points: Number(q.points) || 1,
       };
     });
 
-    // 3. Tái lập đúng thứ tự câu hỏi và phương án A-B-C-D theo Seed Shuffle của attempt
     const shuffledQuestions = shuffleExamQuestions(parsedQuestions, attemptId);
 
-    // 4. Lấy câu trả lời của học sinh
-    const { data: rawAnswers } = await adminClient
-      .from('student_answers')
-      .select('exam_question_id, selected_option, answer_text')
-      .eq('attempt_id', attemptId);
-
     const studentAnswerMap = new Map(
-      (rawAnswers ?? []).map((ans) => [
+      rawAnswers.map((ans) => [
         ans.exam_question_id,
         {
           selectedOption: ans.selected_option as 'A' | 'B' | 'C' | 'D' | null,
           answerText: ans.answer_text,
         },
-      ])
+      ]),
     );
 
-    // 5. Lấy điểm và feedback của từng câu
-    const { data: rawGrades } = await adminClient
-      .from('student_answer_grades')
-      .select('exam_question_id, awarded_points, feedback')
-      .eq('attempt_id', attemptId);
-
     const gradesMap = new Map(
-      (rawGrades ?? []).map((g) => [
+      rawGrades.map((g) => [
         g.exam_question_id,
         {
           awardedPoints: g.awarded_points !== null ? Number(g.awarded_points) : null,
           feedback: g.feedback || null,
         },
-      ])
+      ]),
     );
 
-    // 6. Nếu BẬT xem đáp án: Lấy bảng đáp án đúng
-    let answerKeyMap = new Map<
-      string,
-      {
-        correctOptionKey: 'A' | 'B' | 'C' | 'D' | null;
-        modelAnswer: string | null;
-        gradingRubric: string | null;
-        explanation: string | null;
-      }
-    >();
+    const answerKeyMap = new Map(
+      rawKeys.map((k) => [
+        k.exam_question_id,
+        {
+          correctOptionKey: (k.correct_option_key?.toUpperCase() as 'A' | 'B' | 'C' | 'D') || null,
+          modelAnswer: k.model_answer || null,
+          gradingRubric: k.grading_rubric || null,
+          explanation: k.explanation || null,
+        },
+      ]),
+    );
 
-    if (showAnswers) {
-      const qIds = rawQuestionsData.map((q) => q.id);
-      const { data: rawKeys } = await adminClient
-        .from('exam_answer_keys')
-        .select('exam_question_id, correct_option_key, model_answer, grading_rubric, explanation')
-        .in('exam_question_id', qIds);
-
-      if (rawKeys) {
-        answerKeyMap = new Map(
-          rawKeys.map((k) => [
-            k.exam_question_id,
-            {
-              correctOptionKey: (k.correct_option_key?.toUpperCase() as 'A' | 'B' | 'C' | 'D') || null,
-              modelAnswer: k.model_answer || null,
-              gradingRubric: k.grading_rubric || null,
-              explanation: k.explanation || null,
-            },
-          ])
-        );
-      }
-    }
-
-    // 7. Tổng hợp danh sách câu hỏi đối chiếu
     let correctCount = 0;
     let incorrectCount = 0;
     let unansweredCount = 0;
@@ -229,17 +205,13 @@ export async function getStudentAttemptReviewData(
           }
         }
       } else {
-        // Tự luận
         const isAnswered = Boolean(studentText && studentText.trim());
         if (!isAnswered) {
           unansweredCount++;
           isCorrect = false;
         } else if (awardedPoints !== null) {
-          if (awardedPoints >= q.points) {
+          if (awardedPoints >= q.points || awardedPoints > 0) {
             isCorrect = true;
-            correctCount++;
-          } else if (awardedPoints > 0) {
-            isCorrect = true; // Một phần điểm
             correctCount++;
           } else {
             isCorrect = false;
@@ -265,7 +237,6 @@ export async function getStudentAttemptReviewData(
         teacherFeedback,
       };
 
-      // Bảo mật Server-side: Chỉ gán đáp án và lời giải khi showAnswers === true
       if (showAnswers && key) {
         item.correctOption = key.correctOptionKey;
         item.modelAnswer = key.modelAnswer;
@@ -278,9 +249,7 @@ export async function getStudentAttemptReviewData(
     });
 
     const totalScore =
-      attempt.result && attempt.result.length > 0 && attempt.result[0]?.total_score !== null
-        ? Number(attempt.result[0].total_score)
-        : null;
+      resultRecord && resultRecord.total_score !== null ? Number(resultRecord.total_score) : null;
 
     return {
       status: 'success',

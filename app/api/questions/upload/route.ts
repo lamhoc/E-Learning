@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/lib/auth-cache';
+import { getRepo } from '@/lib/db/data-source';
+import { SubjectSchema, UserRoleSchema } from '@/lib/db/entities';
 import {
   cleanAndStandardizeQuestions,
   extractDocxTextWithRedColor,
@@ -14,31 +16,23 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    const { user, error: authError } = await getCurrentUser();
 
     if (authError || !user) {
       return NextResponse.json(
         { status: 'error', message: 'Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.' },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
-    // Kiểm tra quyền hạn Giảng viên hoặc Admin
-    const { data: roleRecord } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
+    const roleRepo = await getRepo(UserRoleSchema);
+    const roleRecord = await roleRepo.findOne({ where: { user_id: user.id } });
     const role = roleRecord?.role;
+
     if (role !== 'admin' && role !== 'teacher') {
       return NextResponse.json(
         { status: 'error', message: 'Bạn không có quyền thực hiện chức năng này.' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -49,7 +43,7 @@ export async function POST(req: NextRequest) {
     if (!file) {
       return NextResponse.json(
         { status: 'error', message: 'Vui lòng chọn file tài liệu cần upload.' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -59,26 +53,21 @@ export async function POST(req: NextRequest) {
     if (fileExt !== 'docx' && fileExt !== 'pdf') {
       return NextResponse.json(
         { status: 'error', message: 'Hệ thống chỉ hỗ trợ định dạng file .docx (Word) hoặc .pdf.' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Giới hạn dung lượng 15MB
     if (file.size > 15 * 1024 * 1024) {
       return NextResponse.json(
         { status: 'error', message: 'Dung lượng file vượt quá giới hạn tối đa 15MB.' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Lấy thông tin môn học và kiểm tra phân công
     let subjectName = '';
     if (subjectId) {
-      const { data: subject } = await supabase
-        .from('subjects')
-        .select('name')
-        .eq('id', subjectId)
-        .maybeSingle();
+      const subjectRepo = await getRepo(SubjectSchema);
+      const subject = await subjectRepo.findOne({ where: { id: subjectId } });
       if (subject) {
         subjectName = subject.name;
       }
@@ -103,16 +92,14 @@ export async function POST(req: NextRequest) {
     if (!extractedText || extractedText.trim().length < 20) {
       return NextResponse.json(
         { status: 'error', message: 'File tài liệu không có đủ nội dung văn bản để bóc tách câu hỏi.' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Thử bóc tách trước bằng parser nội bộ (nhận diện màu đỏ và câu hỏi)
     const localQuestions = parseQuestionsLocallyFromText(extractedText);
 
     let questions: ParsedQuestionItem[] = [];
     try {
-      // Gọi Groq AI để chuẩn hóa KaTeX và cấu trúc
       questions = await parseDocumentWithGroq({
         rawText: extractedText,
         subjectName,
@@ -123,18 +110,16 @@ export async function POST(req: NextRequest) {
       questions = localQuestions;
     }
 
-    // Nếu AI trả về rỗng nhưng local có câu hỏi, ưu tiên dùng local
     if (questions.length === 0 && localQuestions.length > 0) {
       questions = localQuestions;
     }
 
-    // Luôn chuẩn hóa và làm sạch qua bộ lọc
     questions = cleanAndStandardizeQuestions(questions);
 
     if (questions.length === 0) {
       return NextResponse.json(
         { status: 'error', message: 'Không nhận diện được câu hỏi nào từ file tài liệu này. Vui lòng kiểm tra lại cấu trúc đánh số câu hỏi.' },
-        { status: 422 }
+        { status: 422 },
       );
     }
 
@@ -156,8 +141,7 @@ export async function POST(req: NextRequest) {
         status: 'error',
         message: error instanceof Error ? error.message : 'Đã xảy ra lỗi khi xử lý tài liệu.',
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

@@ -1,9 +1,16 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createAdminClient } from '@/lib/supabase/admin';
 import { getCurrentUserWithRole } from '@/lib/auth-cache';
 import { revalidateSubjectsCache } from '@/lib/data-cache';
+import { getDataSource } from '@/lib/db/data-source';
+import {
+  ClassSchema,
+  QuestionBankSchema,
+  SubjectSchema,
+  TeacherSubjectAssignmentSchema,
+  UserRoleSchema,
+} from '@/lib/db/entities';
 
 export type SubjectActionResponse = {
   success: boolean;
@@ -17,19 +24,13 @@ async function verifyAdmin() {
     return { error: 'Vui lòng đăng nhập lại.', user: null };
   }
 
-  const isMetadataAdmin = user.app_metadata?.role === 'admin';
-  const isDbAdmin = role === 'admin';
-
-  if (!isMetadataAdmin && !isDbAdmin) {
+  if (role !== 'admin' && user.app_metadata?.role !== 'admin') {
     return { error: 'Chỉ Quản trị viên (Admin) mới có quyền thực hiện thao tác này.', user: null };
   }
 
   return { error: null, user };
 }
 
-/**
- * Tạo môn học mới trong hệ thống
- */
 export async function createSubjectAction(formData: FormData): Promise<SubjectActionResponse> {
   const { error: authError, user } = await verifyAdmin();
   if (authError || !user) {
@@ -48,37 +49,31 @@ export async function createSubjectAction(formData: FormData): Promise<SubjectAc
   }
 
   if (!name || name.length < 2 || name.length > 120) {
-    return {
-      success: false,
-      error: 'Tên môn học phải từ 2 đến 120 ký tự.',
-    };
+    return { success: false, error: 'Tên môn học phải từ 2 đến 120 ký tự.' };
   }
 
   try {
-    const adminClient = createAdminClient();
+    const ds = await getDataSource();
+    const subjectRepo = ds.getRepository(SubjectSchema);
 
-    // Kiểm tra trùng mã môn
-    const { data: existing } = await adminClient
-      .from('subjects')
-      .select('id, code')
-      .ilike('code', code)
-      .maybeSingle();
+    const existing = await subjectRepo
+      .createQueryBuilder('s')
+      .where('UPPER(s.code) = :code', { code })
+      .getOne();
 
     if (existing) {
       return { success: false, error: `Mã môn "${code}" đã tồn tại trong hệ thống.` };
     }
 
-    const { error: insertError } = await adminClient.from('subjects').insert({
-      code,
-      name,
-      description: description || null,
-      created_by: user.id,
-    });
-
-    if (insertError) {
-      console.error('Lỗi khi thêm môn học:', insertError);
-      return { success: false, error: 'Không thể tạo môn học mới. Vui lòng thử lại.' };
-    }
+    await subjectRepo.save(
+      subjectRepo.create({
+        code,
+        name,
+        description: description || null,
+        created_by: user.id,
+        archived_at: null,
+      }),
+    );
 
     await revalidateSubjectsCache();
     revalidatePath('/admin/subjects');
@@ -93,9 +88,6 @@ export async function createSubjectAction(formData: FormData): Promise<SubjectAc
   }
 }
 
-/**
- * Cập nhật thông tin môn học (Tên, mã môn, mô tả)
- */
 export async function updateSubjectAction(formData: FormData): Promise<SubjectActionResponse> {
   const { error: authError } = await verifyAdmin();
   if (authError) {
@@ -123,33 +115,22 @@ export async function updateSubjectAction(formData: FormData): Promise<SubjectAc
   }
 
   try {
-    const adminClient = createAdminClient();
+    const ds = await getDataSource();
+    const subjectRepo = ds.getRepository(SubjectSchema);
 
-    // Kiểm tra trùng mã môn với môn khác
-    const { data: existing } = await adminClient
-      .from('subjects')
-      .select('id')
-      .ilike('code', code)
-      .neq('id', subjectId)
-      .maybeSingle();
+    const existing = await subjectRepo
+      .createQueryBuilder('s')
+      .where('UPPER(s.code) = :code AND s.id <> :subjectId', { code, subjectId })
+      .getOne();
 
     if (existing) {
       return { success: false, error: `Mã môn "${code}" đã được sử dụng bởi một môn học khác.` };
     }
 
-    const { error: updateError } = await adminClient
-      .from('subjects')
-      .update({
-        code,
-        name,
-        description: description || null,
-      })
-      .eq('id', subjectId);
-
-    if (updateError) {
-      console.error('Lỗi khi cập nhật môn học:', updateError);
-      return { success: false, error: 'Không thể cập nhật môn học.' };
-    }
+    await subjectRepo.update(
+      { id: subjectId },
+      { code, name, description: description || null },
+    );
 
     await revalidateSubjectsCache();
     revalidatePath('/admin/subjects');
@@ -164,35 +145,21 @@ export async function updateSubjectAction(formData: FormData): Promise<SubjectAc
   }
 }
 
-/**
- * Chuyển đổi trạng thái Lưu trữ (Archive) hoặc Kích hoạt lại môn học
- */
 export async function toggleArchiveSubjectAction(
   subjectId: string,
-  shouldArchive: boolean
+  shouldArchive: boolean,
 ): Promise<SubjectActionResponse> {
   const { error: authError } = await verifyAdmin();
-  if (authError) {
-    return { success: false, error: authError };
-  }
+  if (authError) return { success: false, error: authError };
 
   if (!/^[0-9a-f-]{36}$/i.test(subjectId)) {
     return { success: false, error: 'ID môn học không hợp lệ.' };
   }
 
   try {
-    const adminClient = createAdminClient();
+    const ds = await getDataSource();
     const archived_at = shouldArchive ? new Date().toISOString() : null;
-
-    const { error } = await adminClient
-      .from('subjects')
-      .update({ archived_at })
-      .eq('id', subjectId);
-
-    if (error) {
-      console.error('Lỗi toggleArchiveSubjectAction:', error);
-      return { success: false, error: 'Không thể thay đổi trạng thái lưu trữ môn học.' };
-    }
+    await ds.getRepository(SubjectSchema).update({ id: subjectId }, { archived_at });
 
     await revalidateSubjectsCache();
     revalidatePath('/admin/subjects');
@@ -212,66 +179,37 @@ export async function toggleArchiveSubjectAction(
   }
 }
 
-/**
- * Xóa môn học khỏi hệ thống
- * Kiểm tra ràng buộc dữ liệu: Nếu đã có lớp học hoặc câu hỏi thì yêu cầu lưu trữ thay vì xóa cứng
- */
 export async function deleteSubjectAction(subjectId: string): Promise<SubjectActionResponse> {
   const { error: authError } = await verifyAdmin();
-  if (authError) {
-    return { success: false, error: authError };
-  }
+  if (authError) return { success: false, error: authError };
 
   if (!/^[0-9a-f-]{36}$/i.test(subjectId)) {
     return { success: false, error: 'ID môn học không hợp lệ.' };
   }
 
   try {
-    const adminClient = createAdminClient();
+    const ds = await getDataSource();
+    const [classesCount, questionsCount] = await Promise.all([
+      ds.getRepository(ClassSchema).count({ where: { subject_id: subjectId } }),
+      ds.getRepository(QuestionBankSchema).count({ where: { subject_id: subjectId } }),
+    ]);
 
-    // 1. Kiểm tra xem môn học có lớp học nào không
-    const { count: classesCount, error: countClassesError } = await adminClient
-      .from('classes')
-      .select('*', { count: 'exact', head: true })
-      .eq('subject_id', subjectId);
-
-    if (countClassesError) {
-      console.error('Lỗi đếm classes:', countClassesError);
-    }
-
-    if ((classesCount ?? 0) > 0) {
+    if (classesCount > 0) {
       return {
         success: false,
         error: `Môn học đang có ${classesCount} lớp học liên kết. Hãy xóa hoặc chuyển lớp trước, hoặc dùng tính năng "Lưu trữ" để bảo toàn dữ liệu.`,
       };
     }
 
-    // 2. Kiểm tra xem môn học có câu hỏi trong ngân hàng câu hỏi không
-    const { count: questionsCount } = await adminClient
-      .from('question_bank')
-      .select('*', { count: 'exact', head: true })
-      .eq('subject_id', subjectId);
-
-    if ((questionsCount ?? 0) > 0) {
+    if (questionsCount > 0) {
       return {
         success: false,
         error: `Môn học đang có ${questionsCount} câu hỏi trong ngân hàng câu hỏi. Vui lòng chọn "Lưu trữ" môn học thay vì xóa vĩnh viễn.`,
       };
     }
 
-    // 3. Xóa các phân công giảng viên trước (foreign key cascade có thể đã hỗ trợ nhưng dọn dẹp tường minh an toàn hơn)
-    await adminClient.from('teacher_subject_assignments').delete().eq('subject_id', subjectId);
-
-    // 4. Xóa môn học
-    const { error: deleteError } = await adminClient
-      .from('subjects')
-      .delete()
-      .eq('id', subjectId);
-
-    if (deleteError) {
-      console.error('Lỗi delete subject:', deleteError);
-      return { success: false, error: 'Không thể xóa môn học do có ràng buộc dữ liệu khác.' };
-    }
+    await ds.getRepository(TeacherSubjectAssignmentSchema).delete({ subject_id: subjectId });
+    await ds.getRepository(SubjectSchema).delete({ id: subjectId });
 
     await revalidateSubjectsCache();
     revalidatePath('/admin/subjects');
@@ -282,52 +220,44 @@ export async function deleteSubjectAction(subjectId: string): Promise<SubjectAct
     return { success: true, message: 'Đã xóa vĩnh viễn môn học thành công.' };
   } catch (err: unknown) {
     console.error('Lỗi deleteSubjectAction:', err);
-    return { success: false, error: 'Đã xảy ra lỗi khi xóa môn học.' };
+    return { success: false, error: 'Không thể xóa môn học do có ràng buộc dữ liệu khác.' };
   }
 }
 
-/**
- * Gán nhanh giảng viên phụ trách môn học
- */
 export async function quickAssignTeacherAction(
   subjectId: string,
-  teacherId: string
+  teacherId: string,
 ): Promise<SubjectActionResponse> {
   const { error: authError, user } = await verifyAdmin();
-  if (authError || !user) {
-    return { success: false, error: authError || 'Không có quyền truy cập.' };
-  }
+  if (authError || !user) return { success: false, error: authError || 'Không có quyền truy cập.' };
 
   if (!/^[0-9a-f-]{36}$/i.test(subjectId) || !/^[0-9a-f-]{36}$/i.test(teacherId)) {
     return { success: false, error: 'Thông tin phân công không hợp lệ.' };
   }
 
   try {
-    const adminClient = createAdminClient();
-
-    // Kiểm tra tài khoản có role là teacher
-    const { data: roleData } = await adminClient
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', teacherId)
-      .maybeSingle();
+    const ds = await getDataSource();
+    const roleData = await ds.getRepository(UserRoleSchema).findOne({
+      where: { user_id: teacherId },
+    });
 
     if (roleData?.role !== 'teacher') {
       return { success: false, error: 'Tài khoản người dùng này chưa được cấp quyền Giảng viên.' };
     }
 
-    const { error } = await adminClient.from('teacher_subject_assignments').upsert(
-      {
-        teacher_id: teacherId,
-        subject_id: subjectId,
-        assigned_by: user.id,
-      },
-      { onConflict: 'teacher_id,subject_id', ignoreDuplicates: true }
-    );
+    const tsaRepo = ds.getRepository(TeacherSubjectAssignmentSchema);
+    const existing = await tsaRepo.findOne({
+      where: { teacher_id: teacherId, subject_id: subjectId },
+    });
 
-    if (error) {
-      console.error('Lỗi quickAssignTeacherAction:', error);
-      return { success: false, error: 'Không thể gán giảng viên phụ trách môn học.' };
+    if (!existing) {
+      await tsaRepo.save(
+        tsaRepo.create({
+          teacher_id: teacherId,
+          subject_id: subjectId,
+          assigned_by: user.id,
+        }),
+      );
     }
 
     await revalidateSubjectsCache(teacherId);
@@ -344,35 +274,22 @@ export async function quickAssignTeacherAction(
   }
 }
 
-/**
- * Hủy phân công giảng viên khỏi môn học
- */
 export async function quickUnassignTeacherAction(
   subjectId: string,
-  teacherId: string
+  teacherId: string,
 ): Promise<SubjectActionResponse> {
   const { error: authError } = await verifyAdmin();
-  if (authError) {
-    return { success: false, error: authError };
-  }
+  if (authError) return { success: false, error: authError };
 
   if (!/^[0-9a-f-]{36}$/i.test(subjectId) || !/^[0-9a-f-]{36}$/i.test(teacherId)) {
     return { success: false, error: 'Thông tin phân công không hợp lệ.' };
   }
 
   try {
-    const adminClient = createAdminClient();
-
-    const { error } = await adminClient
-      .from('teacher_subject_assignments')
-      .delete()
-      .eq('subject_id', subjectId)
-      .eq('teacher_id', teacherId);
-
-    if (error) {
-      console.error('Lỗi quickUnassignTeacherAction:', error);
-      return { success: false, error: 'Không thể gỡ phân công giảng viên.' };
-    }
+    const ds = await getDataSource();
+    await ds
+      .getRepository(TeacherSubjectAssignmentSchema)
+      .delete({ subject_id: subjectId, teacher_id: teacherId });
 
     await revalidateSubjectsCache(teacherId);
     revalidatePath('/admin/subjects');
@@ -387,4 +304,3 @@ export async function quickUnassignTeacherAction(
     return { success: false, error: 'Đã xảy ra lỗi khi gỡ phân công giảng viên.' };
   }
 }
-

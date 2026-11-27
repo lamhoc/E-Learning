@@ -2,7 +2,6 @@
 
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 
 export function PasswordForm() {
   const router = useRouter();
@@ -26,30 +25,39 @@ export function PasswordForm() {
 
     setPending(true);
     setErrorMessage('');
-    const supabase = createClient();
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-    if (userError || !user) {
-      setErrorMessage('Liên kết đã hết hạn hoặc chưa được xác thực. Hãy gửi lại link thiết lập từ trang đăng nhập.');
+    try {
+      const response = await fetch('/api/auth/set-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+
+      const data = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        role?: string;
+      };
+
+      if (!response.ok) {
+        setErrorMessage(data.error || 'Không thể lưu mật khẩu mới.');
+        setPending(false);
+        return;
+      }
+
+      router.replace(
+        data.role === 'teacher'
+          ? '/teacher/dashboard'
+          : data.role === 'admin'
+            ? '/admin'
+            : data.role === 'student'
+              ? '/student/dashboard'
+              : '/subjects',
+      );
+      router.refresh();
+    } catch {
+      setErrorMessage('Không thể kết nối máy chủ.');
       setPending(false);
-      return;
     }
-
-    const { error } = await supabase.auth.updateUser({ password });
-    if (error) {
-      setErrorMessage(error.message);
-      setPending(false);
-      return;
-    }
-
-    const { data: roleRecord } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    router.replace(roleRecord?.role === 'teacher' ? '/teacher/dashboard' : '/subjects');
-    router.refresh();
   }
 
   return (
