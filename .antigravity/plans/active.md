@@ -887,7 +887,7 @@
     + Chạy `cmd /c "npm run build"`: Compiled successfully, 31/31 static/dynamic pages tối ưu 100%.
     + Tạo local commit an toàn theo `AGENTS.md` (tuyệt đối không `git push` tự ý). Ghi nhận commit hash `28939a7`.
 
-- [x] **Phase 79**: Chuyển đổi toàn bộ hạ tầng CSDL & Auth từ Supabase sang **SQL Server 2019 + TypeORM + JWT + Local Storage**:
+- [x] **Phase 79 (Commit `e064801`)**: Chuyển đổi toàn bộ hạ tầng CSDL & Auth từ Supabase sang **SQL Server 2019 + TypeORM + JWT + Local Storage**:
   - [x] **Mục tiêu 1 (TypeORM & SQL Server 2019 Core)**:
     + Cài đặt `typeorm`, `mssql`, `@types/mssql`, `jose`, `bcryptjs`, `@types/bcryptjs`, `tsx`. Cấu hình `serverExternalPackages` trong `next.config.ts`.
     + Tạo toàn bộ 29 `EntitySchema` TypeORM (`users`, `profiles`, `user_roles`, `subjects`, `classes`, `teacher_subject_assignments`, `class_memberships`, `question_bank`, `question_options`, `question_answer_keys`, `exams`, `exam_classes`, `exam_questions`, `exam_answer_keys`, `exam_attempts`, `student_answers`, `student_answer_grades`, `attempt_results`, `notifications`, `ai_generation_jobs`, `ai_tutor_conversations`, `ai_tutor_messages`, `invitation_tokens`, `teacher_applications`, `class_materials`, `exam_proctoring_logs`, `assignments`, `assignment_submissions`, `auth_otps`) trong `lib/db/entities/` và singleton `DataSource` tại `lib/db/data-source.ts`.
