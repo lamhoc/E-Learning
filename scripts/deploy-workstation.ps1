@@ -1,5 +1,6 @@
 ﻿param(
   [switch]$Rebuild,
+  [switch]$UseCloudflare,
   [int]$Port = 3000
 )
 
@@ -47,19 +48,7 @@ if ($Rebuild -or -not (Test-Path (Join-Path $ProjectRoot ".next\BUILD_ID"))) {
   Write-Host "[2/4] Ban dung Production (.next) da san sang (dung -Rebuild neu muon build lai)." -ForegroundColor Green
 }
 
-# 4. Tim binary cloudflared
-$CloudflaredBin = @(
-  (Get-Command cloudflared -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source),
-  "C:\Program Files (x86)\cloudflared\cloudflared.exe",
-  "C:\Program Files\cloudflared\cloudflared.exe"
-) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
-
-if (-not $CloudflaredBin) {
-  Write-Error "Chua cai dat cloudflared. Chay: winget install --id Cloudflare.cloudflared --exact"
-  exit 1
-}
-
-# 5. Don tien trinh cu tren cong muc tieu (neu co)
+# 4. Don tien trinh cu tren cong muc tieu (neu co)
 $LogDir = Join-Path $ProjectRoot ".deploy-logs"
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 
@@ -72,7 +61,7 @@ if ($existingConn) {
   Start-Sleep -Seconds 1
 }
 
-# 6. Khoi chay Next.js chi nghe 127.0.0.1 (tuyet doi khong mo truc tiep ra Internet)
+# 5. Khoi chay Next.js chi nghe 127.0.0.1 (tuyet doi khong mo truc tiep ra Internet)
 $NextOut = Join-Path $LogDir "next-server.out.log"
 $NextErr = Join-Path $LogDir "next-server.err.log"
 $NextProc = Start-Process -FilePath "cmd.exe" `
@@ -104,61 +93,97 @@ if (-not $ready) {
 }
 Write-Host "[3/4] Next.js Production: RUNNING (http://127.0.0.1:$Port)" -ForegroundColor Green
 
-# 7. Khoi chay Cloudflare Tunnel
-$CfLog = Join-Path $LogDir "cloudflared.log"
-if (Test-Path $CfLog) { Remove-Item $CfLog -Force }
+# 6. Uu tien Tailscale Funnel (link HTTPS co dinh vinh vien, khong canh bao) tru khi bat -UseCloudflare hoac co CLOUDFLARE_TUNNEL_TOKEN
+$TailscaleBin = @(
+  (Get-Command tailscale -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source),
+  "C:\Program Files\Tailscale\tailscale.exe"
+) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+
+$CfProc = $null
 
 try {
-  if ($TunnelToken) {
-    Write-Host "[4/4] Dang mo Cloudflare Named Tunnel (ten mien co dinh)..." -ForegroundColor Green
-    $CfProc = Start-Process -FilePath $CloudflaredBin `
-      -ArgumentList "tunnel", "--no-autoupdate", "run", "--token", $TunnelToken `
-      -WorkingDirectory $ProjectRoot `
-      -RedirectStandardError $CfLog `
-      -WindowStyle Hidden `
-      -PassThru
-    Write-Host ""
-    Write-Host "He thong dang chay online qua ten mien Cloudflare Zero Trust cua ban." -ForegroundColor Cyan
-  } else {
-    Write-Host "[4/4] Dang mo Cloudflare Quick Tunnel (HTTPS tu dong, khong mo port router)..." -ForegroundColor Yellow
-    $CfProc = Start-Process -FilePath $CloudflaredBin `
-      -ArgumentList "tunnel", "--no-autoupdate", "--url", "http://127.0.0.1:$Port" `
-      -WorkingDirectory $ProjectRoot `
-      -RedirectStandardError $CfLog `
-      -WindowStyle Hidden `
-      -PassThru
-
-    $publicUrl = $null
-    for ($i = 0; $i -lt 40; $i++) {
-      if (Test-Path $CfLog) {
-        $text = Get-Content $CfLog -Raw -ErrorAction SilentlyContinue
-        if ($text -match 'https://[a-z0-9-]+\.trycloudflare\.com') {
-          $publicUrl = $Matches[0]
-          break
-        }
-      }
-      Start-Sleep -Milliseconds 500
-    }
-
-    if ($publicUrl) {
+  $useTailscale = $false
+  if (-not $UseCloudflare -and -not $TunnelToken -and $TailscaleBin) {
+    $tsStatus = & $TailscaleBin funnel status 2>&1 | Out-String
+    if ($tsStatus -match 'https://[a-z0-9.-]+\.ts\.net') {
+      $useTailscale = $true
+      $publicUrl = $Matches[0]
+      # Dam bao Funnel dang tro dung cong
+      & $TailscaleBin funnel --bg $Port | Out-Null
       Set-Content -Path (Join-Path $ProjectRoot "deploy-url.txt") -Value $publicUrl -Encoding UTF8
       Write-Host ""
       Write-Host "============================================================" -ForegroundColor Green
-      Write-Host "  PUBLIC HTTPS URL : $publicUrl" -ForegroundColor Green
+      Write-Host "  FIXED HTTPS URL  : $publicUrl" -ForegroundColor Green
+      Write-Host "  MODE             : Tailscale Funnel (Co dinh vinh vien)" -ForegroundColor Cyan
       Write-Host "  LOCAL URL        : http://127.0.0.1:$Port" -ForegroundColor Cyan
       Write-Host "  SQL SERVER       : 127.0.0.1:1433 (An toan, khong mo port)" -ForegroundColor Cyan
       Write-Host "============================================================" -ForegroundColor Green
-    } else {
-      Write-Warning "Chua bat duoc URL tu log cloudflared. Kiem tra file: $CfLog"
     }
   }
 
-  Write-Host "Nhan Ctrl+C de dung ca Web Server va Cloudflare Tunnel." -ForegroundColor Gray
-  while (-not $NextProc.HasExited -and -not $CfProc.HasExited) {
+  if (-not $useTailscale) {
+    $CloudflaredBin = @(
+      (Get-Command cloudflared -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source),
+      "C:\Program Files (x86)\cloudflared\cloudflared.exe",
+      "C:\Program Files\cloudflared\cloudflared.exe"
+    ) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+
+    if (-not $CloudflaredBin) {
+      Write-Error "Chua co Tailscale Funnel hoat dong va chua cai cloudflared."
+      exit 1
+    }
+
+    $CfLog = Join-Path $LogDir "cloudflared.log"
+    if (Test-Path $CfLog) { Remove-Item $CfLog -Force }
+
+    if ($TunnelToken) {
+      Write-Host "[4/4] Dang mo Cloudflare Named Tunnel (ten mien co dinh)..." -ForegroundColor Green
+      $CfProc = Start-Process -FilePath $CloudflaredBin `
+        -ArgumentList "tunnel", "--no-autoupdate", "run", "--token", $TunnelToken `
+        -WorkingDirectory $ProjectRoot `
+        -RedirectStandardError $CfLog `
+        -WindowStyle Hidden `
+        -PassThru
+      Write-Host "He thong dang chay online qua ten mien Cloudflare Zero Trust cua ban." -ForegroundColor Cyan
+    } else {
+      Write-Host "[4/4] Dang mo Cloudflare Quick Tunnel (HTTPS tam thoi)..." -ForegroundColor Yellow
+      $CfProc = Start-Process -FilePath $CloudflaredBin `
+        -ArgumentList "tunnel", "--no-autoupdate", "--url", "http://127.0.0.1:$Port" `
+        -WorkingDirectory $ProjectRoot `
+        -RedirectStandardError $CfLog `
+        -WindowStyle Hidden `
+        -PassThru
+
+      $publicUrl = $null
+      for ($i = 0; $i -lt 40; $i++) {
+        if (Test-Path $CfLog) {
+          $text = Get-Content $CfLog -Raw -ErrorAction SilentlyContinue
+          if ($text -match 'https://[a-z0-9-]+\.trycloudflare\.com') {
+            $publicUrl = $Matches[0]
+            break
+          }
+        }
+        Start-Sleep -Milliseconds 500
+      }
+
+      if ($publicUrl) {
+        Set-Content -Path (Join-Path $ProjectRoot "deploy-url.txt") -Value $publicUrl -Encoding UTF8
+        Write-Host ""
+        Write-Host "============================================================" -ForegroundColor Green
+        Write-Host "  PUBLIC HTTPS URL : $publicUrl" -ForegroundColor Green
+        Write-Host "  LOCAL URL        : http://127.0.0.1:$Port" -ForegroundColor Cyan
+        Write-Host "  SQL SERVER       : 127.0.0.1:1433 (An toan, khong mo port)" -ForegroundColor Cyan
+        Write-Host "============================================================" -ForegroundColor Green
+      }
+    }
+  }
+
+  Write-Host "Nhan Ctrl+C de dung Web Server." -ForegroundColor Gray
+  while (-not $NextProc.HasExited -and (-not $CfProc -or -not $CfProc.HasExited)) {
     Start-Sleep -Seconds 2
   }
 } finally {
-  Write-Host "`nDang tat Cloudflare Tunnel va Next.js Server..." -ForegroundColor Yellow
+  Write-Host "`nDang tat Web Server..." -ForegroundColor Yellow
   if ($CfProc -and -not $CfProc.HasExited) { Stop-Process -Id $CfProc.Id -Force -ErrorAction SilentlyContinue }
   if ($NextProc -and -not $NextProc.HasExited) { Stop-Process -Id $NextProc.Id -Force -ErrorAction SilentlyContinue }
   Write-Host "Da dung an toan." -ForegroundColor Green

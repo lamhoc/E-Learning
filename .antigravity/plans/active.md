@@ -910,3 +910,9 @@
   - [x] Tạo script triển khai 1-click (`scripts/deploy-workstation.ps1`, `scripts/stop-workstation.ps1`, `start-deploy.bat`), npm scripts (`deploy:local`, `deploy:stop`, `db:verify`) và tài liệu `DEPLOY.md`.
   - [x] Khởi chạy thực tế Next.js Production + Cloudflare Tunnel và xác minh truy cập HTTPS trực tuyến (`GET /login` 200, `POST /api/auth/login` 200 + `autobank_session` cookie).
   - [x] Tạo Local Commit an toàn (không tự ý push) và cập nhật mã commit hash.
+
+- [x] **Phase 81**: Nâng cấp đường link public sang **HTTPS cố định vĩnh viễn** bằng **Tailscale Funnel** (`https://desktop-bbe9lgh.tail3de3b4.ts.net`):
+  - [x] Bật service `iphlpsvc` và cài đặt Tailscale v1.104.7 trên máy trạm Windows.
+  - [x] Xác thực tài khoản Tailscale và kích hoạt `tailscale funnel --bg 3000` (chạy ngầm như Windows Service, không cần mở port router, không hiện trang cảnh báo).
+  - [x] Cập nhật `scripts/deploy-workstation.ps1` và `DEPLOY.md` ưu tiên Tailscale Funnel cố định.
+  - [x] Xác minh thực tế qua HTTPS cố định (`GET /login` 200, `POST /api/auth/login` 200 + `autobank_session` cookie). Local commit an toàn.
