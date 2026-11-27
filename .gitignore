@@ -41,5 +41,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# local file uploads
+# local file uploads & workstation deploy artifacts
 /storage/uploads/
+/deploy-url.txt
+/.deploy-logs/
