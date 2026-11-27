@@ -11,6 +11,8 @@ export type AiChatMessage = {
   content: string;
 };
 
+export type AiGatewayName = 'gemini' | 'groq' | 'free';
+
 export type AiCompletionOptions = {
   messages: AiChatMessage[];
   temperature?: number;
@@ -18,6 +20,9 @@ export type AiCompletionOptions = {
   response_format?: { type: 'json_object' | 'text' };
   preferredModel?: string;
   disableAutoContinuation?: boolean;
+  requestTimeoutMs?: number;
+  skipModels?: string[];
+  providerOrder?: AiGatewayName[];
 };
 
 export type AiCompletionResult = {
@@ -27,32 +32,27 @@ export type AiCompletionResult = {
   isTruncated?: boolean;
 };
 
-// Danh sách các model Groq theo thứ tự ưu tiên giảm dần (xoay vòng qua các model có hạn mức TPM/RPM riêng biệt)
+// Danh sách các model Groq còn hoạt động ổn định theo thứ tự ưu tiên giảm dần (mỗi model có hạn mức TPM/RPM riêng)
 const DEFAULT_CANDIDATE_MODELS: string[] = [
   'llama-3.3-70b-versatile',
   'meta-llama/llama-4-scout-17b-16e-instruct',
   'llama-3.1-8b-instant',
   'qwen/qwen3-32b',
-  'gemma2-9b-it',
-  'mixtral-8x7b-32768',
 ];
 
 // Danh sách các model Google Gemini theo thứ tự ưu tiên giảm dần
 const DEFAULT_GEMINI_CANDIDATE_MODELS: string[] = [
   'gemini-2.5-flash',
   'gemini-2.0-flash',
-  'gemini-1.5-flash',
-  'gemini-1.5-pro',
 ];
 
 // Các model hỗ trợ trần token lớn 8192 tokens
 const HIGH_CAPACITY_MODELS = new Set([
   'gemini-2.5-flash',
   'gemini-2.0-flash',
-  'gemini-1.5-flash',
-  'gemini-1.5-pro',
   'llama-3.3-70b-versatile',
   'meta-llama/llama-4-scout-17b-16e-instruct',
+  'llama-3.1-8b-instant',
   'qwen/qwen3-32b',
 ]);
 
@@ -63,8 +63,13 @@ export function stripThinkingTags(text: string): string {
   if (!text) return '';
   return text
     .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/<think>[\s\S]*$/gi, '')
     .replace(/^[\s\r\n]+/, '')
     .trim();
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -240,7 +245,12 @@ export async function callGoogleGeminiChatCompletion(options: AiCompletionOption
     if (!candidateModels.includes(m)) candidateModels.push(m);
   }
 
+  const skipSet = new Set((options.skipModels || []).map((m) => m.replace(/^google\//i, '')));
+  const filteredGeminiModels = candidateModels.filter((m) => !skipSet.has(m));
+  const modelsToTry = filteredGeminiModels.length > 0 ? filteredGeminiModels : candidateModels;
+
   const maxTokens = options.max_tokens ?? 8192;
+  const timeoutMs = options.requestTimeoutMs ?? 20000;
 
   const payload: Record<string, unknown> = {
     contents,
@@ -259,7 +269,7 @@ export async function callGoogleGeminiChatCompletion(options: AiCompletionOption
 
   let lastError: unknown = null;
 
-  for (const model of candidateModels) {
+  for (const model of modelsToTry) {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
       const res = await fetch(url, {
@@ -268,12 +278,14 @@ export async function callGoogleGeminiChatCompletion(options: AiCompletionOption
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(14000), // Timeout 14s mỗi model để failover siêu nhanh
+        signal: AbortSignal.timeout(timeoutMs),
       });
 
       if (!res.ok) {
         const errText = await res.text().catch(() => '');
-        throw new Error(`Gemini API [${model}] HTTP ${res.status}: ${errText.slice(0, 200)}`);
+        const detail = `Gemini API [${model}] HTTP ${res.status}: ${errText.slice(0, 240)}`;
+        console.error(`[AI-Provider] ${detail}`);
+        throw new Error(detail);
       }
 
       const json = (await res.json()) as {
@@ -299,9 +311,16 @@ export async function callGoogleGeminiChatCompletion(options: AiCompletionOption
           finishReason,
         };
       }
+
+      const emptyErr = new Error(`Gemini API [${model}] trả về nội dung rỗng (finishReason=${finishReason || 'unknown'})`);
+      console.error(`[AI-Provider] ${emptyErr.message}`);
+      lastError = emptyErr;
     } catch (err) {
       lastError = err;
-      console.warn(`[AI-Provider] Gemini model "${model}" lỗi:`, err instanceof Error ? err.message : err);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      if (!errMsg.startsWith('Gemini API [')) {
+        console.error(`[AI-Provider] Gemini [${model}] thất bại: ${errMsg}`);
+      }
     }
   }
 
@@ -392,8 +411,8 @@ async function buildCandidateList(
 }
 
 /**
- * Cổng 2: Groq Cloud LLM với Fast Failover
- * Hỗ trợ trần 8192 token cho Llama 3.3, Scout 17B, Qwen3.
+ * Cổng 2: Groq Cloud LLM với Fast Failover + Smart 429 Retry
+ * Xoay vòng qua các model có quota riêng; nếu tất cả bị 429 sẽ chờ 1200ms rồi thử lại 1 lượt.
  */
 export async function callGroqChatCompletion(options: AiCompletionOptions): Promise<AiCompletionResult> {
   const { apiKey: groqKey, envModel: groqModel, baseUrl: groqBaseUrl } = getAiConfig();
@@ -402,48 +421,61 @@ export async function callGroqChatCompletion(options: AiCompletionOptions): Prom
   }
 
   const groq = new Groq({ apiKey: groqKey, baseURL: groqBaseUrl });
-  let candidateList = await buildCandidateList(groqKey, groqBaseUrl, options.preferredModel, groqModel);
+  const rawCandidates = await buildCandidateList(groqKey, groqBaseUrl, options.preferredModel, groqModel);
+  const skipSet = new Set(options.skipModels || []);
+  const filteredCandidates = rawCandidates.filter((m) => !skipSet.has(m));
+  const candidateList = filteredCandidates.length > 0 ? filteredCandidates : rawCandidates;
+
+  const timeoutMs = options.requestTimeoutMs ?? 18000;
   let hasTriedDiscovery = false;
   let lastError: unknown = null;
+  const rateLimitedModels: string[] = [];
+
+  const invokeGroqModel = async (currentModel: string): Promise<AiCompletionResult | null> => {
+    const isHighCapacity = HIGH_CAPACITY_MODELS.has(currentModel);
+    const maxTokens = options.max_tokens ?? (isHighCapacity ? 8192 : 4096);
+
+    const response = await groq.chat.completions.create(
+      {
+        model: currentModel,
+        messages: options.messages,
+        temperature: options.temperature ?? 0.25,
+        max_tokens: maxTokens,
+        ...(options.response_format ? { response_format: options.response_format } : {}),
+      },
+      {
+        signal: AbortSignal.timeout(timeoutMs),
+      }
+    );
+
+    const choice = response.choices?.[0];
+    const finishReason = choice?.finish_reason || undefined;
+    const rawText = choice?.message?.content?.trim() ?? '';
+    const text = stripThinkingTags(rawText);
+
+    if (text) {
+      cachedWorkingModel = currentModel;
+      return {
+        content: text,
+        modelUsed: currentModel,
+        finishReason,
+      };
+    }
+
+    return null;
+  };
 
   for (let i = 0; i < candidateList.length; i++) {
     const currentModel = candidateList[i];
-    const isHighCapacity = HIGH_CAPACITY_MODELS.has(currentModel);
-    // Nếu model có dung lượng lớn thì cấp 8192, model nhỏ thì giữ 4096 để an toàn context
-    const maxTokens = options.max_tokens ?? (isHighCapacity ? 8192 : 4096);
-
     try {
-      const response = await groq.chat.completions.create(
-        {
-          model: currentModel,
-          messages: options.messages,
-          temperature: options.temperature ?? 0.25,
-          max_tokens: maxTokens,
-          ...(options.response_format ? { response_format: options.response_format } : {}),
-        },
-        {
-          signal: AbortSignal.timeout(14000), // Timeout 14s cho mỗi model Groq
-        }
-      );
-
-      const choice = response.choices?.[0];
-      const finishReason = choice?.finish_reason || undefined;
-      const rawText = choice?.message?.content?.trim() ?? '';
-      const text = stripThinkingTags(rawText);
-
-      if (text) {
-        cachedWorkingModel = currentModel;
-        return {
-          content: text,
-          modelUsed: currentModel,
-          finishReason,
-        };
-      }
+      const result = await invokeGroqModel(currentModel);
+      if (result) return result;
+      console.error(`[AI-Provider] Groq [${currentModel}] trả về nội dung rỗng.`);
     } catch (err: unknown) {
       lastError = err;
       const errMsg = err instanceof Error ? err.message : String(err);
       const status = (err as { status?: number })?.status;
-      console.warn(`[AI-Provider] Model Groq "${currentModel}" thất bại (HTTP ${status || 'err'}): ${errMsg}`);
+      console.error(`[AI-Provider] Groq [${currentModel}] thất bại (HTTP ${status || 'err'}): ${errMsg.slice(0, 260)}`);
 
       const isRateLimit = status === 429 || errMsg.includes('429') || errMsg.includes('rate_limit');
       const isModelNotFound =
@@ -453,7 +485,12 @@ export async function callGroqChatCompletion(options: AiCompletionOptions): Prom
         errMsg.includes('decommissioned');
 
       if (isRateLimit) {
-        console.warn(`[AI-Provider] Groq rate limit (429) trên "${currentModel}", tự động chuyển sang model tiếp theo có quota riêng.`);
+        if (!rateLimitedModels.includes(currentModel)) {
+          rateLimitedModels.push(currentModel);
+        }
+        console.warn(
+          `[AI-Provider] Groq rate limit (429) trên "${currentModel}", chuyển ngay sang model tiếp theo có quota riêng.`
+        );
       }
 
       if (isModelNotFound && !hasTriedDiscovery) {
@@ -466,9 +503,25 @@ export async function callGroqChatCompletion(options: AiCompletionOptions): Prom
             }
           }
         } catch (discErr) {
-          console.warn('[AI-Provider] Không thể khám phá thêm model Groq:', discErr);
+          console.error('[AI-Provider] Không thể khám phá thêm model Groq:', discErr);
         }
       }
+    }
+  }
+
+  // Nếu gặp 429 và vòng đầu thất bại hết: chờ ngắn 1200ms rồi thử lại 1 lần thay vì bỏ cuộc ngay
+  if (rateLimitedModels.length > 0) {
+    const retryModel = rateLimitedModels[0];
+    console.warn(`[AI-Provider] Đợi 1200ms và thử lại 1 lần với Groq [${retryModel}] sau 429...`);
+    await sleep(1200);
+    try {
+      const retryResult = await invokeGroqModel(retryModel);
+      if (retryResult) return retryResult;
+    } catch (retryErr: unknown) {
+      lastError = retryErr;
+      const retryMsg = retryErr instanceof Error ? retryErr.message : String(retryErr);
+      const retryStatus = (retryErr as { status?: number })?.status;
+      console.error(`[AI-Provider] Groq retry [${retryModel}] thất bại (HTTP ${retryStatus || 'err'}): ${retryMsg.slice(0, 240)}`);
     }
   }
 
@@ -476,103 +529,89 @@ export async function callGroqChatCompletion(options: AiCompletionOptions): Prom
 }
 
 /**
- * Cổng 3: Cổng AI dự phòng trực tuyến miễn phí (Free AI Gateway)
- * Sử dụng endpoint tương thích chuẩn OpenAI Chat Completions không yêu cầu API key.
- * Timeout 14s.
+ * Cổng 3: Cổng AI dự phòng trực tuyến miễn phí (Free AI Gateway - Pollinations)
+ * - Ưu tiên 1: POST https://text.pollinations.ai/openai — chỉ gửi { model: 'openai', messages }
+ *   (tuyệt đối không gửi tham số lạ như response_format/temperature dễ gây lỗi HTTP 400).
+ * - Ưu tiên 2: GET https://text.pollinations.ai/${encodeURIComponent(prompt)}?model=openai.
  */
 export async function callFreeAiChatCompletion(options: AiCompletionOptions): Promise<AiCompletionResult> {
-  // 1. Thử endpoint OpenAI-compatible POST của Pollinations
-  const endpoint = 'https://text.pollinations.ai/openai/chat/completions';
+  // Cổng Free Gateway thường mất 18-30s cho các bài Tự luận dài kèm Rubric -> dùng tối thiểu 35s (vẫn an toàn trong maxDuration=60s)
+  const postTimeoutMs = Math.max(options.requestTimeoutMs ?? 20000, 35000);
+  const getTimeoutMs = options.requestTimeoutMs ?? 20000;
 
-  const payload = {
+  // 1. POST https://text.pollinations.ai/openai (tối giản payload để tránh lỗi 400)
+  const postEndpoint = 'https://text.pollinations.ai/openai';
+  const minimalPayload = {
     model: 'openai',
     messages: options.messages.map((m) => ({
       role: m.role,
       content: m.content,
     })),
-    temperature: options.temperature ?? 0.35,
-    ...(options.response_format ? { response_format: options.response_format } : {}),
   };
 
   try {
-    const res = await fetch(endpoint, {
+    const res = await fetch(postEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(14000),
+      body: JSON.stringify(minimalPayload),
+      signal: AbortSignal.timeout(postTimeoutMs),
     });
 
     if (res.ok) {
-      const json = (await res.json()) as {
-        choices?: Array<{
-          message?: { content?: string };
-          finish_reason?: string;
-        }>;
-      };
+      const rawBody = await res.text();
+      let rawText = '';
+      let finishReason: string | undefined;
 
-      const choice = json?.choices?.[0];
-      const finishReason = choice?.finish_reason;
-      const rawText = choice?.message?.content?.trim() ?? '';
+      try {
+        const json = JSON.parse(rawBody) as {
+          choices?: Array<{
+            message?: { content?: string };
+            finish_reason?: string;
+          }>;
+        };
+        const choice = json?.choices?.[0];
+        finishReason = choice?.finish_reason;
+        rawText = choice?.message?.content?.trim() ?? '';
+      } catch {
+        // Một số proxy trả thẳng plain text thay vì envelope OpenAI JSON
+        rawText = rawBody.trim();
+      }
+
       const cleanText = stripThinkingTags(rawText);
-
-      if (cleanText) {
+      if (cleanText && !cleanText.startsWith('<!DOCTYPE') && !cleanText.startsWith('<html')) {
         return {
           content: cleanText,
           modelUsed: 'pollinations-free-openai',
           finishReason,
         };
       }
+      console.error('[AI-Provider] Free Gateway POST trả về dữ liệu rỗng hoặc trang HTML.');
     } else {
-      console.warn(`[AI-Provider] Free AI OpenAI POST trả về HTTP ${res.status}`);
+      const errBody = await res.text().catch(() => '');
+      console.error(
+        `[AI-Provider] Free Gateway POST (${postEndpoint}) thất bại HTTP ${res.status}: ${errBody.slice(0, 240)}`
+      );
     }
   } catch (postErr) {
-    console.warn('[AI-Provider] Free AI OpenAI POST thất bại:', postErr);
+    console.error(
+      '[AI-Provider] Free Gateway POST gặp ngoại lệ:',
+      postErr instanceof Error ? postErr.message : postErr
+    );
   }
 
-  // 2. Thử Direct POST endpoint của Pollinations
-  try {
-    const directPostRes = await fetch('https://text.pollinations.ai/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        messages: options.messages.map((m) => ({
-          role: m.role,
-          content: m.content,
-        })),
-      }),
-      signal: AbortSignal.timeout(14000),
-    });
-
-    if (directPostRes.ok) {
-      const rawText = (await directPostRes.text()).trim();
-      const cleanText = stripThinkingTags(rawText);
-      if (cleanText && !cleanText.startsWith('<!DOCTYPE') && !cleanText.startsWith('<html')) {
-        return {
-          content: cleanText,
-          modelUsed: 'pollinations-free-direct-post',
-        };
-      }
-    }
-  } catch (directPostErr) {
-    console.warn('[AI-Provider] Free AI Direct POST thất bại:', directPostErr);
-  }
-
-  // 3. Thử Fallback GET endpoint trực tiếp của Pollinations
+  // 2. Dự phòng GET https://text.pollinations.ai/${encodeURIComponent(prompt)}?model=openai
+  // Giới hạn độ dài chuỗi đường dẫn <= 750 ký tự để không bị lỗi 404/414 do URL quá dài
   try {
     const latestUserMsg = [...options.messages].reverse().find((m) => m.role === 'user')?.content || '';
-    const sysMsg = options.messages.find((m) => m.role === 'system')?.content || '';
-    if (latestUserMsg) {
-      const encodedPrompt = encodeURIComponent(latestUserMsg);
-      const encodedSystem = sysMsg ? `?system=${encodeURIComponent(sysMsg.slice(0, 1000))}` : '';
-      const getUrl = `https://text.pollinations.ai/${encodedPrompt}${encodedSystem}`;
+    const compactPrompt = latestUserMsg.replace(/\s+/g, ' ').trim().slice(0, 750);
 
+    if (compactPrompt) {
+      const getUrl = `https://text.pollinations.ai/${encodeURIComponent(compactPrompt)}?model=openai`;
       const resGet = await fetch(getUrl, {
         method: 'GET',
-        signal: AbortSignal.timeout(14000),
+        signal: AbortSignal.timeout(getTimeoutMs),
       });
 
       if (resGet.ok) {
@@ -584,10 +623,19 @@ export async function callFreeAiChatCompletion(options: AiCompletionOptions): Pr
             modelUsed: 'pollinations-free-get',
           };
         }
+        console.error('[AI-Provider] Free Gateway GET trả về dữ liệu rỗng hoặc trang HTML.');
+      } else {
+        const errBody = await resGet.text().catch(() => '');
+        console.error(
+          `[AI-Provider] Free Gateway GET thất bại HTTP ${resGet.status}: ${errBody.slice(0, 240)}`
+        );
       }
     }
   } catch (getErr) {
-    console.warn('[AI-Provider] Free AI GET fallback thất bại:', getErr);
+    console.error(
+      '[AI-Provider] Free Gateway GET gặp ngoại lệ:',
+      getErr instanceof Error ? getErr.message : getErr
+    );
   }
 
   throw new Error('Cổng Free AI Gateway trực tuyến không phản hồi.');
@@ -595,40 +643,50 @@ export async function callFreeAiChatCompletion(options: AiCompletionOptions): Pr
 
 /**
  * Thực hiện 1 lượt gọi đơn (Single Turn) qua cơ chế Cascade:
- * Cổng 1 Gemini -> Cổng 2 Groq -> Cổng 3 Free Gateway
+ * Mặc định: Cổng 1 Gemini -> Cổng 2 Groq -> Cổng 3 Free Gateway (có thể xoay thứ tự qua providerOrder).
  */
 async function executeSingleTurn(options: AiCompletionOptions): Promise<AiCompletionResult> {
-  // CỔNG 1: Google Gemini REST API chính thức
-  const { apiKey: geminiKey } = getGeminiConfig();
-  if (geminiKey) {
-    try {
-      const geminiResult = await callGoogleGeminiChatCompletion(options);
-      return geminiResult;
-    } catch (geminiErr) {
-      console.warn('[AI-Provider] Cổng 1 Google Gemini gặp sự cố, tự động chuyển sang Cổng 2 Groq:', geminiErr);
+  const order: AiGatewayName[] =
+    options.providerOrder && options.providerOrder.length > 0
+      ? options.providerOrder
+      : ['gemini', 'groq', 'free'];
+
+  const gatewayErrors: string[] = [];
+
+  for (const gateway of order) {
+    if (gateway === 'gemini') {
+      const { apiKey: geminiKey } = getGeminiConfig();
+      if (!geminiKey) continue;
+      try {
+        return await callGoogleGeminiChatCompletion(options);
+      } catch (geminiErr) {
+        const reason = geminiErr instanceof Error ? geminiErr.message : String(geminiErr);
+        gatewayErrors.push(`Gemini: ${reason}`);
+        console.error('[AI-Provider] Cổng 1 Google Gemini thất bại, chuyển cổng kế tiếp:', reason);
+      }
+    } else if (gateway === 'groq') {
+      const { apiKey: groqKey } = getAiConfig();
+      if (!groqKey) continue;
+      try {
+        return await callGroqChatCompletion(options);
+      } catch (groqErr) {
+        const reason = groqErr instanceof Error ? groqErr.message : String(groqErr);
+        gatewayErrors.push(`Groq: ${reason}`);
+        console.error('[AI-Provider] Cổng 2 Groq thất bại, chuyển cổng kế tiếp:', reason);
+      }
+    } else if (gateway === 'free') {
+      try {
+        return await callFreeAiChatCompletion(options);
+      } catch (freeErr) {
+        const reason = freeErr instanceof Error ? freeErr.message : String(freeErr);
+        gatewayErrors.push(`Free Gateway: ${reason}`);
+        console.error('[AI-Provider] Cổng 3 Free Gateway thất bại:', reason);
+      }
     }
   }
 
-  // CỔNG 2: Groq Cloud LLM
-  const { apiKey: groqKey } = getAiConfig();
-  if (groqKey) {
-    try {
-      const groqResult = await callGroqChatCompletion(options);
-      return groqResult;
-    } catch (groqErr) {
-      console.warn('[AI-Provider] Cổng 2 Groq gặp sự cố, tự động chuyển sang Cổng 3 Free Gateway:', groqErr);
-    }
-  }
-
-  // CỔNG 3: Cổng AI Trực Tuyến Miễn Phí
-  try {
-    const freeResult = await callFreeAiChatCompletion(options);
-    return freeResult;
-  } catch (freeErr) {
-    console.warn('[AI-Provider] Cổng 3 Free Gateway không phản hồi:', freeErr);
-  }
-
-  throw new Error('Tất cả các cổng AI trực tuyến (Gemini, Groq và Free Gateway) đều không phản hồi.');
+  console.error('[AI-Provider] Toàn bộ các cổng AI đều thất bại:', gatewayErrors.join(' | '));
+  throw new Error('Tất cả các cổng AI trực tuyến (Gemini, Groq và Free Gateway) đều không phản hồi');
 }
 
 /**

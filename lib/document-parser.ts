@@ -5,7 +5,7 @@ import mammoth from 'mammoth';
 import { extractText as extractPdfText } from 'unpdf';
 import { callAiChatCompletion } from '@/lib/ai-provider';
 import { parseAiJsonSafely } from '@/lib/ai-question-generator';
-import { normalizeMathInput } from '@/components/ui/math-text';
+import { normalizeMathInput } from '@/lib/math-normalize';
 
 export type ParsedQuestionItem = {
   tempId: string;

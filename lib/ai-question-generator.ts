@@ -3,340 +3,205 @@ import 'server-only';
 import { callAiChatCompletion } from '@/lib/ai-provider';
 import {
   cleanPrefix,
-  restoreLatexBackslashes,
   safeParseAIQuestionsJson,
   sanitizeLatexInJson,
 } from './ai-json-parser';
+import {
+  buildStructuredQuestionPrompts,
+  checkKatexRenderable,
+  parseStructuredAIQuestions,
+  sanitizeAndRepairLatex,
+  validateAndCleanQuestions,
+  type AIDifficulty,
+  type GenerateAIRequest,
+  type GeneratedQuestionDraft,
+} from './ai-structured-parser';
 
 export {
+  buildStructuredQuestionPrompts,
+  checkKatexRenderable,
   cleanPrefix,
+  parseStructuredAIQuestions,
   safeParseAIQuestionsJson,
+  sanitizeAndRepairLatex,
   sanitizeLatexInJson,
+  validateAndCleanQuestions,
+  type AIDifficulty,
+  type GenerateAIRequest,
+  type GeneratedQuestionDraft,
 };
 
-// Giữ lại alias để tương thích ngược hoàn toàn
+// Giữ lại alias để tương thích ngược hoàn toàn với các module khác (document-parser...)
 export const sanitizeAndParseAiJson = safeParseAIQuestionsJson;
 export const parseAiJsonSafely = safeParseAIQuestionsJson;
 
-export type AIDifficulty = 'easy' | 'medium' | 'hard' | 'expert';
-
-export type GeneratedQuestionDraft = {
-  tempId: string;
-  question_type: 'multiple_choice' | 'essay';
-  question_text: string;
-  explanation: string;
-  // Multiple Choice
-  option_a?: string;
-  option_b?: string;
-  option_c?: string;
-  option_d?: string;
-  correct_option?: 'A' | 'B' | 'C' | 'D';
-  // Essay
-  model_answer?: string;
-  grading_rubric?: string;
-};
-
-export type GenerateAIRequest = {
-  subjectName: string;
-  subjectCode: string;
-  topic: string;
-  questionType: 'multiple_choice' | 'essay';
-  difficulty: AIDifficulty;
-  count: number;
-  additionalNote?: string;
-};
-
-const DIFFICULTY_MAP: Record<AIDifficulty, string> = {
-  easy: 'Nhận biết (Kiểm tra lý thuyết, định nghĩa, nhận dạng công thức hoặc tính toán đơn giản 1 bước)',
-  medium: 'Thông hiểu (Hiểu bản chất, giải thích hiện tượng, vận dụng công thức chuẩn)',
-  hard: 'Vận dụng (Bài toán nhiều bước, tư duy logic, tổng hợp kiến thức)',
-  expert: 'Vận dụng cao (Phân loại học sinh giỏi, biến đổi phức tạp, liên hệ thực tiễn nâng cao)',
-};
-
 const MAX_COMPLETION_TOKENS = 8192;
+const QUESTION_GEN_TIMEOUT_MS = 20000;
 
 /**
- * Tự động shuffle 4 phương án A-B-C-D và cập nhật lại `correct_option` tương ứng.
- * Đảm bảo đáp án đúng rải đều ngẫu nhiên qua cả 4 vị trí A, B, C, D (25% mỗi vị trí).
+ * Chuẩn hóa thông báo lỗi chi tiết (tránh lỗi 2 dấu chấm `..` khi ghép câu).
  */
-function shuffleMultipleChoiceOptions(
-  optA: string,
-  optB: string,
-  optC: string,
-  optD: string,
-  originalCorrect: 'A' | 'B' | 'C' | 'D'
-): {
-  optA: string;
-  optB: string;
-  optC: string;
-  optD: string;
-  correct: 'A' | 'B' | 'C' | 'D';
-} {
-  const options = [
-    { key: 'A' as const, text: optA, isCorrect: originalCorrect === 'A' },
-    { key: 'B' as const, text: optB, isCorrect: originalCorrect === 'B' },
-    { key: 'C' as const, text: optC, isCorrect: originalCorrect === 'C' },
-    { key: 'D' as const, text: optD, isCorrect: originalCorrect === 'D' },
-  ];
-
-  // Fisher-Yates Shuffle
-  for (let i = options.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    const temp = options[i];
-    options[i] = options[j];
-    options[j] = temp;
-  }
-
-  const keys: ('A' | 'B' | 'C' | 'D')[] = ['A', 'B', 'C', 'D'];
-  let newCorrect: 'A' | 'B' | 'C' | 'D' = 'A';
-
-  for (let i = 0; i < options.length; i++) {
-    if (options[i].isCorrect) {
-      newCorrect = keys[i];
-      break;
-    }
-  }
-
-  return {
-    optA: options[0].text,
-    optB: options[1].text,
-    optC: options[2].text,
-    optD: options[3].text,
-    correct: newCorrect,
-  };
+function normalizeErrorDetail(err: unknown): string {
+  const raw =
+    err instanceof Error && err.message
+      ? err.message
+      : 'Máy chủ AI không trả về câu hỏi hợp lệ';
+  return raw.trim().replace(/\.+$/, '');
 }
 
 /**
- * Map một object thô từ AI thành GeneratedQuestionDraft chuẩn.
- * Hỗ trợ linh hoạt các biến thể tên thuộc tính mà LLM có thể trả về.
+ * Chuẩn hóa đề bài để so khớp chống trùng lặp giữa các lượt sinh & lượt bù (Auto Top-up).
  */
-function mapToQuestionDraft(
-  item: Record<string, unknown>,
-  index: number,
-  offset: number,
-  isMC: boolean
-): GeneratedQuestionDraft {
-  const rawQText = item.question_text || item.content || item.question || item.de_bai || '';
-  const qText = restoreLatexBackslashes(rawQText);
-
-  const rawExplanation = item.explanation || item.loi_giai || item.giai_thich || item.huong_dan || '';
-  const explanation = restoreLatexBackslashes(rawExplanation);
-
-  const tempId = `gen-${Date.now()}-${offset + index}-${Math.random().toString(36).substring(2, 6)}`;
-
-  if (isMC) {
-    let optA = '';
-    let optB = '';
-    let optC = '';
-    let optD = '';
-
-    // Trường hợp 1: options là mảng 4 phần tử
-    if (Array.isArray(item.options) && item.options.length >= 4) {
-      optA = restoreLatexBackslashes(item.options[0]);
-      optB = restoreLatexBackslashes(item.options[1]);
-      optC = restoreLatexBackslashes(item.options[2]);
-      optD = restoreLatexBackslashes(item.options[3]);
-    } else {
-      // Trường hợp 2: các trường option_a, option_b, option_c, option_d riêng lẻ
-      optA = restoreLatexBackslashes(item.option_a || item.a || item.A || '');
-      optB = restoreLatexBackslashes(item.option_b || item.b || item.B || '');
-      optC = restoreLatexBackslashes(item.option_c || item.c || item.C || '');
-      optD = restoreLatexBackslashes(item.option_d || item.d || item.D || '');
-    }
-
-    const rawKey = String(
-      item.correct_option || item.correct_answer || item.answer || item.correct || 'A'
-    )
-      .trim()
-      .toUpperCase();
-
-    const originalCorrect = (['A', 'B', 'C', 'D'] as const).includes(rawKey as 'A')
-      ? (rawKey as 'A' | 'B' | 'C' | 'D')
-      : 'A';
-
-    // Shuffle phương án để đáp án đúng phân bổ đều A, B, C, D
-    const shuffled = shuffleMultipleChoiceOptions(optA, optB, optC, optD, originalCorrect);
-
-    return {
-      tempId,
-      question_type: 'multiple_choice',
-      question_text: qText,
-      option_a: shuffled.optA,
-      option_b: shuffled.optB,
-      option_c: shuffled.optC,
-      option_d: shuffled.optD,
-      correct_option: shuffled.correct,
-      explanation,
-    };
-  }
-
-  // Tự luận
-  const rawModelAnswer =
-    item.model_answer || item.sample_answer || item.dap_an_mau || item.answer || '';
-  const rawRubric =
-    item.grading_rubric || item.rubric || item.thang_diem || item.tieu_chi || '';
-
-  return {
-    tempId,
-    question_type: 'essay',
-    question_text: qText,
-    model_answer: restoreLatexBackslashes(rawModelAnswer),
-    grading_rubric: restoreLatexBackslashes(rawRubric),
-    explanation,
-  };
+function normalizeStemKey(text: string): string {
+  return text.toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
 /**
- * Hàm sinh câu hỏi AI thực thụ (100% LLM - TUYỆT ĐỐI KHÔNG DÙNG MOCK/STATIC FALLBACK):
- * - Bám sát 100% môn học và chủ đề bài học/nội dung kiến thức do giảng viên chọn hoặc nhập tay.
- * - Tự động xoay vòng đa cổng qua ai-provider (Gemini -> Groq -> Free Gateway).
- * - Sử dụng safeParseAIQuestionsJson bảo vệ công thức LaTeX và cứu chuỗi bị ngắt.
- * - Nếu toàn bộ cổng mạng đều ngắt: Báo lỗi rõ ràng để giảng viên bấm "Thử sinh lại".
+ * Hàm sinh câu hỏi AI thế hệ mới (Phase 79):
+ * 1. Bỏ hoàn toàn `response_format: { type: "json_object" }` — dùng định dạng XML Tags thuần văn bản
+ *    (`<question>...</question>`) để triệt tiêu vĩnh viễn lỗi nuốt backslash LaTeX (`\frac`, `\boldsymbol`, `\neq`, `\root`)
+ *    và lỗi `400 json_validate_failed` của Groq.
+ * 2. Parser 2 lớp (`parseStructuredAIQuestions`): Ưu tiên XML Tags, dự phòng JSON có bảo vệ dấu `\`.
+ * 3. Bộ kiểm duyệt nghiêm ngặt (`validateAndCleanQuestions` + Zero-Red-Text KaTeX Gate): cấm 100% câu hỏi rỗng,
+ *    phương án A-B-C-D trống hoặc công thức lỗi KaTeX lọt ra giao diện.
+ * 4. Cơ chế Auto Top-up / Retry: nếu sau lọc vẫn thiếu câu (hoặc = 0), tự động gọi bổ sung 1 lượt sang
+ *    model dự phòng kế tiếp để đủ số lượng câu sạch đẹp.
+ * 5. Tuyệt đối KHÔNG dùng kho câu hỏi mẫu tĩnh lệch chủ đề.
  */
 export async function generateQuestionsAI(
   req: GenerateAIRequest
 ): Promise<GeneratedQuestionDraft[]> {
-  const isMC = req.questionType === 'multiple_choice';
-  const difficultyDesc = DIFFICULTY_MAP[req.difficulty] ?? req.difficulty;
+  const targetCount = Math.min(Math.max(Math.floor(req.count || 5), 1), 10);
+  // Với Tự luận (kèm đáp án mẫu & rubric dài), chia batch tối đa 3 câu/lượt để đảm bảo độ sâu và tốc độ ổn định
+  const batchSize = req.questionType === 'essay' ? Math.min(3, targetCount) : Math.min(5, targetCount);
 
-  const normSubject = `${req.subjectCode} ${req.subjectName} ${req.topic}`.toLowerCase();
-  const isMathOrScience =
-    normSubject.includes('toan') ||
-    normSubject.includes('math') ||
-    normSubject.includes('giai tich') ||
-    normSubject.includes('dai so') ||
-    normSubject.includes('hinh hoc') ||
-    normSubject.includes('vat ly') ||
-    normSubject.includes('vat li') ||
-    normSubject.includes('phys') ||
-    normSubject.includes('hoa hoc') ||
-    normSubject.includes('chem') ||
-    normSubject.includes('toa do') ||
-    normSubject.includes('vecto') ||
-    normSubject.includes('hinh');
-
-  // System Prompt Chuyên Gia Khảo Thí Cao Cấp — ÉP BÁM SÁT 100% CHỦ ĐỀ
-  const systemPrompt = `Bạn là Chuyên gia Khảo thí & Biên soạn Đề thi thông minh của hệ thống E-Learning (Đại học Lạc Hồng).
-
-NHIỆM VỤ: Biên soạn các câu hỏi ${isMC ? 'TRẮC NGHIỆM KHÁCH QUAN 4 LỰA CHỌN' : 'TỰ LUẬN KÈM RUBRIC CHẤM'} thuộc môn "${req.subjectName}" (Mã: "${req.subjectCode}").
-
-QUY TẮC BẮT BUỘC (VI PHẠM SẼ BỊ LOẠI BỎ):
-1. BÁM SÁT 100% CHỦ ĐỀ & NỘI DUNG YÊU CẦU:
-   - MỌI câu hỏi sinh ra BẮT BUỘC phải xoay quanh đúng nội dung kiến thức được yêu cầu.
-   - Ví dụ: Nếu chủ đề là "Phương pháp tọa độ trong mặt phẳng và không gian", 100% câu hỏi phải về tọa độ điểm, vectơ, đường thẳng, mặt phẳng, mặt cầu trong Oxy/Oxyz — TUYỆT ĐỐI KHÔNG sinh câu hỏi sang Đạo hàm, Tích phân hay chủ đề khác!
-   - Nếu người dùng dán cả đoạn văn bản bài giảng, lý thuyết, đoạn code hoặc tình huống thực tế -> CHỈ tạo câu hỏi trực tiếp từ đúng nội dung kiến thức đó.
-2. CHÍNH XÁC TUYỆT ĐỐI VỀ HỌC THUẬT & TOÁN HỌC:
-   - Tự kiểm tra lại toàn bộ phép tính, công thức, số liệu, sự kiện để đảm bảo đáp án đúng (correct_option) trùng khớp 100% với lời giải chi tiết (explanation).
-3. ĐA DẠNG & KHÔNG TRÙNG LẶP:
-   - Mỗi câu hỏi trong đợt sinh phải khai thác một khía cạnh, dạng toán hoặc nội dung khác nhau, không lặp lại ý.
-4. KÝ HIỆU LATEX KATEX CHUẨN:
-   ${
-     isMathOrScience
-       ? '- Mọi công thức Toán/Khoa học bọc trong $...$ (inline) hoặc $$...$$ (block), viết chuẩn JSON escape (\\\\frac, \\\\vec, \\\\overrightarrow, \\\\sqrt, \\\\begin{pmatrix}...\\\\end{pmatrix}).'
-       : '- Viết bằng tiếng Việt học thuật chuẩn xác. Không dùng công thức Toán khi môn học là các môn Xã hội / Ngôn ngữ / Lý thuyết.'
-   }
-5. LOẠI BỎ TIỀN TỐ THỪA:
-   - Trong 'question_text': Không ghi "Câu 1:", "Câu 2:" ở đầu.
-   - Trong các phương án: Không ghi "A.", "Phương án A:" ở đầu.
-6. ĐỊNH DẠNG ĐẦU RA: Trả về DUY NHẤT một JSON object có khóa "questions" chứa mảng câu hỏi (KHÔNG thêm markdown hay văn bản thừa ngoài JSON).
-
-Cấu trúc JSON:
-${
-  isMC
-    ? `{"questions":[{"question_text":"Nội dung đề bài...","option_a":"Phương án A","option_b":"Phương án B","option_c":"Phương án C","option_d":"Phương án D","correct_option":"B","explanation":"Lời giải chi tiết từng bước..."}]}`
-    : `{"questions":[{"question_text":"Nội dung bài tự luận...","model_answer":"Các ý chính cốt lõi / Đáp án mẫu...","grading_rubric":"Thang điểm chi tiết chuẩn thang 10 hoặc phân bổ điểm từng ý...","explanation":"Hướng dẫn chấm & lưu ý..."}]}`
-}`;
-
-  // Batch size 3-5 câu mỗi lượt gọi để đảm bảo độ sâu học thuật và không bị timeout
-  const batchSize = Math.min(5, req.count);
   const generatedQuestions: GeneratedQuestionDraft[] = [];
-  const seenQuestionTexts = new Set<string>();
+  const seenStems = new Set<string>();
+  const existingStemsList: string[] = [];
+  const failedModels = new Set<string>();
+  let lastError: unknown = null;
 
-  for (let offset = 0; offset < req.count; offset += batchSize) {
-    const batchCount = Math.min(batchSize, req.count - offset);
-    const nonce = `${Date.now()}-${offset}-${Math.random().toString(36).substring(2, 6)}`;
-
-    const userPrompt = `Hãy biên soạn CHÍNH XÁC ${batchCount} câu hỏi ${isMC ? 'trắc nghiệm (4 phương án A-B-C-D)' : 'tự luận (kèm đáp án mẫu và thang điểm)'} với các thông số sau:
-- Môn học: ${req.subjectName} (Mã môn: ${req.subjectCode})
-- CHỦ ĐỀ / NỘI DUNG KIẾN THỨC BẮT BUỘC:
-"""
-${req.topic}
-"""
-- Mức độ nhận thức: ${difficultyDesc}
-${req.additionalNote ? `- Ghi chú thêm từ giảng viên: ${req.additionalNote}` : ''}
-- Mã phiên sinh chống lặp: ${nonce}
-
-YÊU CẦU ĐẶC BIỆT:
-1. Toàn bộ ${batchCount} câu hỏi này (từ câu ${offset + 1} đến câu ${offset + batchCount}) PHẢI bám sát 100% vào đúng chủ đề "${req.topic}" ở trên. Tuyệt đối không sinh lệch sang chủ đề khác!
-2. Trả về đúng định dạng JSON {"questions":[...]}.`;
-
-    let list: Record<string, unknown>[] = [];
-    let lastError: unknown = null;
-
-    // LƯỢT 1: Gọi với response_format json_object (nếu LLM hỗ trợ)
-    try {
-      const result1 = await callAiChatCompletion({
-        temperature: 0.7, // Tăng tính sáng tạo, đa dạng theo từng lần bấm
-        max_tokens: MAX_COMPLETION_TOKENS,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        response_format: { type: 'json_object' },
-      });
-
-      list = safeParseAIQuestionsJson(result1.content);
-    } catch (err1) {
-      lastError = err1;
-      console.warn('[AI-Question-Generator] Lượt 1 (Strict JSON) gặp trục trặc, tự động thử Lượt 2 (Resilient Text Mode):', err1);
-
-      // LƯỢT 2: Gọi Text Mode với prompt tăng cường escape LaTeX
-      try {
-        const result2 = await callAiChatCompletion({
-          temperature: 0.6,
-          max_tokens: MAX_COMPLETION_TOKENS,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            {
-              role: 'user',
-              content: `${userPrompt}\n\n[LƯU Ý QUAN TRỌNG: Hãy đảm bảo mọi dấu gạch chéo ngược LaTeX trong công thức toán học đều được escape hợp lệ thành \\\\ để không làm hỏng cấu trúc JSON!]`,
-            },
-          ],
-        });
-
-        list = safeParseAIQuestionsJson(result2.content);
-      } catch (err2) {
-        lastError = err2;
-        console.warn('[AI-Question-Generator] Lượt 2 gặp trục trặc:', err2);
-      }
+  const appendValidQuestions = (candidates: GeneratedQuestionDraft[], limit: number): number => {
+    let added = 0;
+    for (const draft of candidates) {
+      if (generatedQuestions.length >= limit) break;
+      const key = normalizeStemKey(draft.question_text);
+      if (seenStems.has(key)) continue;
+      seenStems.add(key);
+      existingStemsList.push(draft.question_text);
+      generatedQuestions.push(draft);
+      added++;
     }
+    return added;
+  };
 
-    // Nếu không lấy được câu hỏi nào từ LLM, báo lỗi rõ ràng (TUYỆT ĐỐI KHÔNG CHÈN FALLBACK TĨNH LỆCH CHỦ ĐỀ)
-    if (!list || list.length === 0) {
-      const errMsg = lastError instanceof Error ? lastError.message : 'Máy chủ AI không trả về câu hỏi hợp lệ.';
-      throw new Error(
-        `Không thể sinh câu hỏi từ mô hình AI cho chủ đề "${req.topic}". Chi tiết: ${errMsg}. Vui lòng bấm "Thử sinh lại" hoặc điều chỉnh lại chủ đề/ghi chú.`
+  /**
+   * Thực hiện 1 lượt gọi LLM theo định dạng XML Tags và trả về các câu vượt qua kiểm duyệt chặt.
+   */
+  const runGenerationTurn = async (
+    neededCount: number,
+    offset: number,
+    skipModels: string[]
+  ): Promise<{ valid: GeneratedQuestionDraft[]; modelUsed: string; rejectedCount: number }> => {
+    const { systemPrompt, userPrompt } = buildStructuredQuestionPrompts(
+      req,
+      neededCount,
+      offset,
+      existingStemsList
+    );
+
+    // TUYỆT ĐỐI KHÔNG gửi response_format: { type: 'json_object' }
+    const result = await callAiChatCompletion({
+      temperature: 0.6,
+      max_tokens: MAX_COMPLETION_TOKENS,
+      disableAutoContinuation: true,
+      requestTimeoutMs: QUESTION_GEN_TIMEOUT_MS,
+      skipModels: skipModels.length > 0 ? skipModels : undefined,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+    });
+
+    const parsedRaw = parseStructuredAIQuestions(result.content);
+    const validated = validateAndCleanQuestions(parsedRaw, req.questionType, { offset });
+
+    if (validated.rejectedCount > 0) {
+      console.warn(
+        `[AI-Question-Generator] Model "${result.modelUsed}" có ${validated.rejectedCount} câu bị loại bởi bộ kiểm duyệt:`,
+        validated.reasons.join(' | ')
       );
     }
 
-    // Chuyển đổi sang GeneratedQuestionDraft và chống trùng lặp
-    for (let index = 0; index < list.length && generatedQuestions.length < req.count; index++) {
-      const item = list[index];
-      const draft = mapToQuestionDraft(item, index, offset, isMC);
-      const normalizedText = draft.question_text.toLowerCase().replace(/\s+/g, ' ').trim();
+    return {
+      valid: validated.valid,
+      modelUsed: result.modelUsed,
+      rejectedCount: validated.rejectedCount,
+    };
+  };
 
-      if (!seenQuestionTexts.has(normalizedText) && normalizedText.length > 5) {
-        seenQuestionTexts.add(normalizedText);
-        generatedQuestions.push(draft);
-      } else if (generatedQuestions.length < req.count) {
-        generatedQuestions.push(draft);
+  // Vòng sinh theo batch (mỗi batch tối đa 5 câu để tối ưu tốc độ & chất lượng)
+  for (let offset = 0; offset < targetCount; offset += batchSize) {
+    const batchGoal = Math.min(targetCount, offset + batchSize);
+    const initialNeeded = batchGoal - generatedQuestions.length;
+    if (initialNeeded <= 0) break;
+
+    let firstTurnModel = '';
+    try {
+      const turn1 = await runGenerationTurn(initialNeeded, generatedQuestions.length, Array.from(failedModels));
+      firstTurnModel = turn1.modelUsed;
+      const added1 = appendValidQuestions(turn1.valid, batchGoal);
+      if (added1 === 0) {
+        failedModels.add(turn1.modelUsed);
+      }
+    } catch (err1) {
+      lastError = err1;
+      console.error('[AI-Question-Generator] Lượt sinh chính gặp lỗi:', err1);
+    }
+
+    // Auto Top-up / Retry: nếu batch vẫn thiếu câu (hoặc 0 câu hợp lệ), tự gọi bù 1 lượt sang model dự phòng kế tiếp
+    const stillMissingInBatch = batchGoal - generatedQuestions.length;
+    if (stillMissingInBatch > 0) {
+      const skipForTopUp = Array.from(
+        new Set([...failedModels, ...(firstTurnModel ? [firstTurnModel] : [])])
+      );
+      console.warn(
+        `[AI-Question-Generator] Đạt ${generatedQuestions.length}/${batchGoal} câu hợp lệ. Tự động gọi bổ sung ${stillMissingInBatch} câu (xoay model dự phòng)...`
+      );
+      try {
+        const turn2 = await runGenerationTurn(
+          stillMissingInBatch,
+          generatedQuestions.length,
+          skipForTopUp
+        );
+        appendValidQuestions(turn2.valid, batchGoal);
+      } catch (err2) {
+        lastError = err2;
+        console.error('[AI-Question-Generator] Lượt gọi bù (Auto Top-up) thất bại:', err2);
       }
     }
   }
 
+  // Nếu sau toàn bộ batch vẫn thiếu câu so với targetCount nhưng đã có ít nhất 1 câu và còn ngân sách,
+  // thử bù gọn thêm 1 lượt cuối để bảo đảm đủ số lượng câu yêu cầu (tránh mất câu do bị loại ở batch đầu)
+  const finalMissing = targetCount - generatedQuestions.length;
+  if (generatedQuestions.length > 0 && finalMissing > 0 && finalMissing <= 3) {
+    try {
+      const topUp = await runGenerationTurn(
+        finalMissing,
+        generatedQuestions.length,
+        Array.from(failedModels)
+      );
+      appendValidQuestions(topUp.valid, targetCount);
+    } catch (errTopUp) {
+      console.warn('[AI-Question-Generator] Lượt bù cuối cùng không thành công, giữ các câu hợp lệ đã sinh:', errTopUp);
+    }
+  }
+
   if (generatedQuestions.length === 0) {
+    const errDetail = normalizeErrorDetail(lastError);
     throw new Error(
-      `Máy chủ AI không thể tạo câu hỏi bám sát chủ đề "${req.topic}". Vui lòng thử lại với chủ đề chi tiết hơn.`
+      `Không thể sinh câu hỏi từ mô hình AI cho chủ đề "${req.topic}". Chi tiết: ${errDetail}. Vui lòng bấm "Thử sinh lại ngay" hoặc điều chỉnh lại chủ đề/ghi chú.`
     );
   }
 

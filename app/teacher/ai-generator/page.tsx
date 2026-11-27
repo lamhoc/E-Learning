@@ -2,6 +2,8 @@ import { Sparkles } from 'lucide-react';
 import { getTeacherQuestionsData } from '@/lib/question-bank';
 import { AIGeneratorStandalone } from '@/components/teacher/ai-generator-standalone';
 
+export const maxDuration = 60;
+
 export const metadata = {
   title: 'Sinh câu hỏi AI Thông Minh | E-Learning LHU',
   description: 'Tự động biên soạn câu hỏi trắc nghiệm & tự luận chuẩn LaTeX KaTeX từ chủ đề bài giảng bằng siêu trí tuệ nhân tạo Gemini & Groq Llama 3.',

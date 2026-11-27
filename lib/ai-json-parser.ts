@@ -1,23 +1,31 @@
 /**
- * Module xử lý và phân tích cú pháp JSON AI an toàn tuyệt đối (Safe AI JSON & LaTeX Parser).
- * Xử lý triệt để:
- * 1. Escape LaTeX trong chuỗi JSON (\frac, \vec, \sqrt, \text, \times...).
- * 2. Cắt bỏ thẻ suy nghĩ <think>...</think> và markdown code fences.
- * 3. Tự động phục hồi các object câu hỏi hợp lệ khi chuỗi JSON bị ngắt giữa chừng do token limit.
- * 4. Làm sạch tiền tố thừa (Câu 1:, A., Lời giải chi tiết:).
+ * Module xử lý và phân tích cú pháp JSON AI an toàn (Safe AI JSON & LaTeX Parser).
+ * Dùng làm Lớp 2 (dự phòng JSON) cho bộ sinh câu hỏi AI và cho module bóc tách tài liệu.
+ *
+ * Cải tiến quan trọng (Phase 79):
+ * - Gọi `protectLatexBackslashesInJson()` TRƯỚC cả Fast-Path `JSON.parse()` để `\frac`, `\neq`,
+ *   `\boldsymbol`, `\root`, `\text`, `\beta`, `\right` KHÔNG BAO GIỜ bị `JSON.parse()` nuốt
+ *   thành ký tự điều khiển (`\u0008`, `\u000C`, `\u000D`, `\u0009`, xuống dòng `\n`).
+ * - Sửa `cleanPrefix` an toàn: chỉ cắt tiền tố `A.` / `A)` / `A:` (không cắt nhầm `"a - b"` hay `"A là..."`).
  */
+import { protectLatexBackslashesInJson, repairLatexAndText } from './latex-repair';
 
 const LATEX_BACKSLASH_TOKEN = '__LATEX_BACKSLASH__';
 
+export type CleanPrefixMode = 'auto' | 'question' | 'option' | 'explanation' | 'answer' | 'rubric' | 'none';
+
 /**
  * Cắt bỏ các tiền tố bị lặp thừa để giao diện hiển thị sạch sẽ, chuyên nghiệp (Clean Formatting).
- * Đồng thời giải mã HTML entities, chuẩn hóa \(...\) -> $...$ và chuẩn hóa Unicode NFC.
+ * Đồng thời giải mã HTML entities, chuẩn hóa \(...\) -> $...$, phục hồi LaTeX và chuẩn hóa Unicode NFC.
  */
-export function cleanPrefix(text: string | null | undefined): string {
+export function cleanPrefix(
+  text: string | null | undefined,
+  mode: CleanPrefixMode = 'auto'
+): string {
   if (!text) return '';
   let str = String(text).trim();
 
-  // 1. Loại bỏ null byte và ký tự rác
+  // 1. Loại bỏ null byte và ký tự replacement
   str = str.replace(/[\u0000\ufffd]/g, '');
 
   // 2. Giải mã HTML entities
@@ -27,42 +35,65 @@ export function cleanPrefix(text: string | null | undefined): string {
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
     .replace(/&nbsp;/g, ' ');
 
-  // 3. Chuẩn hóa cú pháp LaTeX: \(...\) -> $...$ và \[...\] -> $$...$$
-  str = str.replace(/(?:\\{1,2}\[)([\s\S]*?)(?:\\{1,2}\])/g, (_, p1) => `$$${p1}$$`);
-  str = str.replace(/(?:\\{1,2}\()([\s\S]*?)(?:\\{1,2}\))/g, (_, p1) => `$${p1}$`);
+  // 3. Phục hồi ký tự điều khiển LaTeX, literal \n, lệnh thiếu \, hệ phương trình
+  str = repairLatexAndText(str);
 
-  // 4. Chuẩn hóa tiếng Việt Unicode NFC
+  // 4. Chuẩn hóa cú pháp LaTeX: \(...\) -> $...$ và \[...\] -> $$...$$
+  str = str.replace(/(?:\\{1,2}\[)([\s\S]*?)(?:\\{1,2}\])/g, (_, p1) => `$$${String(p1).trim()}$$`);
+  str = str.replace(/(?:\\{1,2}\()([\s\S]*?)(?:\\{1,2}\))/g, (_, p1) => `$${String(p1).trim()}$`);
+
+  // 5. Chuẩn hóa tiếng Việt Unicode NFC
   str = str.normalize('NFC');
 
-  // 5. Cắt bỏ "Câu 1:", "Câu 01.", "Bài 1:", "Question 1:", "1.", v.v.
-  str = str.replace(/^(?:câu|bài|question)\s*\d+[\s:.-]+/i, '');
-  // 6. Cắt bỏ "Phương án A:", "Đáp án A:", "A.", "A)", "A:", v.v.
-  str = str.replace(/^(?:(?:phương án|đáp án)\s*[a-d]|[a-d])[\s:.)-]+/i, '');
-  // 7. Cắt bỏ "Lời giải chi tiết:", "Lời giải:", "Hướng dẫn giải:", "Giải thích:", v.v.
-  str = str.replace(
-    /^(?:lời giải(?:\s*chi tiết)?|hướng dẫn giải|giải thích(?:\s*chi tiết)?|đáp án(?:\s*chi tiết)?|gợi ý(?:\s*đáp án)?|thang điểm(?:\s*chấm)?|rubric(?:\s*chấm)?)[\s:.-]+/i,
-    ''
-  );
+  if (mode === 'none') {
+    return str.trim();
+  }
+
+  // 6. Cắt bỏ tiền tố theo ngữ cảnh trường (tránh cắt nhầm công thức/biến như "a - b" hay "A là...")
+  if (mode === 'auto' || mode === 'question') {
+    str = str.replace(/^(?:câu(?:\s*hỏi)?|bài|question|q)\s*\d+\s*[:.)\-–—]+\s*/i, '');
+  }
+  if (mode === 'auto' || mode === 'option') {
+    // Yêu cầu dấu phân tách rõ ràng (., ), :) sau chữ cái A-D; tuyệt đối không khớp "A là..." hay "a - b"
+    str = str.replace(/^(?:(?:phương án|đáp án)\s*[a-d]\s*[:.)\-–—]+\s*|[a-d]\s*[:.)]\s+)/i, '');
+  }
+  if (mode === 'auto' || mode === 'explanation') {
+    str = str.replace(
+      /^(?:lời giải(?:\s*chi tiết)?|hướng dẫn giải|giải thích(?:\s*chi tiết)?)\s*[:.\-–—]+\s*/i,
+      ''
+    );
+  }
+  if (mode === 'auto' || mode === 'answer' || mode === 'rubric') {
+    str = str.replace(
+      /^(?:đáp án(?:\s*mẫu|\s*chi tiết)?|gợi ý(?:\s*đáp án|\s*trả lời)?|thang điểm(?:\s*chấm)?|rubric(?:\s*chấm)?)\s*[:.\-–—]+\s*/i,
+      ''
+    );
+  }
+
   return str.trim();
 }
 
 /**
  * Khôi phục dấu gạch chéo ngược LaTeX từ token an toàn hoặc từ các chuỗi escaped.
  */
-export function restoreLatexBackslashes(value: unknown): string {
+export function restoreLatexBackslashes(
+  value: unknown,
+  mode: CleanPrefixMode = 'auto'
+): string {
   if (value === null || value === undefined) return '';
   let str = String(value);
   str = str.replaceAll(LATEX_BACKSLASH_TOKEN, '\\');
-  return cleanPrefix(str);
+  return cleanPrefix(str, mode);
 }
 
 /**
  * Tự động sửa lỗi escape cho LaTeX trong chuỗi JSON trước khi gọi JSON.parse().
  * Xử lý triệt để:
- * 1. Giữ nguyên các ký tự thoát hợp lệ của JSON: \" \\ \/ \b \f \n \r \t \uXXXX
- * 2. Đổi mọi dấu \ đơn lẻ đứng trước lệnh LaTeX (chữ cái hoặc ký hiệu toán) thành \\
+ * 1. Bảo vệ các lệnh LaTeX trùng ký tự thoát JSON (\frac, \neq, \text, \beta, \right, \boldsymbol, \root...)
+ * 2. Đổi mọi dấu \ đơn lẻ đứng trước lệnh LaTeX hoặc ký hiệu toán thành \\
  */
 export function sanitizeLatexInJson(jsonStr: string): string {
   if (!jsonStr) return '';
@@ -70,26 +101,26 @@ export function sanitizeLatexInJson(jsonStr: string): string {
   // 0. Khử các control characters < 0x20 (ngoại trừ \t, \n, \r hợp lệ)
   let res = jsonStr.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, ' ');
 
-  // 1. Escape các dấu \ đứng trước lệnh LaTeX chữ cái phổ biến
+  // 1. Bảo vệ các lệnh LaTeX bắt đầu bằng b, f, n, r, t, v trước khi JSON.parse nuốt mất dấu \
+  res = protectLatexBackslashesInJson(res);
+
+  // 2. Escape các dấu \ đơn lẻ đứng trước lệnh LaTeX chữ cái khác (không bắt đầu bằng escape JSON)
   res = res.replace(
-    /(?<!\\)\\(?=(?:[a-zA-Z]{2,}|[a-zA-Z]\b|alpha|beta|gamma|delta|pi|theta|frac|vec|sqrt|text|times|cdot|begin|end|right|left|to|le|ge|ne|in|sum|int|lim|sin|cos|tan|cot|ln|log|det|pm|mp|cup|cap|subset|subset|infty|partial|overline|underline|widehat|angle|circ|parallel|perp))/g,
-    '\\\\'
+    /(?<!\\)((?:\\\\)*)\\(?!["\\/bfnrtu])([a-zA-Z]+)/g,
+    '$1\\\\$2'
   );
 
-  // 2. Escape các dấu \ đứng trước ký tự toán học hoặc dấu ngoặc
-  res = res.replace(/(?<!\\)\\([{}()|,$;:!+\-^&%#_\[\]])/g, '\\\\$1');
+  // 3. Escape các dấu \ đứng trước ký tự toán học hoặc dấu ngoặc
+  res = res.replace(/(?<!\\)((?:\\\\)*)\\([{}()|,$;:!+\-^&%#_\[\]])/g, '$1\\\\$2');
 
-  // 3. Nếu còn bất kỳ dấu \ đơn lẻ nào không phải escape JSON hợp lệ (" \ / b f n r t u), escape nó
-  res = res.replace(/(?<!\\)\\(?!["\\/bfnrtu]|u[0-9a-fA-F]{4})/g, '\\\\');
+  // 4. Nếu còn bất kỳ dấu \ đơn lẻ nào không phải escape JSON hợp lệ (" \ / b f n r t uXXXX), escape nó
+  res = res.replace(/(?<!\\)((?:\\\\)*)\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})/g, '$1\\\\');
 
   return res;
 }
 
 /**
- * Cứu vãn các object câu hỏi hợp lệ khi chuỗi JSON bị ngắt giữa chừng do token limit
- */
-/**
- * Cứu vãn các object câu hỏi hợp lệ khi chuỗi JSON bị ngắt giữa chừng do token limit
+ * Cứu vãn các object câu hỏi hợp lệ khi chuỗi JSON bị ngắt giữa chừng do token limit.
  * Sử dụng State-Machine Bracket Matcher để không bao giờ nhầm dấu } của LaTeX bên trong string.
  */
 export function recoverTruncatedQuestionsJson(raw: string): Record<string, unknown>[] {
@@ -135,7 +166,7 @@ export function recoverTruncatedQuestionsJson(raw: string): Record<string, unkno
         return parsed as Record<string, unknown>[];
       }
     } catch {
-      // Tiếp tục fallback bên dưới nếu vẫn lỗi
+      // Bỏ qua nếu vẫn lỗi
     }
   }
 
@@ -159,10 +190,10 @@ export function extractQuestionList(parsed: unknown): Record<string, unknown>[] 
 }
 
 /**
- * Hàm phân tích JSON AI xử lý an toàn 4 bước (Safe Parse AI Questions JSON):
+ * Hàm phân tích JSON AI xử lý an toàn (Safe Parse AI Questions JSON):
  * 1. Gỡ bỏ thẻ <think>...</think> và markdown code fence.
  * 2. Trích xuất khối [...] hoặc {"questions": [...]}.
- * 3. Tự động sửa escape cho LaTeX trong chuỗi JSON.
+ * 3. Bảo vệ dấu \ của LaTeX TRƯỚC khi JSON.parse() (chặn nuốt \frac, \neq, \boldsymbol, \root, \text...).
  * 4. Tự cứu các object câu hỏi hoàn chỉnh nếu chuỗi JSON bị ngắt giữa chừng.
  */
 export function safeParseAIQuestionsJson(rawText: string): Record<string, unknown>[] {
@@ -193,16 +224,17 @@ export function safeParseAIQuestionsJson(rawText: string): Record<string, unknow
   }
   clean = clean.slice(startIdx);
 
-  // 3. Thử parse trực tiếp (Fast Path)
+  // 3. Bảo vệ LaTeX backslash trước khi thử parse nhanh (CHẶN JSON.parse nuốt \f, \b, \n, \r, \t)
+  const latexProtected = protectLatexBackslashesInJson(clean);
   try {
-    const directParsed = JSON.parse(clean);
+    const directParsed = JSON.parse(latexProtected);
     const list = extractQuestionList(directParsed);
     if (list.length > 0) return list;
   } catch {
-    // Tiếp tục tiền xử lý LaTeX escape
+    // Tiếp tục tiền xử lý toàn diện LaTeX escape
   }
 
-  // 4. Tiền xử lý LaTeX escape trong chuỗi JSON
+  // 4. Tiền xử lý toàn diện LaTeX escape trong chuỗi JSON
   try {
     const sanitized = sanitizeLatexInJson(clean);
     const sanitizedParsed = JSON.parse(sanitized);
@@ -218,5 +250,5 @@ export function safeParseAIQuestionsJson(rawText: string): Record<string, unknow
     return recoveredList;
   }
 
-  throw new Error('Không thể phân tích cấu trúc JSON từ máy chủ AI. Vui lòng bấm "Thử sinh lại".');
+  throw new Error('Không thể phân tích cấu trúc dữ liệu từ máy chủ AI. Vui lòng bấm "Thử sinh lại".');
 }

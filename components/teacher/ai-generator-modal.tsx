@@ -40,7 +40,7 @@ type AIGeneratorModalProps = {
 };
 
 const LOADING_STAGES = [
-  'Đang kết nối tới mô hình AI (Groq)...',
+  'Đang kết nối tới cổng AI thông minh (Gemini & Groq)...',
   'Đang phân tích chủ đề và soạn thảo câu hỏi chuẩn KaTeX...',
   'Đang biên soạn các phương án nhiễu & đáp án tối ưu...',
   'Đang kiểm tra tính nhất quán và chuẩn hóa dữ liệu...',
@@ -122,9 +122,8 @@ export function AIGeneratorModal({
 
   if (!isOpen) return null;
 
-  const handleStartGenerate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!topic.trim()) return;
+  const executeGenerate = async (switchToReview: boolean) => {
+    if (!topic.trim() || isGenerating) return;
 
     setIsGenerating(true);
     setGenerateError(null);
@@ -140,38 +139,27 @@ export function AIGeneratorModal({
 
     setIsGenerating(false);
 
-    if (res.status === 'error' || !res.questions) {
-      setGenerateError(res.message);
+    if (res.status === 'error' || !res.questions || res.questions.length === 0) {
+      setGenerateError(
+        (res.message || 'Không thể sinh câu hỏi. Vui lòng thử lại.').replace(/\.{2,}/g, '.')
+      );
     } else {
       setGeneratedDrafts(res.questions);
       // Select all by default
       setSelectedIds(new Set(res.questions.map((q) => q.tempId)));
-      setStep('review');
+      if (switchToReview) {
+        setStep('review');
+      }
     }
   };
 
+  const handleStartGenerate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await executeGenerate(true);
+  };
+
   const handleRegenerate = async () => {
-    if (!topic.trim() || isGenerating) return;
-    setIsGenerating(true);
-    setGenerateError(null);
-
-    const res = await generateAIQuestionsAction({
-      subjectId: selectedSubjectId,
-      topic,
-      questionType,
-      difficulty,
-      count,
-      additionalNote,
-    });
-
-    setIsGenerating(false);
-
-    if (res.status === 'error' || !res.questions) {
-      setGenerateError(res.message);
-    } else {
-      setGeneratedDrafts(res.questions);
-      setSelectedIds(new Set(res.questions.map((q) => q.tempId)));
-    }
+    await executeGenerate(step === 'config');
   };
 
   const handleToggleSelect = (tempId: string) => {
@@ -292,9 +280,25 @@ export function AIGeneratorModal({
             /* STEP 1: CONFIGURATION */
             <form onSubmit={handleStartGenerate} className="space-y-4">
               {generateError && (
-                <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
-                  <AlertCircle className="size-4 shrink-0" />
-                  <span>{generateError}</span>
+                <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="mt-0.5 size-4 shrink-0" />
+                    <span className="leading-relaxed">{generateError}</span>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={isGenerating || !topic.trim()}
+                    onClick={handleRegenerate}
+                    className="h-7 shrink-0 gap-1.5 rounded-md bg-destructive px-2.5 text-xs font-semibold text-white hover:bg-destructive/90 cursor-pointer"
+                  >
+                    {isGenerating ? (
+                      <LoaderCircle className="size-3.5 animate-spin" />
+                    ) : (
+                      <RefreshCw className="size-3.5" />
+                    )}
+                    <span>{isGenerating ? 'Đang thử lại...' : 'Thử sinh lại ngay'}</span>
+                  </Button>
                 </div>
               )}
 
@@ -491,6 +495,29 @@ export function AIGeneratorModal({
           ) : (
             /* STEP 2: REVIEW, INLINE EDIT & APPROVAL */
             <div className="space-y-5">
+              {generateError && (
+                <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="mt-0.5 size-4 shrink-0" />
+                    <span className="leading-relaxed">{generateError}</span>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={isGenerating || !topic.trim()}
+                    onClick={handleRegenerate}
+                    className="h-7 shrink-0 gap-1.5 rounded-md bg-destructive px-2.5 text-xs font-semibold text-white hover:bg-destructive/90 cursor-pointer"
+                  >
+                    {isGenerating ? (
+                      <LoaderCircle className="size-3.5 animate-spin" />
+                    ) : (
+                      <RefreshCw className="size-3.5" />
+                    )}
+                    <span>{isGenerating ? 'Đang thử lại...' : 'Thử sinh lại ngay'}</span>
+                  </Button>
+                </div>
+              )}
+
               {/* Review Bar */}
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/60 dark:bg-blue-950/30 p-3.5">
                 <div className="flex flex-wrap items-center gap-3">
@@ -774,7 +801,7 @@ export function AIGeneratorModal({
                             {/* Question Text */}
                             <MathText
                               content={draft.question_text}
-                              className="text-sm font-medium leading-relaxed text-foreground"
+                              className="text-sm font-medium leading-relaxed text-foreground whitespace-pre-line"
                             />
 
                             {/* Multiple Choice Options */}
@@ -828,16 +855,16 @@ export function AIGeneratorModal({
                                 {draft.model_answer && (
                                   <div>
                                     <strong className="text-purple-900 dark:text-purple-300 font-semibold">📝 Đáp án mẫu:</strong>{' '}
-                                    <div className="mt-1 text-purple-950 dark:text-purple-200 leading-relaxed">
-                                      <MathText content={draft.model_answer} />
+                                    <div className="mt-1 text-purple-950 dark:text-purple-200 leading-relaxed whitespace-pre-line">
+                                      <MathText content={draft.model_answer} className="whitespace-pre-line" />
                                     </div>
                                   </div>
                                 )}
                                 {draft.grading_rubric && (
                                   <div className="pt-1 border-t border-purple-100 dark:border-purple-900/40">
                                     <strong className="text-purple-900 dark:text-purple-300 font-semibold">🎯 Thang điểm & Rubric:</strong>{' '}
-                                    <div className="mt-1 text-purple-950 dark:text-purple-200 leading-relaxed">
-                                      <MathText content={draft.grading_rubric} />
+                                    <div className="mt-1 text-purple-950 dark:text-purple-200 leading-relaxed whitespace-pre-line">
+                                      <MathText content={draft.grading_rubric} className="whitespace-pre-line" />
                                     </div>
                                   </div>
                                 )}
@@ -846,9 +873,9 @@ export function AIGeneratorModal({
 
                             {/* Explanation */}
                             {draft.explanation && (
-                              <div className="mt-2.5 rounded-lg bg-muted/40 p-2 text-xs text-muted-foreground">
+                              <div className="mt-2.5 rounded-lg bg-muted/40 p-2 text-xs text-muted-foreground whitespace-pre-line">
                                 <strong className="text-foreground">Giải thích:</strong>{' '}
-                                <MathText content={draft.explanation} className="inline" />
+                                <MathText content={draft.explanation} className="mt-0.5 whitespace-pre-line" />
                               </div>
                             )}
                           </>

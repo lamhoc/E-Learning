@@ -501,7 +501,7 @@ export function QuestionManager({
                   {/* Question Text */}
                   <MathText
                     content={q.question_text}
-                    className="text-sm font-medium leading-relaxed text-slate-900 dark:text-slate-100"
+                    className="text-sm font-medium leading-relaxed text-slate-900 dark:text-slate-100 whitespace-pre-line"
                   />
 
                   {/* Multiple Choice Options List */}
@@ -555,7 +555,7 @@ export function QuestionManager({
                           </span>{' '}
                           <MathText
                             content={q.answer_key.model_answer}
-                            className="text-purple-950 dark:text-purple-200"
+                            className="mt-1 text-purple-950 dark:text-purple-200 whitespace-pre-line"
                           />
                         </div>
                       )}
@@ -566,7 +566,7 @@ export function QuestionManager({
                           </span>{' '}
                           <MathText
                             content={q.answer_key.grading_rubric}
-                            className="text-purple-950 dark:text-purple-200"
+                            className="mt-1 text-purple-950 dark:text-purple-200 whitespace-pre-line"
                           />
                         </div>
                       )}
@@ -577,11 +577,11 @@ export function QuestionManager({
                   {q.explanation && (
                     <div className="flex items-start gap-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 p-2.5 text-xs text-slate-600 dark:text-slate-400">
                       <Sparkles className="mt-0.5 size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
-                      <div>
+                      <div className="min-w-0 flex-1">
                         <span className="font-semibold text-slate-900 dark:text-slate-200">
                           Giải thích chi tiết:
                         </span>{' '}
-                        <MathText content={q.explanation} className="text-slate-700 dark:text-slate-300" />
+                        <MathText content={q.explanation} className="mt-0.5 text-slate-700 dark:text-slate-300 whitespace-pre-line" />
                       </div>
                     </div>
                   )}

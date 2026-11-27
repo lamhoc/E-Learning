@@ -12,6 +12,7 @@ import {
   LibraryBig,
   LoaderCircle,
   Pencil,
+  RefreshCw,
   Sparkles,
   Trash2,
   Wand2,
@@ -39,10 +40,10 @@ type Props = {
 };
 
 const LOADING_STAGES = [
-  'Đang kết nối tới siêu mô hình Groq AI...',
+  'Đang kết nối tới cổng AI thông minh (Gemini & Groq)...',
   'Đang phân tích chủ đề và biên soạn câu hỏi chuẩn KaTeX LaTeX...',
   'Đang thiết lập phương án nhiễu & lời giải chi tiết...',
-  'Đang kiểm tra tính nhất quán và hoàn thiện dữ liệu câu hỏi...',
+  'Đang kiểm duyệt tự động KaTeX và hoàn thiện bộ câu hỏi sạch...',
 ];
 
 export function AIGeneratorStandalone({ subjects, teacherName }: Props) {
@@ -114,9 +115,8 @@ export function AIGeneratorStandalone({ subjects, teacherName }: Props) {
     return () => clearInterval(interval);
   }, [isGenerating]);
 
-  const handleStartGenerate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!topic.trim()) return;
+  const executeGenerate = async (switchToReview: boolean) => {
+    if (!topic.trim() || isGenerating) return;
 
     setIsGenerating(true);
     setGenerateError(null);
@@ -136,35 +136,24 @@ export function AIGeneratorStandalone({ subjects, teacherName }: Props) {
     if (res.status === 'success' && res.questions && res.questions.length > 0) {
       setGeneratedDrafts(res.questions);
       setSelectedIds(new Set(res.questions.map((q) => q.tempId)));
-      setStep('review');
+      if (switchToReview) {
+        setStep('review');
+      }
     } else {
-      setGenerateError(res.message || 'Không thể sinh câu hỏi. Vui lòng thử lại với chủ đề khác.');
+      const cleanMessage = (
+        res.message || 'Không thể sinh câu hỏi. Vui lòng thử lại với chủ đề khác.'
+      ).replace(/\.{2,}/g, '.');
+      setGenerateError(cleanMessage);
     }
   };
 
+  const handleStartGenerate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await executeGenerate(true);
+  };
+
   const handleRegenerate = async () => {
-    if (!topic.trim() || isGenerating) return;
-    setIsGenerating(true);
-    setGenerateError(null);
-    setSaveSuccessMsg(null);
-
-    const res = await generateAIQuestionsAction({
-      subjectId: selectedSubjectId,
-      topic,
-      questionType,
-      difficulty,
-      count,
-      additionalNote,
-    });
-
-    setIsGenerating(false);
-
-    if (res.status === 'success' && res.questions && res.questions.length > 0) {
-      setGeneratedDrafts(res.questions);
-      setSelectedIds(new Set(res.questions.map((q) => q.tempId)));
-    } else {
-      setGenerateError(res.message || 'Không thể sinh câu hỏi. Vui lòng thử lại với chủ đề khác.');
-    }
+    await executeGenerate(step === 'config');
   };
 
   const toggleSelectOne = (tempId: string) => {
@@ -311,9 +300,30 @@ export function AIGeneratorStandalone({ subjects, teacherName }: Props) {
       )}
 
       {generateError && (
-        <div className="flex items-center gap-2.5 rounded-xl border border-rose-300 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/60 p-4 text-sm text-rose-900 dark:text-rose-200">
-          <AlertCircle className="size-5 shrink-0 text-rose-600 dark:text-rose-400" />
-          <p className="font-medium">{generateError}</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-rose-300 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/60 p-4 text-sm text-rose-900 dark:text-rose-200">
+          <div className="flex items-start gap-2.5">
+            <AlertCircle className="mt-0.5 size-5 shrink-0 text-rose-600 dark:text-rose-400" />
+            <p className="font-medium leading-relaxed">{generateError}</p>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            disabled={isGenerating || !topic.trim()}
+            onClick={handleRegenerate}
+            className="shrink-0 gap-1.5 rounded-lg bg-rose-600 text-xs font-semibold text-white hover:bg-rose-700 dark:bg-rose-600 dark:hover:bg-rose-500 cursor-pointer"
+          >
+            {isGenerating ? (
+              <>
+                <LoaderCircle className="size-3.5 animate-spin" />
+                <span>Đang thử lại...</span>
+              </>
+            ) : (
+              <>
+                <RefreshCw className="size-3.5" />
+                <span>Thử sinh lại ngay</span>
+              </>
+            )}
+          </Button>
         </div>
       )}
 
@@ -827,8 +837,8 @@ export function AIGeneratorStandalone({ subjects, teacherName }: Props) {
                     ) : (
                       /* Display Draft */
                       <div className="space-y-3">
-                        <div className="text-sm font-medium text-slate-900 dark:text-white">
-                          <MathText content={draft.question_text} />
+                        <div className="text-sm font-medium text-slate-900 dark:text-white whitespace-pre-line">
+                          <MathText content={draft.question_text} className="whitespace-pre-line" />
                         </div>
 
                         {isMC && (
@@ -877,8 +887,8 @@ export function AIGeneratorStandalone({ subjects, teacherName }: Props) {
                                   <span>📝</span>
                                   <span>Đáp án mẫu / Lời giải gợi ý:</span>
                                 </p>
-                                <div className="mt-1.5 text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
-                                  <MathText content={draft.model_answer} />
+                                <div className="mt-1.5 text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line">
+                                  <MathText content={draft.model_answer} className="whitespace-pre-line" />
                                 </div>
                               </div>
                             )}
@@ -889,8 +899,8 @@ export function AIGeneratorStandalone({ subjects, teacherName }: Props) {
                                   <span>🎯</span>
                                   <span>Thang điểm & Tiêu chí chấm (Rubric):</span>
                                 </p>
-                                <div className="mt-1.5 text-purple-950 dark:text-purple-200 leading-relaxed whitespace-pre-wrap">
-                                  <MathText content={draft.grading_rubric} />
+                                <div className="mt-1.5 text-purple-950 dark:text-purple-200 leading-relaxed whitespace-pre-line">
+                                  <MathText content={draft.grading_rubric} className="whitespace-pre-line" />
                                 </div>
                               </div>
                             )}
@@ -898,9 +908,9 @@ export function AIGeneratorStandalone({ subjects, teacherName }: Props) {
                         )}
 
                         {draft.explanation && (
-                          <div className="rounded-lg border border-blue-100 dark:border-blue-900/50 bg-blue-50/40 dark:bg-blue-950/20 p-2.5 text-xs text-blue-900 dark:text-blue-200">
+                          <div className="rounded-lg border border-blue-100 dark:border-blue-900/50 bg-blue-50/40 dark:bg-blue-950/20 p-2.5 text-xs text-blue-900 dark:text-blue-200 whitespace-pre-line">
                             <span className="font-bold">💡 Giải thích chi tiết: </span>
-                            <MathText content={draft.explanation} />
+                            <MathText content={draft.explanation} className="mt-1 whitespace-pre-line" />
                           </div>
                         )}
                       </div>

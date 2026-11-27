@@ -6,6 +6,8 @@ import { QuestionManager } from '@/components/teacher/question-manager';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getCurrentProfile } from '@/lib/auth-cache';
 
+export const maxDuration = 60;
+
 type QuestionsPageProps = {
   searchParams: Promise<{
     subject?: string;
