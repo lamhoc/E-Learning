@@ -19,7 +19,18 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getCurrentUser, getCurrentRoleRecord } from '@/lib/auth-cache';
+import { In, IsNull } from 'typeorm';
+import { getCurrentUserWithRole } from '@/lib/auth-cache';
+import { getDataSource } from '@/lib/db/data-source';
+import {
+  ClassSchema,
+  InvitationTokenSchema,
+  ProfileSchema,
+  SubjectSchema,
+  TeacherApplicationSchema,
+  TeacherSubjectAssignmentSchema,
+  UserRoleSchema,
+} from '@/lib/db/entities';
 import { sanitizeVietnameseText } from '@/lib/utils';
 import {
   AcademicAccess,
@@ -45,74 +56,80 @@ export default async function TeacherAccessAdminPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const { user, error: authError, supabase } = await getCurrentUser();
-  if (authError || !user) redirect('/login');
+  const { user, role } = await getCurrentUserWithRole();
+  if (!user) redirect('/login');
 
   // Kiểm tra quyền nghiêm ngặt role = 'admin'
-  const isMetadataAdmin = user.app_metadata?.role === 'admin';
-  const { data: roleRecord, error: roleError } = await getCurrentRoleRecord();
+  if (user.app_metadata?.role !== 'admin' && role !== 'admin') redirect('/subjects');
 
-  const isDbAdmin = !roleError && roleRecord?.role === 'admin';
-  if (!isMetadataAdmin && !isDbAdmin) redirect('/subjects');
+  const ds = await getDataSource();
+  const params = await searchParams;
+  let hasQueryError = false;
 
-  const [
-    applicationsResult,
-    invitationsResult,
-    teachersResult,
-    subjectsResult,
-    assignmentsResult,
-    classesResult,
-    params,
-  ] = await Promise.all([
-    supabase
-      .from('teacher_applications')
-      .select('user_id, email, status, requested_at, reviewed_at, review_note')
-      .order('requested_at', { ascending: false }),
-    supabase
-      .from('invitation_tokens')
-      .select('id, email, created_at, expires_at, used_at')
-      .order('created_at', { ascending: false })
-      .limit(20),
-    supabase.from('user_roles').select('user_id').eq('role', 'teacher'),
-    supabase.from('subjects').select('id, code, name, archived_at').order('name'),
-    supabase
-      .from('teacher_subject_assignments')
-      .select('teacher_id, subject_id')
-      .order('assigned_at', { ascending: false }),
-    supabase
-      .from('classes')
-      .select('id, name, class_code, academic_year, subject_id, teacher_id')
-      .is('archived_at', null)
-      .order('name'),
-    searchParams,
-  ]);
+  let applicationRows: Awaited<ReturnType<ReturnType<typeof ds.getRepository<typeof TeacherApplicationSchema extends import('typeorm').EntitySchema<infer E> ? E : never>>['find']>> = [];
+  let invitationRows: Awaited<ReturnType<ReturnType<typeof ds.getRepository<typeof InvitationTokenSchema extends import('typeorm').EntitySchema<infer E> ? E : never>>['find']>> = [];
+  let teachersData: { user_id: string }[] = [];
+  let subjectsData: { id: string; code: string; name: string; archived_at: string | null }[] = [];
+  let assignmentsData: { teacher_id: string; subject_id: string }[] = [];
+  let classesData: { id: string; name: string; class_code: string; academic_year: string; subject_id: string; teacher_id: string }[] = [];
 
-  const teacherIds = (teachersResult.data ?? []).map((row) => row.user_id);
-  const applicationRows = applicationsResult.data ?? [];
-  const pendingApplications = applicationRows.filter((app) => app.status === 'pending');
+  try {
+    [
+      applicationRows,
+      invitationRows,
+      teachersData,
+      subjectsData,
+      assignmentsData,
+      classesData,
+    ] = await Promise.all([
+      ds.getRepository(TeacherApplicationSchema).find({ order: { requested_at: 'DESC' } }),
+      ds.getRepository(InvitationTokenSchema).find({ order: { created_at: 'DESC' }, take: 20 }),
+      ds.getRepository(UserRoleSchema).find({ select: { user_id: true }, where: { role: 'teacher' } }),
+      ds.getRepository(SubjectSchema).find({ select: { id: true, code: true, name: true, archived_at: true }, order: { name: 'ASC' } }),
+      ds.getRepository(TeacherSubjectAssignmentSchema).find({
+        select: { teacher_id: true, subject_id: true },
+        order: { assigned_at: 'DESC' },
+      }),
+      ds.getRepository(ClassSchema).find({
+        select: { id: true, name: true, class_code: true, academic_year: true, subject_id: true, teacher_id: true },
+        where: { archived_at: IsNull() },
+        order: { name: 'ASC' },
+      }),
+    ]);
+  } catch (err) {
+    console.error('TeacherAccessAdminPage query error:', err);
+    hasQueryError = true;
+  }
 
-  // Lấy danh sách profile cho cả giáo viên và người nộp hồ sơ
-  const allUserIds = Array.from(new Set([...teacherIds, ...applicationRows.map((a) => a.user_id)]));
-  const profilesResult = allUserIds.length
-    ? await supabase.from('profiles').select('id, full_name').in('id', allUserIds)
-    : { data: [], error: null };
+  const teacherIds = teachersData.map((row: { user_id: string }) => row.user_id);
+  const pendingApplications = applicationRows.filter((app: { status: string }) => app.status === 'pending');
+
+  const allUserIds = Array.from(
+    new Set([...teacherIds, ...applicationRows.map((a: { user_id: string }) => a.user_id)]),
+  );
+  const profilesData = allUserIds.length
+    ? await ds.getRepository(ProfileSchema).find({
+        select: { id: true, full_name: true },
+        where: { id: In(allUserIds) },
+      })
+    : [];
 
   const profileNames = new Map(
-    (profilesResult.data ?? []).map((profile) => [profile.id, sanitizeVietnameseText(profile.full_name)]),
+    profilesData.map((profile) => [profile.id, sanitizeVietnameseText(profile.full_name)]),
   );
 
-  const allSubjects = (subjectsResult.data ?? []) as (AcademicSubject & {
+  const allSubjects = subjectsData as (AcademicSubject & {
     archived_at: string | null;
   })[];
   const academicSubjects = allSubjects.filter((subject) => !subject.archived_at);
 
-  const academicTeachers: AcademicTeacher[] = teacherIds.map((id) => ({
+  const academicTeachers: AcademicTeacher[] = teacherIds.map((id: string) => ({
     id,
     name: profileNames.get(id) || 'Giảng viên',
   }));
 
-  const academicAssignments: AcademicAssignment[] = (assignmentsResult.data ?? []).flatMap(
-    (assignment) => {
+  const academicAssignments: AcademicAssignment[] = assignmentsData.flatMap(
+    (assignment: { teacher_id: string; subject_id: string }) => {
       const teacher = academicTeachers.find((item) => item.id === assignment.teacher_id);
       const subject = allSubjects.find((item) => item.id === assignment.subject_id);
       return teacher && subject
@@ -129,15 +146,15 @@ export default async function TeacherAccessAdminPage({
     },
   );
 
-  const academicClasses: AcademicClass[] = (classesResult.data ?? []).flatMap((classItem) => {
+  const academicClasses: AcademicClass[] = classesData.flatMap((classItem: any) => {
     const subject = allSubjects.find((item) => item.id === classItem.subject_id);
     if (!subject) return [];
     const currentTeacher = academicTeachers.find((item) => item.id === classItem.teacher_id);
     const eligibleTeachers = [
       ...new Set(
-        (assignmentsResult.data ?? [])
-          .filter((assignment) => assignment.subject_id === classItem.subject_id)
-          .map((assignment) => assignment.teacher_id),
+        assignmentsData
+          .filter((assignment: { subject_id: string }) => assignment.subject_id === classItem.subject_id)
+          .map((assignment: { teacher_id: string }) => assignment.teacher_id),
       ),
     ].flatMap((teacherId) => {
       const teacher = academicTeachers.find((item) => item.id === teacherId);
@@ -157,17 +174,6 @@ export default async function TeacherAccessAdminPage({
       },
     ];
   });
-
-  const queryError =
-    applicationsResult.error ||
-    invitationsResult.error ||
-    teachersResult.error ||
-    subjectsResult.error ||
-    assignmentsResult.error ||
-    classesResult.error ||
-    profilesResult.error;
-
-  const invitationRows = invitationsResult.data ?? [];
 
   return (
     <div className="w-full max-w-6xl min-w-0 mx-auto space-y-6 px-3.5 sm:px-8 py-5 sm:py-9">
@@ -208,7 +214,7 @@ export default async function TeacherAccessAdminPage({
       </section>
 
       {/* Status Messages */}
-      {queryError && (
+      {hasQueryError && (
         <div
           role="alert"
           className="rounded-xl border border-destructive/25 bg-destructive/5 p-4 text-xs text-destructive flex items-center gap-2"
@@ -446,7 +452,7 @@ export default async function TeacherAccessAdminPage({
             <CardContent className="flex items-start gap-3 p-4 text-xs leading-5 text-[#385c49] dark:text-emerald-300">
               <MailPlus aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-[#17372e] dark:text-emerald-400" />
               <p>
-                <strong>Bảo mật:</strong> Khi bạn phê duyệt hồ sơ hoặc tạo mã mời, quyền hạn được cập nhật trực tiếp vào hệ thống Supabase Auth Service Role và đồng bộ tới bảng phân quyền.
+                <strong>Bảo mật:</strong> Khi bạn phê duyệt hồ sơ hoặc tạo mã mời, quyền hạn được cập nhật trực tiếp vào cơ sở dữ liệu SQL Server và đồng bộ tới bảng phân quyền.
               </p>
             </CardContent>
           </Card>

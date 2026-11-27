@@ -1,5 +1,16 @@
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import 'server-only';
+
+import { In, Not } from 'typeorm';
+import { getDataSource } from '@/lib/db/data-source';
+import {
+  AssignmentSchema,
+  AssignmentSubmissionSchema,
+  ClassMembershipSchema,
+  ClassSchema,
+  ProfileSchema,
+  SubjectSchema,
+  UserSchema,
+} from '@/lib/db/entities';
 
 export type Assignment = {
   id: string;
@@ -70,50 +81,30 @@ export type StudentAssignmentItem = Assignment & {
   submission?: AssignmentSubmission | null;
 };
 
-/**
- * Lấy danh sách bài tập của một lớp kèm thống kê nộp bài dành cho Giảng viên
- */
 export async function getClassAssignments(classId: string): Promise<AssignmentWithStats[]> {
-  const admin = createAdminClient();
+  const ds = await getDataSource();
 
-  // 1. Đếm tổng số sinh viên trong lớp
-  const { count: studentCount } = await admin
-    .from('class_memberships')
-    .select('student_id', { count: 'exact', head: true })
-    .eq('class_id', classId);
+  const [totalStudents, assignments] = await Promise.all([
+    ds.getRepository(ClassMembershipSchema).count({ where: { class_id: classId } }),
+    ds.getRepository(AssignmentSchema).find({
+      where: { class_id: classId },
+      order: { due_date: 'DESC' },
+    }),
+  ]);
 
-  const totalStudents = studentCount || 0;
+  if (assignments.length === 0) return [];
 
-  // 2. Lấy danh sách bài tập của lớp
-  const { data: assignments, error } = await admin
-    .from('assignments')
-    .select('*')
-    .eq('class_id', classId)
-    .order('due_date', { ascending: false });
-
-  if (error || !assignments) {
-    console.error('Error fetching assignments:', error?.message);
-    return [];
-  }
-
-  if (assignments.length === 0) {
-    return [];
-  }
-
-  // 3. Lấy thông tin bài nộp để tính stats
   const assignmentIds = assignments.map((a) => a.id);
-  const { data: submissions } = await admin
-    .from('assignment_submissions')
-    .select('assignment_id, score')
-    .in('assignment_id', assignmentIds);
+  const submissions = await ds.getRepository(AssignmentSubmissionSchema).find({
+    select: { assignment_id: true, score: true },
+    where: { assignment_id: In(assignmentIds) },
+  });
 
   const submissionMap = new Map<string, { total: number; graded: number }>();
-  for (const s of submissions || []) {
+  for (const s of submissions) {
     const current = submissionMap.get(s.assignment_id) || { total: 0, graded: 0 };
     current.total += 1;
-    if (s.score !== null) {
-      current.graded += 1;
-    }
+    if (s.score !== null) current.graded += 1;
     submissionMap.set(s.assignment_id, current);
   }
 
@@ -129,92 +120,62 @@ export async function getClassAssignments(classId: string): Promise<AssignmentWi
   });
 }
 
-/**
- * Lấy chi tiết bài tập kèm danh sách bài nộp của sinh viên cho Giảng viên chấm điểm
- */
 export async function getAssignmentDetails(assignmentId: string): Promise<AssignmentDetails | null> {
-  const admin = createAdminClient();
+  const ds = await getDataSource();
+  const assignment = await ds.getRepository(AssignmentSchema).findOne({
+    where: { id: assignmentId },
+  });
 
-  // 1. Lấy thông tin bài tập và lớp học
-  const { data: assignment, error: assignmentError } = await admin
-    .from('assignments')
-    .select(`
-      *,
-      classes (
-        id,
-        name,
-        class_code,
-        academic_year,
-        subject_id,
-        subjects (
-          name,
-          code
-        )
-      )
-    `)
-    .eq('id', assignmentId)
-    .maybeSingle();
+  if (!assignment) return null;
 
-  if (assignmentError || !assignment) {
-    console.error('Error fetching assignment details:', assignmentError?.message);
-    return null;
-  }
+  const [classData, studentCount, submissions] = await Promise.all([
+    ds.getRepository(ClassSchema).findOne({ where: { id: assignment.class_id } }),
+    ds.getRepository(ClassMembershipSchema).count({ where: { class_id: assignment.class_id } }),
+    ds.getRepository(AssignmentSubmissionSchema).find({
+      where: { assignment_id: assignmentId },
+      order: { submitted_at: 'DESC' },
+    }),
+  ]);
 
-  const classData = (assignment as any).classes;
-  const subjectData = classData?.subjects;
+  const subjectData = classData
+    ? await ds.getRepository(SubjectSchema).findOne({
+        select: { name: true, code: true },
+        where: { id: classData.subject_id },
+      })
+    : null;
 
-  // 2. Lấy tổng số sinh viên trong lớp
-  const { count: studentCount } = await admin
-    .from('class_memberships')
-    .select('student_id', { count: 'exact', head: true })
-    .eq('class_id', assignment.class_id);
+  const studentIds = Array.from(new Set(submissions.map((s) => s.student_id)));
+  const [profiles, users] = studentIds.length
+    ? await Promise.all([
+        ds.getRepository(ProfileSchema).find({ where: { id: In(studentIds) } }),
+        ds.getRepository(UserSchema).find({ select: { id: true, email: true }, where: { id: In(studentIds) } }),
+      ])
+    : [[], []];
 
-  // 3. Lấy danh sách bài nộp của bài tập
-  const { data: submissions, error: subError } = await admin
-    .from('assignment_submissions')
-    .select(`
-      *,
-      profiles:student_id (
-        id,
-        full_name,
-        email,
-        student_code
-      )
-    `)
-    .eq('assignment_id', assignmentId)
-    .order('submitted_at', { ascending: false });
+  const profileMap = new Map(profiles.map((p) => [p.id, p]));
+  const emailMap = new Map(users.map((u) => [u.id, u.email]));
 
-  if (subError) {
-    console.error('Error fetching assignment submissions:', subError.message);
-  }
-
-  const mappedSubmissions: AssignmentSubmission[] = (submissions || []).map((sub: any) => ({
-    ...sub,
-    score: sub.score !== null ? Number(sub.score) : null,
-    file_size_bytes: sub.file_size_bytes ? Number(sub.file_size_bytes) : null,
-    student: sub.profiles
-      ? {
-          id: sub.profiles.id,
-          full_name: sub.profiles.full_name,
-          email: sub.profiles.email,
-          student_code: sub.profiles.student_code,
-        }
-      : undefined,
-  }));
+  const mappedSubmissions: AssignmentSubmission[] = submissions.map((sub) => {
+    const p = profileMap.get(sub.student_id);
+    return {
+      ...sub,
+      is_late: Boolean(sub.is_late),
+      score: sub.score !== null ? Number(sub.score) : null,
+      file_size_bytes: sub.file_size_bytes !== null ? Number(sub.file_size_bytes) : null,
+      student: p
+        ? {
+            id: p.id,
+            full_name: p.full_name,
+            email: emailMap.get(p.id) || '',
+            student_code: p.student_code,
+          }
+        : undefined,
+    };
+  });
 
   return {
-    id: assignment.id,
-    class_id: assignment.class_id,
-    teacher_id: assignment.teacher_id,
-    title: assignment.title,
-    description: assignment.description,
-    attachment_url: assignment.attachment_url,
-    attachment_name: assignment.attachment_name,
-    due_date: assignment.due_date,
+    ...assignment,
     max_score: Number(assignment.max_score),
-    status: assignment.status,
-    created_at: assignment.created_at,
-    updated_at: assignment.updated_at,
     class: {
       id: classData?.id || assignment.class_id,
       name: classData?.name || 'Lớp học',
@@ -223,100 +184,67 @@ export async function getAssignmentDetails(assignmentId: string): Promise<Assign
       subject: subjectData ? { name: subjectData.name, code: subjectData.code } : null,
     },
     submissions: mappedSubmissions,
-    total_students: studentCount || 0,
+    total_students: studentCount,
   };
 }
 
-/**
- * Lấy toàn bộ bài tập của sinh viên qua các lớp đã ghi danh
- */
 export async function getStudentAssignments(studentId: string): Promise<StudentAssignmentItem[]> {
-  const admin = createAdminClient();
+  const ds = await getDataSource();
+  const memberships = await ds.getRepository(ClassMembershipSchema).find({
+    select: { class_id: true },
+    where: { student_id: studentId },
+  });
 
-  // 1. Tìm các lớp học mà sinh viên đang tham gia
-  const { data: memberships } = await admin
-    .from('class_memberships')
-    .select('class_id')
-    .eq('student_id', studentId);
-
-  if (!memberships || memberships.length === 0) {
-    return [];
-  }
+  if (memberships.length === 0) return [];
 
   const classIds = memberships.map((m) => m.class_id);
+  const [assignments, classes] = await Promise.all([
+    ds.getRepository(AssignmentSchema).find({
+      where: { class_id: In(classIds), status: Not('draft') },
+      order: { due_date: 'DESC' },
+    }),
+    ds.getRepository(ClassSchema).find({ where: { id: In(classIds) } }),
+  ]);
 
-  // 2. Lấy danh sách bài tập thuộc các lớp đó
-  const { data: assignments, error } = await admin
-    .from('assignments')
-    .select(`
-      *,
-      classes (
-        id,
-        name,
-        class_code,
-        subjects (
-          name
-        )
-      )
-    `)
-    .in('class_id', classIds)
-    .neq('status', 'draft')
-    .order('due_date', { ascending: false });
+  if (assignments.length === 0) return [];
 
-  if (error || !assignments) {
-    console.error('Error fetching student assignments:', error?.message);
-    return [];
-  }
-
-  if (assignments.length === 0) {
-    return [];
-  }
-
+  const subjectIds = Array.from(new Set(classes.map((c) => c.subject_id)));
   const assignmentIds = assignments.map((a) => a.id);
 
-  // 3. Lấy bài nộp tương ứng của sinh viên
-  const { data: submissions } = await admin
-    .from('assignment_submissions')
-    .select('*')
-    .in('assignment_id', assignmentIds)
-    .eq('student_id', studentId);
+  const [subjects, submissions] = await Promise.all([
+    subjectIds.length
+      ? ds.getRepository(SubjectSchema).find({ select: { id: true, name: true }, where: { id: In(subjectIds) } })
+      : Promise.resolve([]),
+    ds.getRepository(AssignmentSubmissionSchema).find({
+      where: { assignment_id: In(assignmentIds), student_id: studentId },
+    }),
+  ]);
 
-  const subMap = new Map<string, any>();
-  for (const s of submissions || []) {
-    subMap.set(s.assignment_id, s);
-  }
+  const classMap = new Map(classes.map((c) => [c.id, c]));
+  const subjectMap = new Map(subjects.map((s) => [s.id, s.name]));
+  const subMap = new Map(submissions.map((s) => [s.assignment_id, s]));
 
-  return assignments.map((a: any) => {
+  return assignments.map((a) => {
     const rawSub = subMap.get(a.id);
     const sub: AssignmentSubmission | null = rawSub
       ? {
           ...rawSub,
+          is_late: Boolean(rawSub.is_late),
           score: rawSub.score !== null ? Number(rawSub.score) : null,
-          file_size_bytes: rawSub.file_size_bytes ? Number(rawSub.file_size_bytes) : null,
+          file_size_bytes: rawSub.file_size_bytes !== null ? Number(rawSub.file_size_bytes) : null,
         }
       : null;
 
-    const classItem = a.classes;
-    const subjectItem = classItem?.subjects;
+    const classItem = classMap.get(a.class_id);
+    const subjectName = classItem ? subjectMap.get(classItem.subject_id) : undefined;
 
     return {
-      id: a.id,
-      class_id: a.class_id,
-      teacher_id: a.teacher_id,
-      title: a.title,
-      description: a.description,
-      attachment_url: a.attachment_url,
-      attachment_name: a.attachment_name,
-      due_date: a.due_date,
+      ...a,
       max_score: Number(a.max_score),
-      status: a.status,
-      created_at: a.created_at,
-      updated_at: a.updated_at,
       class_name: classItem?.name || 'Lớp học',
       class_code: classItem?.class_code || '',
-      subject_name: subjectItem?.name || undefined,
+      subject_name: subjectName,
       submission: sub,
     };
   });
 }
-

@@ -1,6 +1,8 @@
 'use server';
 
-import { createAdminClient } from '@/lib/supabase/admin';
+import { getDataSource } from '@/lib/db/data-source';
+import { ProfileSchema, UserSchema } from '@/lib/db/entities';
+import { hashPassword } from '@/lib/auth/password';
 import { createAndSendOtp, verifyOtp } from '@/lib/email/otp-service';
 
 export type OtpActionState = {
@@ -10,7 +12,7 @@ export type OtpActionState = {
 };
 
 /**
- * Yêu cầu gửi mã OTP đặt lại mật khẩu về email qua Resend
+ * Yêu cầu gửi mã OTP đặt lại mật khẩu về email
  */
 export async function sendPasswordResetOtpAction(
   email: string,
@@ -21,37 +23,32 @@ export async function sendPasswordResetOtpAction(
     return { success: false, message: 'Vui lòng nhập địa chỉ email hợp lệ.' };
   }
 
-  const adminClient = createAdminClient();
+  const ds = await getDataSource();
+  const user = await ds.getRepository(UserSchema).findOne({
+    where: { email: normalizedEmail },
+  });
 
-  // Kiểm tra tài khoản có tồn tại trong hệ thống hay không
-  const userId = await findUserIdByEmail(adminClient, normalizedEmail);
-
-  if (!userId) {
-    // Để bảo mật, vẫn trả về thông điệp tích cực tránh dò quét tài khoản (Enumeration attack)
+  if (!user) {
     return {
       success: true,
       message: 'Nếu email này đã đăng ký trên hệ thống, mã xác thực 6 chữ số sẽ được gửi tới hộp thư của bạn trong ít phút.',
     };
   }
 
-  const { data: profile } = await adminClient
-    .from('profiles')
-    .select('full_name')
-    .eq('id', userId)
-    .maybeSingle();
+  const profile = await ds.getRepository(ProfileSchema).findOne({
+    where: { id: user.id },
+  });
 
-  const result = await createAndSendOtp({
+  return createAndSendOtp({
     email: normalizedEmail,
     purpose: 'reset_password',
     userName: profile?.full_name || undefined,
-    metadata: { userId },
+    metadata: { userId: user.id },
   });
-
-  return result;
 }
 
 /**
- * Xác thực mã OTP và đặt lại mật khẩu mới
+ * Xác thực mã OTP và đặt lại mật khẩu mới trên SQL Server
  */
 export async function verifyOtpAndResetPasswordAction(
   email: string,
@@ -64,7 +61,6 @@ export async function verifyOtpAndResetPasswordAction(
     return { success: false, message: 'Mật khẩu mới phải có độ dài từ 12 đến 128 ký tự.' };
   }
 
-  // Xác minh mã OTP 6 số
   const verifyResult = await verifyOtp({
     email: normalizedEmail,
     otp,
@@ -75,53 +71,32 @@ export async function verifyOtpAndResetPasswordAction(
     return { success: false, message: verifyResult.message || 'Mã xác thực không hợp lệ.' };
   }
 
-  const adminClient = createAdminClient();
-  const userId =
-    (verifyResult.metadata?.userId as string) ||
-    (await findUserIdByEmail(adminClient, normalizedEmail));
+  const ds = await getDataSource();
+  const userRepo = ds.getRepository(UserSchema);
+
+  let userId = (verifyResult.metadata?.userId as string) || '';
+  if (!userId) {
+    const found = await userRepo.findOne({ where: { email: normalizedEmail } });
+    userId = found?.id ?? '';
+  }
 
   if (!userId) {
     return { success: false, message: 'Không tìm thấy tài khoản người dùng tương ứng.' };
   }
 
-  // Cập nhật mật khẩu mới thông qua Supabase Admin API
-  const { error: updateError } = await adminClient.auth.admin.updateUserById(userId, {
-    password: newPassword,
-  });
+  try {
+    const passwordHash = await hashPassword(newPassword);
+    await userRepo.update({ id: userId }, { password_hash: passwordHash });
 
-  if (updateError) {
-    console.error('Lỗi khi cập nhật mật khẩu qua Supabase Admin:', updateError);
+    return {
+      success: true,
+      message: 'Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay với mật khẩu mới.',
+    };
+  } catch (err) {
+    console.error('Lỗi khi cập nhật mật khẩu trên SQL Server:', err);
     return {
       success: false,
       message: 'Không thể cập nhật mật khẩu lúc này. Vui lòng thử lại sau.',
     };
-  }
-
-  return {
-    success: true,
-    message: 'Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay với mật khẩu mới.',
-  };
-}
-
-/**
- * Tìm ID người dùng thông qua email trong auth.users
- */
-async function findUserIdByEmail(
-  adminClient: ReturnType<typeof createAdminClient>,
-  email: string,
-): Promise<string | null> {
-  try {
-    let page = 1;
-    while (page <= 5) {
-      const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage: 100 });
-      if (error || !data.users || data.users.length === 0) break;
-      const match = data.users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
-      if (match) return match.id;
-      if (data.users.length < 100) break;
-      page++;
-    }
-    return null;
-  } catch {
-    return null;
   }
 }

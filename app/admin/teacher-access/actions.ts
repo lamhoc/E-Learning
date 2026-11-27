@@ -3,11 +3,24 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { createAdminClient } from '@/lib/supabase/admin';
-import { createClient } from '@/lib/supabase/server';
 import { getCurrentUserWithRole } from '@/lib/auth-cache';
 import { revalidateSubjectsCache } from '@/lib/data-cache';
-import { sendTeacherInvitationEmail, sendTeacherApplicationReviewEmail } from '@/lib/email/resend';
+import { getDataSource } from '@/lib/db/data-source';
+import {
+  ClassSchema,
+  InvitationTokenSchema,
+  NotificationSchema,
+  ProfileSchema,
+  SubjectSchema,
+  TeacherApplicationSchema,
+  TeacherSubjectAssignmentSchema,
+  UserRoleSchema,
+  UserSchema,
+} from '@/lib/db/entities';
+import {
+  sendTeacherApplicationReviewEmail,
+  sendTeacherInvitationEmail,
+} from '@/lib/email/resend';
 
 export type InvitationState = {
   status: 'idle' | 'error' | 'success';
@@ -36,84 +49,74 @@ function getInvitationSiteUrl() {
   }
 }
 
-async function getAdminClient() {
-  const { user, role, supabase } = await getCurrentUserWithRole();
-  if (!user) return { error: 'Vui lòng đăng nhập lại.', supabase: null, user: null };
+async function verifyAdminCaller() {
+  const { user, role } = await getCurrentUserWithRole();
+  if (!user) return { error: 'Vui lòng đăng nhập lại.', user: null };
 
-  const isMetadataAdmin = user.app_metadata?.role === 'admin';
-  const isDbAdmin = role === 'admin';
-
-  if (!isMetadataAdmin && !isDbAdmin) {
-    return { error: 'Chỉ admin mới được quản lý quyền giảng viên.', supabase: null, user: null };
+  if (role !== 'admin' && user.app_metadata?.role !== 'admin') {
+    return { error: 'Chỉ admin mới được quản lý quyền giảng viên.', user: null };
   }
 
-  return { error: null, supabase, user };
+  return { error: null, user };
 }
 
-/**
- * Phê duyệt đơn xin cấp quyền giáo viên
- * Sử dụng Supabase Admin Client để cập nhật app_metadata & user_metadata role = 'teacher'
- */
 export async function approveTeacher(userId: string) {
   if (!/^[0-9a-f-]{36}$/i.test(userId)) {
     return { success: false, error: 'User ID không hợp lệ.' };
   }
 
-  const { error: adminError, user } = await getAdminClient();
+  const { error: adminError, user } = await verifyAdminCaller();
   if (adminError || !user) {
     return { success: false, error: adminError || 'Không có quyền admin.' };
   }
 
   try {
-    const adminClient = createAdminClient();
+    const ds = await getDataSource();
+    const nowIso = new Date().toISOString();
 
-    // 1. Cập nhật role trong Auth Metadata thông qua Supabase Service Role
-    const { error: authUpdateError } = await adminClient.auth.admin.updateUserById(userId, {
-      app_metadata: { role: 'teacher' },
-      user_metadata: { role: 'teacher' },
+    await ds.transaction(async (manager) => {
+      const roleRepo = manager.getRepository(UserRoleSchema);
+      const profileRepo = manager.getRepository(ProfileSchema);
+      const appRepo = manager.getRepository(TeacherApplicationSchema);
+      const notifRepo = manager.getRepository(NotificationSchema);
+
+      const existingRole = await roleRepo.findOne({ where: { user_id: userId } });
+      if (existingRole) {
+        await roleRepo.update({ user_id: userId }, { role: 'teacher' });
+      } else {
+        await roleRepo.save(roleRepo.create({ user_id: userId, role: 'teacher' }));
+      }
+
+      await profileRepo.update({ id: userId }, { student_code: null });
+
+      await appRepo.update(
+        { user_id: userId },
+        {
+          status: 'approved',
+          reviewed_by: user.id,
+          reviewed_at: nowIso,
+          review_note: 'Phê duyệt bởi Quản trị viên',
+        },
+      );
+
+      await notifRepo.save(
+        notifRepo.create({
+          user_id: userId,
+          title: 'Tài khoản Giáo viên đã được phê duyệt',
+          message:
+            'Hồ sơ xin cấp quyền giáo viên của bạn đã được phê duyệt thành công. Bạn đã có quyền tạo đề thi, quản lý lớp và chấm bài.',
+          data: {},
+        }),
+      );
     });
 
-    if (authUpdateError) {
-      console.error('Không thể cập nhật auth metadata giáo viên:', authUpdateError);
-      return { success: false, error: 'Lỗi cập nhật metadata tài khoản Auth.' };
-    }
-
-    // 2. Đồng bộ bảng user_roles
-    const { error: roleError } = await adminClient
-      .from('user_roles')
-      .upsert({ user_id: userId, role: 'teacher' }, { onConflict: 'user_id' });
-
-    if (roleError) {
-      console.error('Không thể cập nhật bảng user_roles:', roleError);
-    }
-
-    // 3. Cập nhật bảng teacher_applications
-    const { error: appError } = await adminClient
-      .from('teacher_applications')
-      .update({
-        status: 'approved',
-        reviewed_by: user.id,
-        reviewed_at: new Date().toISOString(),
-        review_note: 'Phê duyệt bởi Quản trị viên',
-      })
-      .eq('user_id', userId);
-
-    if (appError) {
-      console.error('Không thể cập nhật teacher_applications:', appError);
-    }
-
-    // 4. Gửi thông báo đến giáo viên trong hệ thống
-    await adminClient.from('notifications').insert({
-      user_id: userId,
-      title: 'Tài khoản Giáo viên đã được phê duyệt',
-      message: 'Hồ sơ xin cấp quyền giáo viên của bạn đã được phê duyệt thành công. Bạn đã có quyền tạo đề thi, quản lý lớp và chấm bài.',
-    });
-
-    // 5. Gửi email thông báo qua Resend nếu có email
     try {
-      const { data: userData } = await adminClient.auth.admin.getUserById(userId);
-      const teacherEmail = userData?.user?.email;
-      const teacherName = userData?.user?.user_metadata?.full_name || teacherEmail?.split('@')[0] || 'Quý Thầy/Cô';
+      const [userRow, profileRow] = await Promise.all([
+        ds.getRepository(UserSchema).findOne({ where: { id: userId } }),
+        ds.getRepository(ProfileSchema).findOne({ where: { id: userId } }),
+      ]);
+      const teacherEmail = userRow?.email;
+      const teacherName = profileRow?.full_name || teacherEmail?.split('@')[0] || 'Quý Thầy/Cô';
       if (teacherEmail) {
         await sendTeacherApplicationReviewEmail({
           to: teacherEmail,
@@ -122,15 +125,14 @@ export async function approveTeacher(userId: string) {
         });
       }
     } catch (emailErr) {
-      console.warn('Lỗi gửi email thông báo phê duyệt qua Resend:', emailErr);
+      console.warn('Lỗi gửi email thông báo phê duyệt:', emailErr);
     }
 
     await revalidateSubjectsCache(userId);
     revalidatePath('/admin/teacher-access');
     revalidatePath('/teacher/dashboard');
     revalidatePath('/teacher/subjects');
-    revalidatePath('/teacher/subjects');
-  revalidatePath('/subjects');
+    revalidatePath('/subjects');
     return { success: true };
   } catch (err) {
     console.error('Lỗi khi phê duyệt giáo viên:', err);
@@ -138,50 +140,47 @@ export async function approveTeacher(userId: string) {
   }
 }
 
-/**
- * Từ chối đơn xin cấp quyền giáo viên
- */
 export async function rejectTeacher(userId: string, note?: string) {
   if (!/^[0-9a-f-]{36}$/i.test(userId)) {
     return { success: false, error: 'User ID không hợp lệ.' };
   }
 
-  const { error: adminError, user } = await getAdminClient();
+  const { error: adminError, user } = await verifyAdminCaller();
   if (adminError || !user) {
     return { success: false, error: adminError || 'Không có quyền admin.' };
   }
 
   try {
-    const adminClient = createAdminClient();
-
-    const { error: appError } = await adminClient
-      .from('teacher_applications')
-      .update({
+    const ds = await getDataSource();
+    await ds.getRepository(TeacherApplicationSchema).update(
+      { user_id: userId },
+      {
         status: 'rejected',
         reviewed_by: user.id,
         reviewed_at: new Date().toISOString(),
         review_note: note?.trim().slice(0, 500) || 'Từ chối bởi Quản trị viên',
-      })
-      .eq('user_id', userId);
+      },
+    );
 
-    if (appError) {
-      console.error('Không thể từ chối teacher_applications:', appError);
-      return { success: false, error: 'Không thể cập nhật trạng thái đơn đăng ký.' };
-    }
+    const notifRepo = ds.getRepository(NotificationSchema);
+    await notifRepo.save(
+      notifRepo.create({
+        user_id: userId,
+        title: 'Hồ sơ Giáo viên không được chấp thuận',
+        message: note?.trim()
+          ? `Đơn xin cấp quyền giáo viên của bạn không được phê duyệt: ${note.trim()}`
+          : 'Đơn xin cấp quyền giáo viên của bạn chưa được phê duyệt. Vui lòng liên hệ ban quản trị để biết thêm chi tiết.',
+        data: {},
+      }),
+    );
 
-    await adminClient.from('notifications').insert({
-      user_id: userId,
-      title: 'Hồ sơ Giáo viên không được chấp thuận',
-      message: note?.trim()
-        ? `Đơn xin cấp quyền giáo viên của bạn không được phê duyệt: ${note.trim()}`
-        : 'Đơn xin cấp quyền giáo viên của bạn chưa được phê duyệt. Vui lòng liên hệ ban quản trị để biết thêm chi tiết.',
-    });
-
-    // Gửi email thông báo từ chối qua Resend
     try {
-      const { data: userData } = await adminClient.auth.admin.getUserById(userId);
-      const teacherEmail = userData?.user?.email;
-      const teacherName = userData?.user?.user_metadata?.full_name || teacherEmail?.split('@')[0] || 'Quý Thầy/Cô';
+      const [userRow, profileRow] = await Promise.all([
+        ds.getRepository(UserSchema).findOne({ where: { id: userId } }),
+        ds.getRepository(ProfileSchema).findOne({ where: { id: userId } }),
+      ]);
+      const teacherEmail = userRow?.email;
+      const teacherName = profileRow?.full_name || teacherEmail?.split('@')[0] || 'Quý Thầy/Cô';
       if (teacherEmail) {
         await sendTeacherApplicationReviewEmail({
           to: teacherEmail,
@@ -191,7 +190,7 @@ export async function rejectTeacher(userId: string, note?: string) {
         });
       }
     } catch (emailErr) {
-      console.warn('Lỗi gửi email thông báo từ chối qua Resend:', emailErr);
+      console.warn('Lỗi gửi email thông báo từ chối:', emailErr);
     }
 
     revalidatePath('/admin/teacher-access');
@@ -202,53 +201,46 @@ export async function rejectTeacher(userId: string, note?: string) {
   }
 }
 
-/**
- * Phân công môn học cho giáo viên
- */
 export async function assignSubject(teacherId: string, subjectId: string) {
   if (!/^[0-9a-f-]{36}$/i.test(teacherId) || !/^[0-9a-f-]{36}$/i.test(subjectId)) {
     return { success: false, error: 'Thông tin phân công không hợp lệ.' };
   }
 
-  const { error: adminError, user } = await getAdminClient();
+  const { error: adminError, user } = await verifyAdminCaller();
   if (adminError || !user) {
     return { success: false, error: adminError || 'Không có quyền admin.' };
   }
 
   try {
-    const adminClient = createAdminClient();
-
-    // Xác nhận giáo viên có role teacher
-    const { data: roleData } = await adminClient
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', teacherId)
-      .maybeSingle();
+    const ds = await getDataSource();
+    const roleData = await ds.getRepository(UserRoleSchema).findOne({
+      where: { user_id: teacherId },
+    });
 
     if (roleData?.role !== 'teacher') {
       return { success: false, error: 'Tài khoản chưa được cấp quyền giáo viên.' };
     }
 
-    const { error } = await adminClient.from('teacher_subject_assignments').upsert(
-      {
-        teacher_id: teacherId,
-        subject_id: subjectId,
-        assigned_by: user.id,
-      },
-      { onConflict: 'teacher_id,subject_id', ignoreDuplicates: true },
-    );
+    const tsaRepo = ds.getRepository(TeacherSubjectAssignmentSchema);
+    const existing = await tsaRepo.findOne({
+      where: { teacher_id: teacherId, subject_id: subjectId },
+    });
 
-    if (error) {
-      console.error('Could not assign subject to teacher:', error);
-      return { success: false, error: 'Không thể lưu phân công môn học.' };
+    if (!existing) {
+      await tsaRepo.save(
+        tsaRepo.create({
+          teacher_id: teacherId,
+          subject_id: subjectId,
+          assigned_by: user.id,
+        }),
+      );
     }
 
     await revalidateSubjectsCache(teacherId);
     revalidatePath('/admin/teacher-access');
     revalidatePath('/teacher/dashboard');
     revalidatePath('/teacher/subjects');
-    revalidatePath('/teacher/subjects');
-  revalidatePath('/subjects');
+    revalidatePath('/subjects');
     return { success: true };
   } catch (err) {
     console.error('Lỗi khi phân công môn học:', err);
@@ -256,48 +248,31 @@ export async function assignSubject(teacherId: string, subjectId: string) {
   }
 }
 
-/**
- * Hủy phân công môn học của giáo viên
- */
 export async function unassignSubject(teacherId: string, subjectId: string) {
   if (!/^[0-9a-f-]{36}$/i.test(teacherId) || !/^[0-9a-f-]{36}$/i.test(subjectId)) {
     return { success: false, error: 'Thông tin phân công không hợp lệ.' };
   }
 
-  const { error: adminError } = await getAdminClient();
-  if (adminError) {
-    return { success: false, error: adminError };
-  }
+  const { error: adminError } = await verifyAdminCaller();
+  if (adminError) return { success: false, error: adminError };
 
   try {
-    const adminClient = createAdminClient();
-    const { error } = await adminClient
-      .from('teacher_subject_assignments')
-      .delete()
-      .eq('teacher_id', teacherId)
-      .eq('subject_id', subjectId);
-
-    if (error) {
-      console.error('Could not remove teacher subject assignment:', error);
-      return { success: false, error: 'Không thể gỡ phân công môn học.' };
-    }
+    const ds = await getDataSource();
+    await ds
+      .getRepository(TeacherSubjectAssignmentSchema)
+      .delete({ teacher_id: teacherId, subject_id: subjectId });
 
     await revalidateSubjectsCache(teacherId);
     revalidatePath('/admin/teacher-access');
     revalidatePath('/teacher/dashboard');
     revalidatePath('/teacher/subjects');
-    revalidatePath('/teacher/subjects');
-  revalidatePath('/subjects');
+    revalidatePath('/subjects');
     return { success: true };
   } catch (err) {
     console.error('Lỗi khi gỡ phân công môn học:', err);
     return { success: false, error: 'Đã xảy ra lỗi khi gỡ phân công môn.' };
   }
 }
-
-/* ========================================================================= */
-/* FOR COMPATIBILITY WITH EXISTING HTML FORMS / REDIRECTS                     */
-/* ========================================================================= */
 
 export async function createSubject(formData: FormData) {
   const code = String(formData.get('code') ?? '').trim().toUpperCase();
@@ -307,18 +282,28 @@ export async function createSubject(formData: FormData) {
     redirect('/admin/teacher-access?error=subject-invalid');
   }
 
-  const { error: adminError, supabase, user } = await getAdminClient();
-  if (adminError || !supabase || !user) redirect('/admin/teacher-access?error=unauthorized');
+  const { error: adminError, user } = await verifyAdminCaller();
+  if (adminError || !user) redirect('/admin/teacher-access?error=unauthorized');
 
-  const { error } = await supabase.from('subjects').insert({
-    code,
-    name,
-    description: description || null,
-    created_by: user.id,
-  });
-  if (error) {
-    console.error('Could not create subject:', error.code, error.message);
-    redirect(`/admin/teacher-access?error=${error.code === '23505' ? 'subject-duplicate' : 'subject-create'}`);
+  try {
+    const ds = await getDataSource();
+    const subjectRepo = ds.getRepository(SubjectSchema);
+    const existing = await subjectRepo.findOne({ where: { code } });
+    if (existing) {
+      redirect('/admin/teacher-access?error=subject-duplicate');
+    }
+    await subjectRepo.save(
+      subjectRepo.create({
+        code,
+        name,
+        description: description || null,
+        created_by: user.id,
+        archived_at: null,
+      }),
+    );
+  } catch (err) {
+    console.error('Could not create subject:', err);
+    redirect('/admin/teacher-access?error=subject-create');
   }
 
   await revalidateSubjectsCache();
@@ -331,101 +316,78 @@ export async function createSubject(formData: FormData) {
 export async function assignTeacherSubject(formData: FormData) {
   const teacherId = String(formData.get('teacherId') ?? '');
   const subjectId = String(formData.get('subjectId') ?? '');
-
   const result = await assignSubject(teacherId, subjectId);
-  if (!result.success) {
-    redirect('/admin/teacher-access?error=assignment-save');
-  }
+  if (!result.success) redirect('/admin/teacher-access?error=assignment-save');
   redirect('/admin/teacher-access?success=assignment-saved');
 }
 
 export async function removeTeacherSubject(formData: FormData) {
   const teacherId = String(formData.get('teacherId') ?? '');
   const subjectId = String(formData.get('subjectId') ?? '');
-
   const result = await unassignSubject(teacherId, subjectId);
-  if (!result.success) {
-    redirect('/admin/teacher-access?error=assignment-remove');
-  }
+  if (!result.success) redirect('/admin/teacher-access?error=assignment-remove');
   redirect('/admin/teacher-access?success=assignment-removed');
 }
 
-/**
- * Cập nhật giảng viên phụ trách lớp học (dùng cho cả Server Action trực tiếp & Client Component)
- */
 export async function updateClassTeacher(
   classId: string,
-  teacherId: string
+  teacherId: string,
 ): Promise<{ success: boolean; error?: string; message?: string }> {
   if (!/^[0-9a-f-]{36}$/i.test(classId) || !/^[0-9a-f-]{36}$/i.test(teacherId)) {
     return { success: false, error: 'Thông tin lớp học hoặc giảng viên không hợp lệ.' };
   }
 
-  const { error: adminError, user } = await getAdminClient();
+  const { error: adminError, user } = await verifyAdminCaller();
   if (adminError || !user) {
     return { success: false, error: adminError || 'Bạn không có quyền thực hiện thao tác này.' };
   }
 
   try {
-    const adminClient = createAdminClient();
+    const ds = await getDataSource();
+    const classRecord = await ds.getRepository(ClassSchema).findOne({
+      where: { id: classId },
+    });
 
-    // 1. Kiểm tra lớp học và lấy subject_id, tên lớp, tên môn học
-    const { data: classRecord, error: classError } = await adminClient
-      .from('classes')
-      .select('id, name, class_code, subject_id, teacher_id, subjects(name, code)')
-      .eq('id', classId)
-      .maybeSingle();
-
-    if (classError || !classRecord) {
+    if (!classRecord) {
       return { success: false, error: 'Lớp học không tồn tại trong hệ thống.' };
     }
 
-    // 2. Kiểm tra điều kiện: Giảng viên được chọn bắt buộc phải có phân công môn học của lớp
-    const { data: assignment, error: assignmentError } = await adminClient
-      .from('teacher_subject_assignments')
-      .select('teacher_id')
-      .eq('teacher_id', teacherId)
-      .eq('subject_id', classRecord.subject_id)
-      .maybeSingle();
+    const assignment = await ds.getRepository(TeacherSubjectAssignmentSchema).findOne({
+      where: { teacher_id: teacherId, subject_id: classRecord.subject_id },
+    });
 
-    if (assignmentError || !assignment) {
+    if (!assignment) {
       return {
         success: false,
         error: 'Giảng viên này chưa được phân công môn học tương ứng của lớp. Vui lòng gán môn trước.',
       };
     }
 
-    // 3. Cập nhật teacher_id của lớp học
-    const { error: updateError } = await adminClient
-      .from('classes')
-      .update({
-        teacher_id: teacherId,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', classId);
+    await ds.getRepository(ClassSchema).update(
+      { id: classId },
+      { teacher_id: teacherId, updated_at: new Date().toISOString() },
+    );
 
-    if (updateError) {
-      console.error('Lỗi khi cập nhật giảng viên phụ trách lớp:', updateError);
-      return { success: false, error: 'Không thể cập nhật giảng viên phụ trách lớp trong CSDL.' };
-    }
-
-    // 4. Lấy thông tin lớp và môn để tạo thông báo
-    const rawSubject = (classRecord as any).subjects;
-    const subjectName = Array.isArray(rawSubject) ? rawSubject[0]?.name : rawSubject?.name;
+    const subject = await ds.getRepository(SubjectSchema).findOne({
+      where: { id: classRecord.subject_id },
+      select: { name: true },
+    });
     const className = classRecord.name || classRecord.class_code;
 
-    // 5. Tạo thông báo mới trong bảng notifications gửi đến giảng viên vừa được giao lớp
     try {
-      await adminClient.from('notifications').insert({
-        user_id: teacherId,
-        title: 'Phân công phụ trách lớp học',
-        message: `Bạn đã được phân công phụ trách lớp ${className}${subjectName ? ` (${subjectName})` : ''}.`,
-      });
+      const notifRepo = ds.getRepository(NotificationSchema);
+      await notifRepo.save(
+        notifRepo.create({
+          user_id: teacherId,
+          title: 'Phân công phụ trách lớp học',
+          message: `Bạn đã được phân công phụ trách lớp ${className}${subject?.name ? ` (${subject.name})` : ''}.`,
+          data: {},
+        }),
+      );
     } catch (notifErr) {
       console.warn('Lỗi khi ghi thông báo cho giảng viên:', notifErr);
     }
 
-    // 6. Xóa cache và revalidate các trang
     await revalidateSubjectsCache(teacherId);
     if (classRecord.teacher_id && classRecord.teacher_id !== teacherId) {
       await revalidateSubjectsCache(classRecord.teacher_id);
@@ -450,12 +412,10 @@ export async function updateClassTeacher(
 export async function assignClassTeacher(formData: FormData) {
   const classId = String(formData.get('classId') ?? '');
   const teacherId = String(formData.get('teacherId') ?? '');
-
   const result = await updateClassTeacher(classId, teacherId);
   if (!result.success) {
     redirect(`/admin/teacher-access?error=${encodeURIComponent(result.error || 'class-assignment-failed')}`);
   }
-
   redirect('/admin/teacher-access?success=class-assigned');
 }
 
@@ -472,35 +432,41 @@ export async function createTeacherInvitation(
   if (!siteUrl) {
     return {
       status: 'error',
-      message: 'Chưa cấu hình domain production hợp lệ. Đặt SITE_URL trên Vercel rồi thử lại.',
+      message: 'Chưa cấu hình domain production hợp lệ. Đặt SITE_URL rồi thử lại.',
     };
   }
 
-  const { error: adminError, supabase, user } = await getAdminClient();
-  if (adminError || !supabase || !user) {
+  const { error: adminError, user } = await verifyAdminCaller();
+  if (adminError || !user) {
     return { status: 'error', message: adminError ?? 'Không thể xác thực quyền admin.' };
   }
 
   const token = randomBytes(32).toString('base64url');
   const tokenHash = createHash('sha256').update(token).digest('hex');
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-  const { error } = await supabase.from('invitation_tokens').insert({
-    email,
-    token_hash: tokenHash,
-    created_by: user.id,
-    expires_at: expiresAt,
-  });
 
-  if (error) {
-    console.error('Could not create teacher invitation:', error.message);
-    return { status: 'error', message: 'Không thể tạo mã mời. Kiểm tra migration và quyền admin.' };
+  try {
+    const ds = await getDataSource();
+    const repo = ds.getRepository(InvitationTokenSchema);
+    await repo.save(
+      repo.create({
+        email,
+        token_hash: tokenHash,
+        created_by: user.id,
+        expires_at: expiresAt,
+        used_at: null,
+        used_by: null,
+      }),
+    );
+  } catch (err) {
+    console.error('Could not create teacher invitation:', err);
+    return { status: 'error', message: 'Không thể tạo mã mời. Kiểm tra kết nối SQL Server.' };
   }
 
   const invitationUrl = new URL('/register/teacher', siteUrl);
   invitationUrl.searchParams.set('email', email);
   invitationUrl.searchParams.set('invite', token);
 
-  // Tự động gửi email mời qua Resend nếu có cấu hình
   let emailSent = false;
   try {
     const emailResult = await sendTeacherInvitationEmail({
@@ -509,13 +475,15 @@ export async function createTeacherInvitation(
     });
     emailSent = emailResult.success;
   } catch (emailErr) {
-    console.warn('Lỗi khi gửi email mời giáo viên qua Resend:', emailErr);
+    console.warn('Lỗi khi gửi email mời giáo viên:', emailErr);
   }
+
+  revalidatePath('/admin/teacher-access');
 
   return {
     status: 'success',
     message: emailSent
-      ? 'Đã tạo link mời và tự động gửi thư kích hoạt tài khoản tới email của giảng viên qua Resend!'
+      ? 'Đã tạo link mời và tự động gửi thư kích hoạt tài khoản tới email của giảng viên!'
       : 'Link mời có hiệu lực 24 giờ và chỉ dùng được một lần. Hãy sao chép ngay; token thô sẽ không được lưu lại.',
     invitationUrl: invitationUrl.toString(),
   };
@@ -533,14 +501,10 @@ export async function reviewTeacherApplication(formData: FormData) {
 
   if (approve) {
     const result = await approveTeacher(userId);
-    if (!result.success) {
-      redirect('/admin/teacher-access?error=review');
-    }
+    if (!result.success) redirect('/admin/teacher-access?error=review');
   } else {
     const result = await rejectTeacher(userId, note);
-    if (!result.success) {
-      redirect('/admin/teacher-access?error=review');
-    }
+    if (!result.success) redirect('/admin/teacher-access?error=review');
   }
 
   redirect(`/admin/teacher-access?success=${approve ? 'approved' : 'rejected'}`);

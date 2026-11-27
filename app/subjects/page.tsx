@@ -1,10 +1,12 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUserWithRole } from '@/lib/auth-cache';
+import { getDataSource } from '@/lib/db/data-source';
+import { TeacherApplicationSchema } from '@/lib/db/entities';
 
 type AppRole = 'admin' | 'teacher' | 'student';
 
 export default async function SubjectsRedirectPage() {
-  const { user, role: userRole, supabase } = await getCurrentUserWithRole();
+  const { user, role: userRole } = await getCurrentUserWithRole();
 
   if (!user) {
     redirect('/login');
@@ -21,11 +23,11 @@ export default async function SubjectsRedirectPage() {
   }
 
   if (role === 'student') {
-    const { data: application } = await supabase
-      .from('teacher_applications')
-      .select('user_id')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    const ds = await getDataSource();
+    const application = await ds.getRepository(TeacherApplicationSchema).findOne({
+      where: { user_id: user.id },
+      select: { user_id: true },
+    });
 
     if (application) {
       redirect('/register/teacher/pending');

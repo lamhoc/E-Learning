@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUserWithRole } from '@/lib/auth-cache';
 import { signOut } from '@/app/subjects/actions';
 import { ClaimInvitationForm } from './claim-form';
 
@@ -18,19 +18,13 @@ export default async function ClaimTeacherInvitationPage({ searchParams }: Claim
   const token = params.invite?.trim() ?? '';
   if (!/^[A-Za-z0-9_-]{40,50}$/.test(token)) redirect('/login');
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { user, role } = await getCurrentUserWithRole();
   if (!user) {
     const loginParams = new URLSearchParams({ claimInvite: token, claimEmail: params.email ?? '' });
     redirect(`/login?${loginParams.toString()}`);
   }
 
-  const { data: roleRecord } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .maybeSingle();
-  if (roleRecord?.role === 'teacher') redirect('/teacher/dashboard');
+  if (role === 'teacher') redirect('/teacher/dashboard');
 
   const expectedEmail = params.email?.trim().toLowerCase() ?? '';
   const accountEmail = user.email?.trim().toLowerCase() ?? '';

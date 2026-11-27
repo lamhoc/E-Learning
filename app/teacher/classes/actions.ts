@@ -1,7 +1,17 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createClient } from '@/lib/supabase/server';
+import { In } from 'typeorm';
+import { getCurrentUserWithRole } from '@/lib/auth-cache';
+import { getDataSource } from '@/lib/db/data-source';
+import {
+  ClassMembershipSchema,
+  ProfileSchema,
+  TeacherApplicationSchema,
+  UserRoleSchema,
+  UserSchema,
+} from '@/lib/db/entities';
+import { findStudentRecordByIdentifier, isClassStaff } from '@/lib/db/class-roster-service';
 
 export type StudentLookupState = {
   status: 'idle' | 'error' | 'found';
@@ -39,35 +49,6 @@ export type CsvPreviewState = {
 
 const uuidPattern = /^[0-9a-f-]{36}$/i;
 
-type EnrollmentCsvPreviewRecord = {
-  row_number: number;
-  identifier: string | null;
-  result: CsvPreviewRow['result'];
-  student_id: string | null;
-  full_name: string | null;
-  student_email: string | null;
-  student_code: string | null;
-};
-
-type BulkEnrollmentRecord = { student_id: string; result: string };
-
-async function getStaffClient() {
-  const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) return { supabase: null, user: null };
-
-  const { data: roleRecord, error: roleError } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .maybeSingle();
-  if (roleError || !['admin', 'teacher'].includes(roleRecord?.role ?? '')) {
-    return { supabase: null, user: null };
-  }
-
-  return { supabase, user };
-}
-
 export async function findStudentForClass(
   _previousState: StudentLookupState,
   formData: FormData,
@@ -80,37 +61,35 @@ export async function findStudentForClass(
     return { status: 'error', message: 'Nhập mã sinh viên hoặc email chính xác.' };
   }
 
-  const { supabase } = await getStaffClient();
-  if (!supabase) return { status: 'error', message: 'Bạn cần đăng nhập bằng tài khoản admin hoặc giảng viên.' };
-
-  const { data, error } = await supabase.rpc('find_student_for_class', {
-    p_class_id: classId,
-    p_email: identifier,
-  });
-  if (error) {
-    console.error('Could not find student for class:', error.code, error.message);
-    return {
-      status: 'error',
-      message: error.code === '42501'
-        ? 'Bạn không có quyền quản lý danh sách sinh viên của lớp này.'
-        : 'Không thể tìm sinh viên. Kiểm tra migration ghi danh lớp trên Supabase.',
-    };
+  const { user, role } = await getCurrentUserWithRole();
+  if (!user || (role !== 'admin' && role !== 'teacher')) {
+    return { status: 'error', message: 'Bạn cần đăng nhập bằng tài khoản admin hoặc giảng viên.' };
   }
 
-  const student = data?.[0];
+  if (!(await isClassStaff(user.id, role, classId))) {
+    return { status: 'error', message: 'Bạn không có quyền quản lý danh sách sinh viên của lớp này.' };
+  }
+
+  const student = await findStudentRecordByIdentifier(identifier);
   if (!student) {
     return { status: 'error', message: 'Không tìm thấy tài khoản sinh viên với mã hoặc email này.' };
   }
 
+  const ds = await getDataSource();
+  const membership = await ds.getRepository(ClassMembershipSchema).findOne({
+    where: { class_id: classId, student_id: student.student_id },
+  });
+  const alreadyEnrolled = Boolean(membership);
+
   return {
     status: 'found',
-    message: student.already_enrolled ? 'Sinh viên này đã có trong lớp.' : 'Đã tìm thấy tài khoản sinh viên.',
+    message: alreadyEnrolled ? 'Sinh viên này đã có trong lớp.' : 'Đã tìm thấy tài khoản sinh viên.',
     student: {
       id: student.student_id,
       fullName: student.full_name,
       email: student.student_email,
       studentCode: student.student_code ?? '',
-      alreadyEnrolled: student.already_enrolled,
+      alreadyEnrolled,
     },
   };
 }
@@ -125,21 +104,31 @@ export async function enrollStudentInClass(
     return { status: 'error', message: 'Thông tin lớp hoặc sinh viên không hợp lệ.' };
   }
 
-  const { supabase } = await getStaffClient();
-  if (!supabase) return { status: 'error', message: 'Bạn cần đăng nhập bằng tài khoản admin hoặc giảng viên.' };
+  const { user, role } = await getCurrentUserWithRole();
+  if (!user || (role !== 'admin' && role !== 'teacher')) {
+    return { status: 'error', message: 'Bạn cần đăng nhập bằng tài khoản admin hoặc giảng viên.' };
+  }
 
-  const { data: inserted, error } = await supabase.rpc('enroll_student_in_class', {
-    p_class_id: classId,
-    p_student_id: studentId,
-  });
-  if (error) {
-    console.error('Could not enroll student in class:', error.code, error.message);
-    return {
-      status: 'error',
-      message: error.code === '42501'
-        ? 'Bạn không có quyền ghi danh sinh viên vào lớp này.'
-        : 'Không thể ghi danh. Tài khoản phải có role sinh viên.',
-    };
+  if (!(await isClassStaff(user.id, role, classId))) {
+    return { status: 'error', message: 'Bạn không có quyền ghi danh sinh viên vào lớp này.' };
+  }
+
+  const ds = await getDataSource();
+  const [roleRow, appRow] = await Promise.all([
+    ds.getRepository(UserRoleSchema).findOne({ where: { user_id: studentId } }),
+    ds.getRepository(TeacherApplicationSchema).findOne({ where: { user_id: studentId } }),
+  ]);
+
+  if (roleRow?.role !== 'student' || appRow) {
+    return { status: 'error', message: 'Không thể ghi danh. Tài khoản phải có role sinh viên.' };
+  }
+
+  const cmRepo = ds.getRepository(ClassMembershipSchema);
+  const existing = await cmRepo.findOne({ where: { class_id: classId, student_id: studentId } });
+  let inserted = false;
+  if (!existing) {
+    await cmRepo.save(cmRepo.create({ class_id: classId, student_id: studentId }));
+    inserted = true;
   }
 
   revalidatePath(`/teacher/classes/${classId}`);
@@ -159,27 +148,24 @@ export async function unenrollStudentFromClass(
     return { status: 'error', message: 'Thông tin lớp hoặc sinh viên không hợp lệ.' };
   }
 
-  const { supabase } = await getStaffClient();
-  if (!supabase) return { status: 'error', message: 'Bạn cần đăng nhập bằng tài khoản admin hoặc giảng viên.' };
-
-  const { data: removed, error } = await supabase.rpc('unenroll_student_from_class', {
-    p_class_id: classId,
-    p_student_id: studentId,
-  });
-  if (error) {
-    console.error('Could not remove student from class:', error.code, error.message);
-    return {
-      status: 'error',
-      message: error.code === '42501'
-        ? 'Bạn không có quyền chỉnh sửa danh sách sinh viên của lớp này.'
-        : 'Không thể gỡ sinh viên khỏi lớp.',
-    };
+  const { user, role } = await getCurrentUserWithRole();
+  if (!user || (role !== 'admin' && role !== 'teacher')) {
+    return { status: 'error', message: 'Bạn cần đăng nhập bằng tài khoản admin hoặc giảng viên.' };
   }
+
+  if (!(await isClassStaff(user.id, role, classId))) {
+    return { status: 'error', message: 'Bạn không có quyền chỉnh sửa danh sách sinh viên của lớp này.' };
+  }
+
+  const ds = await getDataSource();
+  const delResult = await ds
+    .getRepository(ClassMembershipSchema)
+    .delete({ class_id: classId, student_id: studentId });
 
   revalidatePath(`/teacher/classes/${classId}`);
   return {
     status: 'success',
-    message: removed ? 'Đã gỡ sinh viên khỏi lớp.' : 'Sinh viên không còn trong lớp.',
+    message: (delResult.affected ?? 0) > 0 ? 'Đã gỡ sinh viên khỏi lớp.' : 'Sinh viên không còn trong lớp.',
   };
 }
 
@@ -214,33 +200,112 @@ export async function previewClassEnrollmentCsv(
     return errorState('CSV cần có từ 1 đến 500 dòng dữ liệu hợp lệ.');
   }
 
-  const { supabase } = await getStaffClient();
-  if (!supabase) return errorState('Bạn cần đăng nhập bằng tài khoản admin hoặc giảng viên.');
-
-  const { data, error } = await supabase.rpc('preview_class_enrollment_csv', {
-    p_class_id: classId,
-    p_identifiers: identifiers,
-  });
-  if (error) {
-    console.error('Could not preview class enrollment CSV:', error.code);
-    return {
-      status: 'error',
-      message: error.code === '42501'
-        ? 'Bạn không có quyền quản lý danh sách sinh viên của lớp này.'
-        : 'Không thể kiểm tra CSV. Hãy chắc chắn đã chạy migration bulk class enrollment trên Supabase.',
-      requestKey: identifiersJson,
-    };
+  const { user, role } = await getCurrentUserWithRole();
+  if (!user || (role !== 'admin' && role !== 'teacher')) {
+    return errorState('Bạn cần đăng nhập bằng tài khoản admin hoặc giảng viên.');
+  }
+  if (!(await isClassStaff(user.id, role, classId))) {
+    return errorState('Bạn không có quyền quản lý danh sách sinh viên của lớp này.');
   }
 
-  const rows: CsvPreviewRow[] = ((data ?? []) as EnrollmentCsvPreviewRecord[]).map((row) => ({
-    rowNumber: Number(row.row_number),
-    identifier: row.identifier ?? '',
-    result: row.result,
-    studentId: row.student_id,
-    fullName: row.full_name,
-    email: row.student_email,
-    studentCode: row.student_code,
-  }));
+  const ds = await getDataSource();
+  const [studentRoles, teacherApps, existingMemberships] = await Promise.all([
+    ds.getRepository(UserRoleSchema).find({ select: { user_id: true }, where: { role: 'student' } }),
+    ds.getRepository(TeacherApplicationSchema).find({ select: { user_id: true } }),
+    ds.getRepository(ClassMembershipSchema).find({ select: { student_id: true }, where: { class_id: classId } }),
+  ]);
+
+  const appSet = new Set(teacherApps.map((a) => a.user_id));
+  const eligibleStudentIds = studentRoles.map((r) => r.user_id).filter((id) => !appSet.has(id));
+  const enrolledSet = new Set(existingMemberships.map((m) => m.student_id));
+
+  const [profiles, users] = eligibleStudentIds.length
+    ? await Promise.all([
+        ds.getRepository(ProfileSchema).find({ where: { id: In(eligibleStudentIds) } }),
+        ds.getRepository(UserSchema).find({ select: { id: true, email: true }, where: { id: In(eligibleStudentIds) } }),
+      ])
+    : [[], []];
+
+  const byEmail = new Map<string, { id: string; fullName: string; email: string; code: string | null }>();
+  const byCode = new Map<string, { id: string; fullName: string; email: string; code: string | null }>();
+  const profileMap = new Map(profiles.map((p) => [p.id, p]));
+
+  for (const u of users) {
+    const p = profileMap.get(u.id);
+    if (!p) continue;
+    const item = {
+      id: u.id,
+      fullName: p.full_name || u.email,
+      email: u.email,
+      code: p.student_code,
+    };
+    byEmail.set(u.email.toLowerCase(), item);
+    if (p.student_code) byCode.set(p.student_code.toLowerCase(), item);
+  }
+
+  const seenIdentifiers = new Set<string>();
+  const seenStudentIds = new Set<string>();
+  const rows: CsvPreviewRow[] = [];
+
+  (identifiers as string[]).forEach((rawId, idx) => {
+    const normalized = rawId.trim().toLowerCase();
+    const isValid =
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized) || /^sv[0-9]{6,}$/.test(normalized);
+
+    if (!normalized || !isValid) {
+      rows.push({
+        rowNumber: idx + 1,
+        identifier: rawId,
+        result: 'invalid',
+        studentId: null,
+        fullName: null,
+        email: null,
+        studentCode: null,
+      });
+      return;
+    }
+
+    const matched = byEmail.get(normalized) ?? byCode.get(normalized) ?? null;
+
+    if (seenIdentifiers.has(normalized) || (matched && seenStudentIds.has(matched.id))) {
+      rows.push({
+        rowNumber: idx + 1,
+        identifier: rawId,
+        result: 'duplicate',
+        studentId: matched?.id ?? null,
+        fullName: matched?.fullName ?? null,
+        email: matched?.email ?? null,
+        studentCode: matched?.code ?? null,
+      });
+      return;
+    }
+
+    seenIdentifiers.add(normalized);
+    if (matched) seenStudentIds.add(matched.id);
+
+    if (!matched) {
+      rows.push({
+        rowNumber: idx + 1,
+        identifier: rawId,
+        result: 'not_found',
+        studentId: null,
+        fullName: null,
+        email: null,
+        studentCode: null,
+      });
+      return;
+    }
+
+    rows.push({
+      rowNumber: idx + 1,
+      identifier: rawId,
+      result: enrolledSet.has(matched.id) ? 'already_enrolled' : 'ready',
+      studentId: matched.id,
+      fullName: matched.fullName,
+      email: matched.email,
+      studentCode: matched.code,
+    });
+  });
 
   return {
     status: 'ready',
@@ -276,31 +341,53 @@ export async function bulkEnrollClassCsv(
     return { status: 'error', message: 'Không có dòng hợp lệ để ghi danh.' };
   }
 
-  const { supabase } = await getStaffClient();
-  if (!supabase) return { status: 'error', message: 'Bạn cần đăng nhập bằng tài khoản admin hoặc giảng viên.' };
+  const { user, role } = await getCurrentUserWithRole();
+  if (!user || (role !== 'admin' && role !== 'teacher')) {
+    return { status: 'error', message: 'Bạn cần đăng nhập bằng tài khoản admin hoặc giảng viên.' };
+  }
+  if (!(await isClassStaff(user.id, role, classId))) {
+    return { status: 'error', message: 'Bạn không có quyền ghi danh sinh viên vào lớp này.' };
+  }
 
-  const { data, error } = await supabase.rpc('bulk_enroll_students_in_class', {
-    p_class_id: classId,
-    p_student_ids: studentIds,
-  });
-  if (error) {
-    console.error('Could not bulk enroll students:', {
-      code: error.code,
-      message: error.message,
-    });
-    return {
-      status: 'error',
-      message: error.code === '42501'
-        ? 'Bạn không có quyền ghi danh sinh viên vào lớp này.'
-        : `Không thể ghi danh CSV (mã lỗi ${error.code || 'không xác định'}). Kiểm tra log server để biết chi tiết.`,
-    };
+  const uniqueIds = Array.from(new Set(studentIds as string[]));
+  const ds = await getDataSource();
+
+  const [roles, apps, existingMemberships] = await Promise.all([
+    ds.getRepository(UserRoleSchema).find({ where: { user_id: In(uniqueIds) } }),
+    ds.getRepository(TeacherApplicationSchema).find({ where: { user_id: In(uniqueIds) } }),
+    ds.getRepository(ClassMembershipSchema).find({
+      where: { class_id: classId, student_id: In(uniqueIds) },
+    }),
+  ]);
+
+  const roleMap = new Map(roles.map((r) => [r.user_id, r.role]));
+  const appSet = new Set(apps.map((a) => a.user_id));
+  const enrolledSet = new Set(existingMemberships.map((m) => m.student_id));
+
+  let added = 0;
+  let existing = 0;
+  let rejected = 0;
+  const toInsert: { class_id: string; student_id: string }[] = [];
+
+  for (const sid of uniqueIds) {
+    if (roleMap.get(sid) !== 'student' || appSet.has(sid)) {
+      rejected++;
+      continue;
+    }
+    if (enrolledSet.has(sid)) {
+      existing++;
+      continue;
+    }
+    toInsert.push({ class_id: classId, student_id: sid });
+    added++;
+  }
+
+  if (toInsert.length > 0) {
+    const cmRepo = ds.getRepository(ClassMembershipSchema);
+    await cmRepo.save(toInsert.map((item) => cmRepo.create(item)));
   }
 
   revalidatePath(`/teacher/classes/${classId}`);
-  const results = (data ?? []) as BulkEnrollmentRecord[];
-  const added = results.filter((row) => row.result === 'added').length;
-  const existing = results.filter((row) => row.result === 'already_enrolled').length;
-  const rejected = results.filter((row) => row.result === 'not_student').length;
   return {
     status: 'success',
     message: `Đã thêm ${added} sinh viên; ${existing} đã có trong lớp; ${rejected} tài khoản không còn role sinh viên.`,

@@ -1,7 +1,7 @@
 import 'server-only';
 
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { getDataSource } from '@/lib/db/data-source';
+import { ClassMaterialSchema, type ClassMaterialEntity } from '@/lib/db/entities';
 
 export type ClassMaterialItem = {
   id: string;
@@ -34,54 +34,28 @@ export type ClassInfoDetail = {
   teacherId: string;
 };
 
-/**
- * Lấy danh sách tài liệu học tập của một lớp học, sắp xếp theo tuần và thời gian tạo.
- */
 export async function getClassMaterials(classId: string): Promise<ClassMaterialItem[]> {
-  const supabase = await createClient();
-
   try {
-    const { data, error } = await supabase
-      .from('class_materials')
-      .select('*')
-      .eq('class_id', classId)
-      .order('week_number', { ascending: true })
-      .order('created_at', { ascending: false });
-
-    if (error || !data) {
-      // Fallback với adminClient nếu RLS cần bypass
-      const adminClient = createAdminClient();
-      const { data: adminData } = await adminClient
-        .from('class_materials')
-        .select('*')
-        .eq('class_id', classId)
-        .order('week_number', { ascending: true })
-        .order('created_at', { ascending: false });
-
-      if (!adminData) return [];
-      return adminData.map(mapRowToMaterial);
-    }
-
-    return data.map(mapRowToMaterial);
+    const ds = await getDataSource();
+    const rows = await ds.getRepository(ClassMaterialSchema).find({
+      where: { class_id: classId },
+      order: { week_number: 'ASC', created_at: 'DESC' },
+    });
+    return rows.map(mapRowToMaterial);
   } catch (err) {
     console.error('Failed to load class materials:', err);
     return [];
   }
 }
 
-/**
- * Gom nhóm danh sách tài liệu theo từng Tuần học (Week 1, Week 2...).
- */
 export function groupMaterialsByWeek(materials: ClassMaterialItem[]): ClassMaterialWeekGroup[] {
   const map = new Map<number, ClassMaterialItem[]>();
 
-  materials.forEach((mat) => {
+  for (const mat of materials) {
     const week = mat.weekNumber || 1;
-    if (!map.has(week)) {
-      map.set(week, []);
-    }
+    if (!map.has(week)) map.set(week, []);
     map.get(week)!.push(mat);
-  });
+  }
 
   return Array.from(map.entries())
     .sort(([a], [b]) => a - b)
@@ -91,20 +65,19 @@ export function groupMaterialsByWeek(materials: ClassMaterialItem[]): ClassMater
     }));
 }
 
-function mapRowToMaterial(row: Record<string, unknown>): ClassMaterialItem {
+function mapRowToMaterial(row: ClassMaterialEntity): ClassMaterialItem {
   return {
-    id: String(row.id),
-    classId: String(row.class_id),
-    teacherId: String(row.teacher_id),
-    title: String(row.title || 'Tài liệu không tên'),
-    description: row.description ? String(row.description) : null,
-    materialType: (String(row.material_type || 'document') as 'document' | 'video' | 'link'),
-    fileUrl: String(row.file_url || ''),
-    fileName: row.file_name ? String(row.file_name) : null,
-    fileSizeBytes: row.file_size_bytes ? Number(row.file_size_bytes) : null,
-    mimeType: row.mime_type ? String(row.mime_type) : null,
+    id: row.id,
+    classId: row.class_id,
+    teacherId: row.teacher_id,
+    title: row.title || 'Tài liệu không tên',
+    description: row.description ?? null,
+    materialType: row.material_type || 'document',
+    fileUrl: row.file_url || '',
+    fileName: row.file_name ?? null,
+    fileSizeBytes: row.file_size_bytes !== null ? Number(row.file_size_bytes) : null,
+    mimeType: row.mime_type ?? null,
     weekNumber: Number(row.week_number) || 1,
-    createdAt: String(row.created_at || new Date().toISOString()),
+    createdAt: row.created_at || new Date().toISOString(),
   };
 }
-

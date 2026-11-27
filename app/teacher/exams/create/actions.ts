@@ -1,8 +1,22 @@
 'use server';
 
+import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { In, type EntityManager } from 'typeorm';
+import { getCurrentUser } from '@/lib/auth-cache';
+import { getDataSource, getRepo } from '@/lib/db/data-source';
+import {
+  ExamAnswerKeySchema,
+  ExamClassSchema,
+  ExamQuestionSchema,
+  ExamSchema,
+  QuestionAnswerKeySchema,
+  QuestionBankSchema,
+  QuestionOptionSchema,
+  UserRoleSchema,
+  type ExamQuestionOptionJson,
+  type QuestionType,
+} from '@/lib/db/entities';
 import { appendExamInstructionTags, isAutoGradeEssay, isCameraRequired } from '@/lib/exam-auto-grade';
 
 export type CreateExamPayload = {
@@ -27,45 +41,86 @@ export type CreateExamPayload = {
 
 type SnapshotSourceQuestion = {
   id: string;
-  question_type: string;
+  question_type: QuestionType;
   question_text: string;
   explanation: string | null;
-  options: unknown;
-  answer_key: unknown;
+  options: {
+    option_key: string;
+    option_text: string;
+    position: number;
+  }[];
+  answer_key: {
+    correct_option_key?: string | null;
+    model_answer?: string | null;
+    grading_rubric?: string | null;
+  } | null;
 };
 
-type SnapshotResult = { ok: true } | { ok: false; stage: 'question' | 'answer_key' };
+async function loadSourceQuestionMap(
+  manager: EntityManager,
+  questionIds: string[],
+): Promise<Map<string, SnapshotSourceQuestion>> {
+  if (questionIds.length === 0) return new Map();
+
+  const [questions, options, answerKeys] = await Promise.all([
+    manager.getRepository(QuestionBankSchema).find({ where: { id: In(questionIds) } }),
+    manager.getRepository(QuestionOptionSchema).find({ where: { question_id: In(questionIds) } }),
+    manager.getRepository(QuestionAnswerKeySchema).find({ where: { question_id: In(questionIds) } }),
+  ]);
+
+  const optionsByQ = new Map<string, SnapshotSourceQuestion['options']>();
+  for (const opt of options) {
+    const list = optionsByQ.get(opt.question_id) ?? [];
+    list.push({
+      option_key: opt.option_key,
+      option_text: opt.option_text,
+      position: opt.position,
+    });
+    optionsByQ.set(opt.question_id, list);
+  }
+
+  const keyByQ = new Map(answerKeys.map((k) => [k.question_id, k]));
+
+  const sourceMap = new Map<string, SnapshotSourceQuestion>();
+  for (const q of questions) {
+    sourceMap.set(q.id, {
+      id: q.id,
+      question_type: q.question_type,
+      question_text: q.question_text,
+      explanation: q.explanation,
+      options: optionsByQ.get(q.id) ?? [],
+      answer_key: keyByQ.get(q.id) ?? null,
+    });
+  }
+  return sourceMap;
+}
 
 /**
- * Đóng gói (snapshot) câu hỏi từ ngân hàng vào exam_questions + exam_answer_keys.
- * Tối ưu N+1: 1 lệnh bulk insert exam_questions + 1 lệnh bulk insert exam_answer_keys
- * (trước đây: 2 lệnh INSERT tuần tự cho MỖI câu hỏi).
- * - `tolerant = false` (tạo đề): bất kỳ lỗi nào cũng trả về { ok: false } để caller rollback.
- * - `tolerant = true` (cập nhật đề): giữ hành vi cũ - nếu bulk lỗi thì chèn lại từng câu, bỏ qua câu lỗi.
+ * Đóng gói (snapshot) câu hỏi từ ngân hàng vào exam_questions + exam_answer_keys trong cùng transaction.
  */
 async function snapshotExamQuestions(
-  adminClient: ReturnType<typeof createAdminClient>,
+  manager: EntityManager,
   examId: string,
   selectedQuestions: CreateExamPayload['selectedQuestions'],
   sourceMap: Map<string, SnapshotSourceQuestion>,
-  tolerant: boolean,
-): Promise<SnapshotResult> {
-  const prepared: {
-    eqRow: {
-      exam_id: string;
-      source_question_id: string;
-      position: number;
-      question_type: string;
-      question_text: string;
-      options: { key: 'A' | 'B' | 'C' | 'D'; text: string }[];
-      points: number;
-    };
-    keyRow: {
-      correct_option_key: string | null;
-      model_answer: string | null;
-      grading_rubric: string | null;
-      explanation: string | null;
-    };
+): Promise<void> {
+  const eqRows: {
+    id: string;
+    exam_id: string;
+    source_question_id: string;
+    position: number;
+    question_type: QuestionType;
+    question_text: string;
+    options: ExamQuestionOptionJson[];
+    points: number;
+  }[] = [];
+
+  const keyRows: {
+    exam_question_id: string;
+    correct_option_key: string | null;
+    model_answer: string | null;
+    grading_rubric: string | null;
+    explanation: string | null;
   }[] = [];
 
   for (const sq of selectedQuestions) {
@@ -73,83 +128,61 @@ async function snapshotExamQuestions(
     if (!source) continue;
 
     const isMC = source.question_type === 'multiple_choice';
-    const rawOptions = (Array.isArray(source.options) ? source.options : []) as {
-      option_key: 'A' | 'B' | 'C' | 'D';
-      option_text: string;
-      position: number;
-    }[];
-
-    const sortedOptions = [...rawOptions].sort((a, b) => a.position - b.position);
-    const optionsJson = isMC
+    const sortedOptions = [...source.options].sort((a, b) => a.position - b.position);
+    const optionsJson: ExamQuestionOptionJson[] = isMC
       ? sortedOptions.map((opt) => ({ key: opt.option_key, text: opt.option_text }))
       : [];
 
-    const answerKeyObj = (Array.isArray(source.answer_key) ? source.answer_key[0] : source.answer_key) as
-      | { correct_option_key?: string | null; model_answer?: string | null; grading_rubric?: string | null }
-      | null
-      | undefined;
+    const examQuestionId = randomUUID();
+    eqRows.push({
+      id: examQuestionId,
+      exam_id: examId,
+      source_question_id: source.id,
+      position: sq.position,
+      question_type: source.question_type,
+      question_text: source.question_text,
+      options: optionsJson,
+      points: sq.points,
+    });
 
-    prepared.push({
-      eqRow: {
-        exam_id: examId,
-        source_question_id: source.id,
-        position: sq.position,
-        question_type: source.question_type,
-        question_text: source.question_text,
-        options: optionsJson,
-        points: sq.points,
-      },
-      keyRow: {
-        correct_option_key: isMC ? answerKeyObj?.correct_option_key || null : null,
-        model_answer: !isMC ? answerKeyObj?.model_answer || null : null,
-        grading_rubric: !isMC ? answerKeyObj?.grading_rubric || null : null,
-        explanation: source.explanation || null,
-      },
+    keyRows.push({
+      exam_question_id: examQuestionId,
+      correct_option_key: isMC ? source.answer_key?.correct_option_key || null : null,
+      model_answer: !isMC ? source.answer_key?.model_answer || null : null,
+      grading_rubric: !isMC ? source.answer_key?.grading_rubric || null : null,
+      explanation: source.explanation || null,
     });
   }
 
-  if (prepared.length === 0) return { ok: true };
+  if (eqRows.length === 0) return;
 
-  const { data: inserted, error: eqErr } = await adminClient
-    .from('exam_questions')
-    .insert(prepared.map((p) => p.eqRow))
-    .select('id, position');
+  await manager.getRepository(ExamQuestionSchema).insert(eqRows);
+  await manager.getRepository(ExamAnswerKeySchema).insert(keyRows);
+}
 
-  if (!eqErr && inserted) {
-    // (exam_id, position) là UNIQUE nên position định danh duy nhất từng câu vừa chèn.
-    const idByPosition = new Map<number, string>(
-      inserted.map((row: { id: string; position: number }) => [Number(row.position), row.id]),
-    );
-    const keyRows = prepared.flatMap((p) => {
-      const examQuestionId = idByPosition.get(p.eqRow.position);
-      return examQuestionId ? [{ exam_question_id: examQuestionId, ...p.keyRow }] : [];
-    });
+/**
+ * Thay thế RPC publish_exam của Postgres: kiểm tra điều kiện hợp lệ và cập nhật trạng thái published.
+ */
+async function publishExamInTransaction(manager: EntityManager, examId: string): Promise<boolean> {
+  const examRepo = manager.getRepository(ExamSchema);
+  const exam = await examRepo.findOne({ where: { id: examId } });
+  if (!exam || exam.status !== 'draft') return false;
 
-    if (keyRows.length > 0) {
-      const { error: akErr } = await adminClient.from('exam_answer_keys').insert(keyRows);
-      if (akErr) {
-        console.error('Failed to snapshot exam_answer_keys (bulk):', akErr);
-        return tolerant ? { ok: true } : { ok: false, stage: 'answer_key' };
-      }
-    }
-    return { ok: true };
+  const [classCount, questionCount] = await Promise.all([
+    manager.getRepository(ExamClassSchema).count({ where: { exam_id: examId } }),
+    manager.getRepository(ExamQuestionSchema).count({ where: { exam_id: examId } }),
+  ]);
+
+  if (classCount === 0 || questionCount === 0) {
+    return false;
   }
 
-  console.error('Failed to snapshot exam_questions (bulk):', eqErr);
-  if (!tolerant) return { ok: false, stage: 'question' };
-
-  // Chế độ dung sai (cập nhật đề): bulk là atomic nên chưa có dòng nào được chèn -> chèn lại từng câu như cũ.
-  for (const p of prepared) {
-    const { data: insertedEq, error: rowErr } = await adminClient
-      .from('exam_questions')
-      .insert(p.eqRow)
-      .select('id')
-      .single();
-    if (insertedEq && !rowErr) {
-      await adminClient.from('exam_answer_keys').insert({ exam_question_id: insertedEq.id, ...p.keyRow });
-    }
-  }
-  return { ok: true };
+  const nowIso = new Date().toISOString();
+  await examRepo.update(
+    { id: examId },
+    { status: 'published', published_at: nowIso, updated_at: nowIso },
+  );
+  return true;
 }
 
 export type CreateExamResult = {
@@ -162,17 +195,12 @@ export type CreateExamResult = {
 const uuidPattern = /^[0-9a-f-]{36}$/i;
 
 export async function createExamAction(payload: CreateExamPayload): Promise<CreateExamResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  const { user, error: authError } = await getCurrentUser();
 
   if (authError || !user) {
     return { status: 'error', message: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.' };
   }
 
-  // 1. Validate Basic Fields
   const {
     subjectId,
     title,
@@ -224,7 +252,6 @@ export async function createExamAction(payload: CreateExamPayload): Promise<Crea
     return { status: 'error', message: 'Để xuất bản đề thi ngay lập tức, bạn phải gán đề cho ít nhất 1 lớp học.' };
   }
 
-  const adminClient = createAdminClient();
   const requireCamera = Boolean(payload.requireCamera);
   const autoGradeEssay = Boolean(payload.autoGradeEssay);
   const showAnswersAfterSubmit = payload.showAnswersAfterSubmit !== false;
@@ -235,14 +262,13 @@ export async function createExamAction(payload: CreateExamPayload): Promise<Crea
   });
 
   try {
-    // 2. Insert into public.exams with Zero-Crash Fallback
-    let newExam: { id: string } | null = null;
-    let examInsertError: unknown = null;
+    const ds = await getDataSource();
+    const { examId, isPublished } = await ds.transaction(async (manager) => {
+      const id = randomUUID();
+      const nowIso = new Date().toISOString();
 
-    // Lần thử 1: Ghi trực tiếp cả 3 cột require_camera, auto_grade_essay, show_answers_after_submit
-    const firstAttempt = await adminClient
-      .from('exams')
-      .insert({
+      await manager.getRepository(ExamSchema).insert({
+        id,
         subject_id: subjectId,
         created_by: user.id,
         title: title.trim(),
@@ -255,152 +281,36 @@ export async function createExamAction(payload: CreateExamPayload): Promise<Crea
         require_camera: requireCamera,
         auto_grade_essay: autoGradeEssay,
         show_answers_after_submit: showAnswersAfterSubmit,
-      })
-      .select('id')
-      .single();
-
-    if (firstAttempt.error) {
-      console.warn(
-        'Lần thử 1 ghi show_answers_after_submit thất bại (có thể DB chưa chạy migration). Thử lần 2 không có cột này:',
-        firstAttempt.error.message,
-      );
-
-      // Lần thử 2: Thử ghi với require_camera & auto_grade_essay
-      const secondAttempt = await adminClient
-        .from('exams')
-        .insert({
-          subject_id: subjectId,
-          created_by: user.id,
-          title: title.trim(),
-          instructions: taggedInstructions,
-          duration_minutes: durationMinutes,
-          max_attempts: maxAttempts,
-          available_from: availableFrom || null,
-          available_until: availableUntil || null,
-          status: 'draft',
-          require_camera: requireCamera,
-          auto_grade_essay: autoGradeEssay,
-        })
-        .select('id')
-        .single();
-
-      if (secondAttempt.error) {
-        console.warn(
-          'Lần thử 2 thất bại. Thử lần 3 chế độ fallback cơ bản (tag cờ đã nhúng trong instructions):',
-          secondAttempt.error.message,
-        );
-        // Lần thử 3: Bỏ cả 2 cột, chỉ ghi các trường cơ bản. Cả 2 tag đã nằm an toàn trong instructions
-        const thirdAttempt = await adminClient
-          .from('exams')
-          .insert({
-            subject_id: subjectId,
-            created_by: user.id,
-            title: title.trim(),
-            instructions: taggedInstructions,
-            duration_minutes: durationMinutes,
-            max_attempts: maxAttempts,
-            available_from: availableFrom || null,
-            available_until: availableUntil || null,
-            status: 'draft',
-          })
-          .select('id')
-          .single();
-
-        newExam = thirdAttempt.data;
-        examInsertError = thirdAttempt.error;
-      } else {
-        newExam = secondAttempt.data;
-      }
-    } else {
-      newExam = firstAttempt.data;
-    }
-
-    if (examInsertError || !newExam) {
-      console.error('Failed to insert exam:', examInsertError);
-      return { status: 'error', message: 'Không thể tạo bản ghi đề thi. Vui lòng thử lại.' };
-    }
-
-    const examId = newExam.id;
-
-    // 3. Insert assigned classes into public.exam_classes
-    if (classIds && classIds.length > 0) {
-      const classRows = classIds.map((cid) => ({
-        exam_id: examId,
-        class_id: cid,
-      }));
-
-      const { error: classInsertError } = await adminClient
-        .from('exam_classes')
-        .insert(classRows);
-
-      if (classInsertError) {
-        console.error('Failed to link exam_classes:', classInsertError);
-        // Rollback created exam
-        await adminClient.from('exams').delete().eq('id', examId);
-        return { status: 'error', message: 'Không thể gán đề thi vào các lớp đã chọn.' };
-      }
-    }
-
-    // 4. Fetch source questions from question_bank
-    const questionIds = selectedQuestions.map((sq) => sq.questionId);
-    const { data: sourceQuestions, error: fetchQError } = await adminClient
-      .from('question_bank')
-      .select(`
-        id, subject_id, question_type, question_text, explanation,
-        options:question_options(option_key, option_text, position),
-        answer_key:question_answer_keys(correct_option_key, model_answer, grading_rubric)
-      `)
-      .in('id', questionIds);
-
-    if (fetchQError || !sourceQuestions || sourceQuestions.length === 0) {
-      console.error('Failed to fetch source questions:', fetchQError);
-      await adminClient.from('exams').delete().eq('id', examId);
-      return { status: 'error', message: 'Không thể nạp nội dung câu hỏi từ ngân hàng.' };
-    }
-
-    const sourceMap = new Map<string, SnapshotSourceQuestion>(
-      (sourceQuestions as unknown as SnapshotSourceQuestion[]).map((sq) => [sq.id, sq]),
-    );
-
-    // 5. Snapshot into public.exam_questions & public.exam_answer_keys (bulk insert, không còn N+1)
-    const snapshot = await snapshotExamQuestions(adminClient, examId, selectedQuestions, sourceMap, false);
-    if (!snapshot.ok) {
-      await adminClient.from('exams').delete().eq('id', examId);
-      return {
-        status: 'error',
-        message:
-          snapshot.stage === 'question'
-            ? 'Lỗi khi đóng gói câu hỏi vào đề thi.'
-            : 'Lỗi khi đóng gói đáp án câu hỏi.',
-      };
-    }
-
-    // 6. Handle Publish Immediately
-    let isPublished = false;
-    if (publishImmediately) {
-      // Call public.publish_exam(p_exam_id) RPC
-      const { error: rpcError } = await adminClient.rpc('publish_exam', {
-        p_exam_id: examId,
+        published_at: null,
+        created_at: nowIso,
+        updated_at: nowIso,
       });
 
-      if (rpcError) {
-        console.warn('publish_exam RPC error, falling back to manual publish update:', rpcError);
-        // Fallback update status directly if RPC conditions check
-        const { error: updateErr } = await adminClient
-          .from('exams')
-          .update({
-            status: 'published',
-            published_at: new Date().toISOString(),
-          })
-          .eq('id', examId);
-
-        if (!updateErr) {
-          isPublished = true;
-        }
-      } else {
-        isPublished = true;
+      const uniqueClassIds = Array.from(new Set(classIds ?? []));
+      if (uniqueClassIds.length > 0) {
+        await manager.getRepository(ExamClassSchema).insert(
+          uniqueClassIds.map((cid) => ({
+            exam_id: id,
+            class_id: cid,
+          })),
+        );
       }
-    }
+
+      const questionIds = Array.from(new Set(selectedQuestions.map((sq) => sq.questionId)));
+      const sourceMap = await loadSourceQuestionMap(manager, questionIds);
+      if (sourceMap.size === 0) {
+        throw new Error('Không thể nạp nội dung câu hỏi từ ngân hàng.');
+      }
+
+      await snapshotExamQuestions(manager, id, selectedQuestions, sourceMap);
+
+      let published = false;
+      if (publishImmediately) {
+        published = await publishExamInTransaction(manager, id);
+      }
+
+      return { examId: id, isPublished: published };
+    });
 
     revalidatePath('/teacher/exams');
     revalidatePath('/teacher/exams/[examId]', 'page');
@@ -434,11 +344,7 @@ export type UpdateExamPayload = CreateExamPayload & {
  * Cập nhật trực tiếp bản ghi đề thi nháp (UPDATE trên examId sẵn có, tuyệt đối không tạo trùng).
  */
 export async function updateExamAction(payload: UpdateExamPayload): Promise<CreateExamResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  const { user, error: authError } = await getCurrentUser();
 
   if (authError || !user) {
     return { status: 'error', message: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.' };
@@ -500,25 +406,19 @@ export async function updateExamAction(payload: UpdateExamPayload): Promise<Crea
     return { status: 'error', message: 'Để xuất bản đề thi ngay lập tức, bạn phải gán đề cho ít nhất 1 lớp học.' };
   }
 
-  const adminClient = createAdminClient();
+  const [examRepo, roleRepo] = await Promise.all([
+    getRepo(ExamSchema),
+    getRepo(UserRoleSchema),
+  ]);
 
-  // Kiểm tra quyền sở hữu và trạng thái đề thi
-  const { data: existingExam, error: fetchErr } = await adminClient
-    .from('exams')
-    .select('id, created_by, status')
-    .eq('id', examId)
-    .maybeSingle();
+  const [existingExam, roleRecord] = await Promise.all([
+    examRepo.findOne({ where: { id: examId } }),
+    roleRepo.findOne({ where: { user_id: user.id } }),
+  ]);
 
-  if (fetchErr || !existingExam) {
+  if (!existingExam) {
     return { status: 'error', message: 'Không tìm thấy thông tin đề thi cần cập nhật.' };
   }
-
-  // Lấy role để kiểm tra quyền admin hoặc chính chủ giảng viên
-  const { data: roleRecord } = await adminClient
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .maybeSingle();
 
   const isOwner = existingExam.created_by === user.id;
   const isAdmin = roleRecord?.role === 'admin';
@@ -536,33 +436,11 @@ export async function updateExamAction(payload: UpdateExamPayload): Promise<Crea
   });
 
   try {
-    // 1. UPDATE trực tiếp bảng public.exams (Zero-Crash Fallback cho các cột mới)
-    let updateSuccess = false;
-
-    // Lần thử 1: Cập nhật cả require_camera, auto_grade_essay, show_answers_after_submit
-    const firstAttempt = await adminClient
-      .from('exams')
-      .update({
-        subject_id: subjectId,
-        title: title.trim(),
-        instructions: taggedInstructions,
-        duration_minutes: durationMinutes,
-        max_attempts: maxAttempts,
-        available_from: availableFrom || null,
-        available_until: availableUntil || null,
-        require_camera: requireCamera,
-        auto_grade_essay: autoGradeEssay,
-        show_answers_after_submit: showAnswersAfterSubmit,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', examId);
-
-    if (firstAttempt.error) {
-      console.warn('Lần thử 1 update show_answers_after_submit lỗi. Thử lần 2:', firstAttempt.error.message);
-      // Lần thử 2: Cập nhật require_camera và auto_grade_essay
-      const secondAttempt = await adminClient
-        .from('exams')
-        .update({
+    const ds = await getDataSource();
+    const isPublished = await ds.transaction(async (manager) => {
+      await manager.getRepository(ExamSchema).update(
+        { id: examId },
+        {
           subject_id: subjectId,
           title: title.trim(),
           instructions: taggedInstructions,
@@ -572,106 +450,38 @@ export async function updateExamAction(payload: UpdateExamPayload): Promise<Crea
           available_until: availableUntil || null,
           require_camera: requireCamera,
           auto_grade_essay: autoGradeEssay,
+          show_answers_after_submit: showAnswersAfterSubmit,
           updated_at: new Date().toISOString(),
-        })
-        .eq('id', examId);
-
-      if (secondAttempt.error) {
-        console.warn('Lần thử 2 update lỗi. Thử lần 3 chế độ cơ bản:', secondAttempt.error.message);
-        // Lần thử 3: Cập nhật các trường cơ bản (tags đã nhúng trong instructions)
-        const thirdAttempt = await adminClient
-          .from('exams')
-          .update({
-            subject_id: subjectId,
-            title: title.trim(),
-            instructions: taggedInstructions,
-            duration_minutes: durationMinutes,
-            max_attempts: maxAttempts,
-            available_from: availableFrom || null,
-            available_until: availableUntil || null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', examId);
-
-        if (thirdAttempt.error) {
-          console.error('Lỗi cập nhật bảng exams:', thirdAttempt.error);
-          return { status: 'error', message: 'Không thể cập nhật cấu hình đề thi. Vui lòng thử lại.' };
-        }
-        updateSuccess = true;
-      } else {
-        updateSuccess = true;
-      }
-    } else {
-      updateSuccess = true;
-    }
-
-    if (!updateSuccess) {
-      return { status: 'error', message: 'Không thể lưu thay đổi đề thi.' };
-    }
-
-    // 2. Đồng bộ danh sách lớp gán: Xóa các lớp cũ và chèn lại các lớp mới
-    await adminClient.from('exam_classes').delete().eq('exam_id', examId);
-
-    if (classIds && classIds.length > 0) {
-      const classRows = classIds.map((cid) => ({
-        exam_id: examId,
-        class_id: cid,
-      }));
-      const { error: classErr } = await adminClient.from('exam_classes').insert(classRows);
-      if (classErr) {
-        console.error('Lỗi cập nhật exam_classes:', classErr);
-      }
-    }
-
-    // 3. Đồng bộ danh sách câu hỏi: Xóa câu hỏi cũ và chèn snapshot mới
-    // Do exam_answer_keys có ON DELETE CASCADE từ exam_questions, xóa exam_questions sẽ tự làm sạch
-    await adminClient.from('exam_questions').delete().eq('exam_id', examId);
-
-    // Fetch thông tin nguồn từ question_bank
-    const questionIds = selectedQuestions.map((sq) => sq.questionId);
-    const { data: sourceQuestions, error: fetchQError } = await adminClient
-      .from('question_bank')
-      .select(`
-        id, subject_id, question_type, question_text, explanation,
-        options:question_options(option_key, option_text, position),
-        answer_key:question_answer_keys(correct_option_key, model_answer, grading_rubric)
-      `)
-      .in('id', questionIds);
-
-    if (!fetchQError && sourceQuestions && sourceQuestions.length > 0) {
-      const sourceMap = new Map<string, SnapshotSourceQuestion>(
-        (sourceQuestions as unknown as SnapshotSourceQuestion[]).map((sq) => [sq.id, sq]),
+        },
       );
-      // Bulk insert (không còn N+1); chế độ dung sai giữ nguyên hành vi cũ của luồng cập nhật.
-      await snapshotExamQuestions(adminClient, examId, selectedQuestions, sourceMap, true);
-    }
 
-    // 4. Xử lý Xuất bản ngay nếu người dùng chọn
-    let isPublished = false;
-    if (publishImmediately) {
-      const { error: rpcError } = await adminClient.rpc('publish_exam', {
-        p_exam_id: examId,
-      });
-
-      if (rpcError) {
-        console.warn('publish_exam RPC error khi update, fallback direct status update:', rpcError);
-        const { error: updateErr } = await adminClient
-          .from('exams')
-          .update({
-            status: 'published',
-            published_at: new Date().toISOString(),
-          })
-          .eq('id', examId);
-
-        if (!updateErr) {
-          isPublished = true;
-        }
-      } else {
-        isPublished = true;
+      // Đồng bộ danh sách lớp gán
+      await manager.getRepository(ExamClassSchema).delete({ exam_id: examId });
+      const uniqueClassIds = Array.from(new Set(classIds ?? []));
+      if (uniqueClassIds.length > 0) {
+        await manager.getRepository(ExamClassSchema).insert(
+          uniqueClassIds.map((cid) => ({
+            exam_id: examId,
+            class_id: cid,
+          })),
+        );
       }
-    }
 
-    // Làm mới cache toàn diện
+      // Đồng bộ danh sách câu hỏi (exam_answer_keys có ON DELETE CASCADE từ exam_questions)
+      await manager.getRepository(ExamQuestionSchema).delete({ exam_id: examId });
+
+      const questionIds = Array.from(new Set(selectedQuestions.map((sq) => sq.questionId)));
+      const sourceMap = await loadSourceQuestionMap(manager, questionIds);
+      if (sourceMap.size > 0) {
+        await snapshotExamQuestions(manager, examId, selectedQuestions, sourceMap);
+      }
+
+      if (publishImmediately) {
+        return await publishExamInTransaction(manager, examId);
+      }
+      return false;
+    });
+
     revalidatePath('/teacher/exams');
     revalidatePath('/teacher/exams/[examId]', 'page');
     revalidatePath(`/teacher/exams/${examId}`);
@@ -703,11 +513,7 @@ export async function updateExamAction(payload: UpdateExamPayload): Promise<Crea
 export async function publishExistingDraftExamAction(
   examId: string,
 ): Promise<{ status: 'success' | 'error'; message: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  const { user, error: authError } = await getCurrentUser();
 
   if (authError || !user) {
     return { status: 'error', message: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.' };
@@ -717,29 +523,23 @@ export async function publishExistingDraftExamAction(
     return { status: 'error', message: 'Mã đề thi không hợp lệ.' };
   }
 
-  const adminClient = createAdminClient();
+  const [examRepo, roleRepo, examClassRepo, examQuestionRepo] = await Promise.all([
+    getRepo(ExamSchema),
+    getRepo(UserRoleSchema),
+    getRepo(ExamClassSchema),
+    getRepo(ExamQuestionSchema),
+  ]);
 
-  // Kiểm tra đề thi
-  const { data: exam, error: examErr } = await adminClient
-    .from('exams')
-    .select(`
-      id, title, status, created_by,
-      exam_questions(id),
-      exam_classes(class_id)
-    `)
-    .eq('id', examId)
-    .maybeSingle();
+  const [exam, roleRecord, classCount, questionCount] = await Promise.all([
+    examRepo.findOne({ where: { id: examId } }),
+    roleRepo.findOne({ where: { user_id: user.id } }),
+    examClassRepo.count({ where: { exam_id: examId } }),
+    examQuestionRepo.count({ where: { exam_id: examId } }),
+  ]);
 
-  if (examErr || !exam) {
+  if (!exam) {
     return { status: 'error', message: 'Không tìm thấy đề thi.' };
   }
-
-  // Kiểm tra quyền
-  const { data: roleRecord } = await adminClient
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .maybeSingle();
 
   const isOwner = exam.created_by === user.id;
   const isAdmin = roleRecord?.role === 'admin';
@@ -751,39 +551,29 @@ export async function publishExistingDraftExamAction(
     return { status: 'error', message: 'Đề thi này đã được xuất bản hoặc đã đóng.' };
   }
 
-  if (!exam.exam_classes || exam.exam_classes.length === 0) {
+  if (classCount === 0) {
     return {
       status: 'error',
       message: 'Đề thi chưa được gán vào lớp học nào. Vui lòng bấm "Chỉnh sửa bản nháp" để chọn ít nhất 1 lớp học trước khi xuất bản.',
     };
   }
 
-  if (!exam.exam_questions || exam.exam_questions.length === 0) {
+  if (questionCount === 0) {
     return {
       status: 'error',
       message: 'Đề thi chưa có câu hỏi nào. Vui lòng bấm "Chỉnh sửa bản nháp" để thêm câu hỏi từ ngân hàng trước khi xuất bản.',
     };
   }
 
-  // Thực hiện xuất bản
-  const { error: rpcError } = await adminClient.rpc('publish_exam', {
-    p_exam_id: examId,
-  });
-
-  if (rpcError) {
-    console.warn('publish_exam RPC error, falling back to manual status update:', rpcError);
-    const { error: updateErr } = await adminClient
-      .from('exams')
-      .update({
-        status: 'published',
-        published_at: new Date().toISOString(),
-      })
-      .eq('id', examId);
-
-    if (updateErr) {
-      console.error('Lỗi xuất bản đề thi:', updateErr);
-      return { status: 'error', message: 'Không thể xuất bản đề thi. Vui lòng thử lại.' };
-    }
+  try {
+    const nowIso = new Date().toISOString();
+    await examRepo.update(
+      { id: examId },
+      { status: 'published', published_at: nowIso, updated_at: nowIso },
+    );
+  } catch (updateErr) {
+    console.error('Lỗi xuất bản đề thi:', updateErr);
+    return { status: 'error', message: 'Không thể xuất bản đề thi. Vui lòng thử lại.' };
   }
 
   revalidatePath('/teacher/exams');
@@ -805,11 +595,7 @@ export async function publishExistingDraftExamAction(
 export async function deleteDraftExamAction(
   examId: string,
 ): Promise<{ status: 'success' | 'error'; message: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  const { user, error: authError } = await getCurrentUser();
 
   if (authError || !user) {
     return { status: 'error', message: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.' };
@@ -819,23 +605,19 @@ export async function deleteDraftExamAction(
     return { status: 'error', message: 'Mã đề thi không hợp lệ.' };
   }
 
-  const adminClient = createAdminClient();
+  const [examRepo, roleRepo] = await Promise.all([
+    getRepo(ExamSchema),
+    getRepo(UserRoleSchema),
+  ]);
 
-  const { data: exam, error: examErr } = await adminClient
-    .from('exams')
-    .select('id, title, status, created_by')
-    .eq('id', examId)
-    .maybeSingle();
+  const [exam, roleRecord] = await Promise.all([
+    examRepo.findOne({ where: { id: examId } }),
+    roleRepo.findOne({ where: { user_id: user.id } }),
+  ]);
 
-  if (examErr || !exam) {
+  if (!exam) {
     return { status: 'error', message: 'Không tìm thấy đề thi cần xóa.' };
   }
-
-  const { data: roleRecord } = await adminClient
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .maybeSingle();
 
   const isOwner = exam.created_by === user.id;
   const isAdmin = roleRecord?.role === 'admin';
@@ -847,12 +629,14 @@ export async function deleteDraftExamAction(
     return { status: 'error', message: 'Chỉ có thể xóa đề thi đang ở trạng thái Bản nháp.' };
   }
 
-  // Xóa các bảng phụ thuộc và bảng chính
-  await adminClient.from('exam_classes').delete().eq('exam_id', examId);
-  await adminClient.from('exam_questions').delete().eq('exam_id', examId);
-  const { error: delErr } = await adminClient.from('exams').delete().eq('id', examId);
-
-  if (delErr) {
+  try {
+    const ds = await getDataSource();
+    await ds.transaction(async (manager) => {
+      await manager.getRepository(ExamClassSchema).delete({ exam_id: examId });
+      await manager.getRepository(ExamQuestionSchema).delete({ exam_id: examId });
+      await manager.getRepository(ExamSchema).delete({ id: examId });
+    });
+  } catch (delErr) {
     console.error('Lỗi khi xóa bản nháp exams:', delErr);
     return { status: 'error', message: 'Không thể xóa bản nháp đề thi. Vui lòng thử lại.' };
   }
@@ -875,11 +659,7 @@ export async function toggleExamAnswerVisibilityAction(
   examId: string,
   showAnswers: boolean,
 ): Promise<{ status: 'success' | 'error'; message: string; showAnswers?: boolean }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  const { user, error: authError } = await getCurrentUser();
 
   if (authError || !user) {
     return { status: 'error', message: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.' };
@@ -889,23 +669,19 @@ export async function toggleExamAnswerVisibilityAction(
     return { status: 'error', message: 'Mã đề thi không hợp lệ.' };
   }
 
-  const adminClient = createAdminClient();
+  const [examRepo, roleRepo] = await Promise.all([
+    getRepo(ExamSchema),
+    getRepo(UserRoleSchema),
+  ]);
 
-  const { data: exam, error: examErr } = await adminClient
-    .from('exams')
-    .select('id, title, instructions, require_camera, auto_grade_essay, created_by')
-    .eq('id', examId)
-    .maybeSingle();
+  const [exam, roleRecord] = await Promise.all([
+    examRepo.findOne({ where: { id: examId } }),
+    roleRepo.findOne({ where: { user_id: user.id } }),
+  ]);
 
-  if (examErr || !exam) {
+  if (!exam) {
     return { status: 'error', message: 'Không tìm thấy đề thi cần cập nhật.' };
   }
-
-  const { data: roleRecord } = await adminClient
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .maybeSingle();
 
   const isOwner = exam.created_by === user.id;
   const isAdmin = roleRecord?.role === 'admin';
@@ -921,34 +697,18 @@ export async function toggleExamAnswerVisibilityAction(
     showAnswersAfterSubmit: showAnswers,
   });
 
-  // Lần thử 1: Cập nhật cả cột show_answers_after_submit và instructions
-  const firstAttempt = await adminClient
-    .from('exams')
-    .update({
-      show_answers_after_submit: showAnswers,
-      instructions: taggedInstructions,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', examId);
-
-  if (firstAttempt.error) {
-    console.warn(
-      'Cột show_answers_after_submit chưa có trong schema, fallback cập nhật vào instructions tag:',
-      firstAttempt.error.message,
-    );
-    // Lần thử 2: Cập nhật instructions mang tag [SHOW_ANSWERS:true/false]
-    const secondAttempt = await adminClient
-      .from('exams')
-      .update({
+  try {
+    await examRepo.update(
+      { id: examId },
+      {
+        show_answers_after_submit: showAnswers,
         instructions: taggedInstructions,
         updated_at: new Date().toISOString(),
-      })
-      .eq('id', examId);
-
-    if (secondAttempt.error) {
-      console.error('Lỗi cập nhật instructions exams:', secondAttempt.error);
-      return { status: 'error', message: 'Không thể cập nhật cấu hình xem đáp án.' };
-    }
+      },
+    );
+  } catch (err) {
+    console.error('Lỗi cập nhật cấu hình xem đáp án:', err);
+    return { status: 'error', message: 'Không thể cập nhật cấu hình xem đáp án.' };
   }
 
   revalidatePath('/teacher/exams');
@@ -965,4 +725,3 @@ export async function toggleExamAnswerVisibilityAction(
     showAnswers,
   };
 }
-

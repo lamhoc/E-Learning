@@ -1,10 +1,28 @@
-import { sanitizeVietnameseText } from '@/lib/utils';
 import 'server-only';
 
 import { redirect } from 'next/navigation';
-import { getCurrentUser, getCurrentRoleRecord } from '@/lib/auth-cache';
-import type { BankQuestion, SubjectSummary } from '@/lib/question-bank';
-import { cleanExamInstructions, isAutoGradeEssay, isCameraRequired, isShowAnswersAfterSubmit } from '@/lib/exam-auto-grade';
+import { In, IsNull } from 'typeorm';
+import { getCurrentUserWithRole, getCurrentProfile } from '@/lib/auth-cache';
+import { getDataSource } from '@/lib/db/data-source';
+import {
+  ClassSchema,
+  ExamClassSchema,
+  ExamQuestionSchema,
+  ExamSchema,
+  QuestionAnswerKeySchema,
+  QuestionBankSchema,
+  QuestionOptionSchema,
+  SubjectSchema,
+  TeacherSubjectAssignmentSchema,
+} from '@/lib/db/entities';
+import { sanitizeVietnameseText } from '@/lib/utils';
+import type { BankQuestion, QuestionOption, SubjectSummary } from '@/lib/question-bank';
+import {
+  cleanExamInstructions,
+  isAutoGradeEssay,
+  isCameraRequired,
+  isShowAnswersAfterSubmit,
+} from '@/lib/exam-auto-grade';
 
 export type TeacherClassSummary = {
   id: string;
@@ -43,198 +61,150 @@ export type TeacherExamCreateData = {
 };
 
 export async function getTeacherExamCreateData(editId?: string): Promise<TeacherExamCreateData> {
-  const { user, error: authError, supabase } = await getCurrentUser();
+  const { user, role } = await getCurrentUserWithRole();
 
-  if (authError || !user) {
-    redirect('/login');
-  }
+  if (!user) redirect('/login');
+  if (role !== 'teacher' && role !== 'admin') redirect('/subjects');
 
-  const { data: roleRecord, error: roleError } = await getCurrentRoleRecord();
+  const { fullName } = await getCurrentProfile();
+  const teacherName = sanitizeVietnameseText(fullName) || user.email || 'Giảng viên';
 
-  const userRole = roleRecord?.role as 'admin' | 'teacher' | 'student' | undefined;
-  if (roleError || !userRole || (userRole !== 'teacher' && userRole !== 'admin')) {
-    redirect('/subjects');
-  }
-
-  // 1. Fetch Teacher Profile Name
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  const teacherName = sanitizeVietnameseText(profile?.full_name) || user.email || 'Giảng viên';
-
-  // 1.5. Nếu có editId, fetch thông tin bản nháp cần nạp
+  const ds = await getDataSource();
   let initialExam: DraftExamInitialData | null = null;
   let draftSubjectId: string | null = null;
 
   if (editId) {
-    const { data: examData, error: examErr } = await supabase
-      .from('exams')
-      .select(`
-        id, subject_id, title, instructions, duration_minutes, max_attempts,
-        available_from, available_until, status, created_by,
-        require_camera, auto_grade_essay,
-        exam_classes(class_id),
-        exam_questions(id, source_question_id, points, position)
-      `)
-      .eq('id', editId)
-      .maybeSingle();
+    const examData = await ds.getRepository(ExamSchema).findOne({ where: { id: editId } });
+    if (examData && (examData.created_by === user.id || role === 'admin')) {
+      draftSubjectId = examData.subject_id;
+      const [examClasses, examQuestions] = await Promise.all([
+        ds.getRepository(ExamClassSchema).find({ where: { exam_id: examData.id } }),
+        ds.getRepository(ExamQuestionSchema).find({
+          where: { exam_id: examData.id },
+          order: { position: 'ASC' },
+        }),
+      ]);
 
-    if (examData && !examErr) {
-      const isOwner = examData.created_by === user.id;
-      const isAdmin = userRole === 'admin';
-      if (isOwner || isAdmin) {
-        draftSubjectId = examData.subject_id;
-        const rawClasses = (examData.exam_classes ?? []) as { class_id: string }[];
-        const selectedClassIds = rawClasses.map((c) => c.class_id).filter(Boolean);
-
-        const rawQuestions = (examData.exam_questions ?? []) as {
-          id: string;
-          source_question_id: string | null;
-          points: number;
-          position: number;
-        }[];
-
-        const sortedQuestions = [...rawQuestions].sort((a, b) => a.position - b.position);
-        const selectedQuestions = sortedQuestions
+      initialExam = {
+        id: examData.id,
+        subject_id: examData.subject_id,
+        title: examData.title,
+        instructions: cleanExamInstructions(examData.instructions) || '',
+        duration_minutes: examData.duration_minutes || 45,
+        max_attempts: examData.max_attempts || 1,
+        available_from: examData.available_from,
+        available_until: examData.available_until,
+        require_camera: isCameraRequired(examData),
+        auto_grade_essay: isAutoGradeEssay(examData),
+        show_answers_after_submit: isShowAnswersAfterSubmit(examData),
+        status: examData.status,
+        selectedClassIds: examClasses.map((c) => c.class_id),
+        selectedQuestions: examQuestions
           .filter((q) => Boolean(q.source_question_id))
           .map((q) => ({
             questionId: String(q.source_question_id),
             points: Number(q.points) || 1,
-          }));
-
-        const requireCamera = isCameraRequired(examData);
-        const autoGradeEssay = isAutoGradeEssay(examData);
-        const showAnswersAfterSubmit = isShowAnswersAfterSubmit(examData);
-        const instructionsClean = cleanExamInstructions(examData.instructions) || '';
-
-        initialExam = {
-          id: examData.id,
-          subject_id: examData.subject_id,
-          title: examData.title,
-          instructions: instructionsClean,
-          duration_minutes: examData.duration_minutes || 45,
-          max_attempts: examData.max_attempts || 1,
-          available_from: examData.available_from,
-          available_until: examData.available_until,
-          require_camera: requireCamera,
-          auto_grade_essay: autoGradeEssay,
-          show_answers_after_submit: showAnswersAfterSubmit,
-          status: examData.status,
-          selectedClassIds,
-          selectedQuestions,
-        };
-      }
-    }
-  }
-
-  // 2. Fetch Assigned Subjects
-  let assignedSubjects: SubjectSummary[] = [];
-  let subjectIds: string[] = [];
-
-  if (userRole === 'admin') {
-    const { data: subjectsData } = await supabase
-      .from('subjects')
-      .select('id, name, code')
-      .is('archived_at', null)
-      .order('name');
-    assignedSubjects = subjectsData ?? [];
-    subjectIds = assignedSubjects.map((s) => s.id);
-  } else {
-    const { data: assignments } = await supabase
-      .from('teacher_subject_assignments')
-      .select('subject:subjects(id, name, code, archived_at)')
-      .eq('teacher_id', user.id);
-
-    const subs = (assignments ?? [])
-      .map((a) => (Array.isArray(a.subject) ? a.subject[0] : a.subject))
-      .filter((s): s is { id: string; name: string; code: string; archived_at: string | null } => Boolean(s && !s.archived_at))
-      .map(({ id, name, code }) => ({ id, name, code }));
-
-    assignedSubjects = subs;
-    subjectIds = subs.map((s) => s.id);
-
-    // Nếu sửa bản nháp của một môn chưa có trong assignments, tự động nạp thêm môn đó
-    if (draftSubjectId && !subjectIds.includes(draftSubjectId)) {
-      const { data: draftSub } = await supabase
-        .from('subjects')
-        .select('id, name, code')
-        .eq('id', draftSubjectId)
-        .maybeSingle();
-      if (draftSub) {
-        assignedSubjects.unshift(draftSub);
-        subjectIds.unshift(draftSub.id);
-      }
-    }
-  }
-
-  // 3. Fetch Classes
-  let classesQuery = supabase
-    .from('classes')
-    .select('id, name, class_code, subject_id, academic_year')
-    .is('archived_at', null)
-    .order('name');
-
-  if (userRole !== 'admin') {
-    classesQuery = classesQuery.eq('teacher_id', user.id);
-  }
-
-  const { data: classesData } = await classesQuery;
-  const classes: TeacherClassSummary[] = (classesData ?? []) as TeacherClassSummary[];
-
-  // 4. Fetch Bank Questions
-  let questions: BankQuestion[] = [];
-  if (subjectIds.length > 0) {
-    const { data: questionsData } = await supabase
-      .from('question_bank')
-      .select(`
-        id, subject_id, created_by, question_type, question_text, explanation, created_at, updated_at,
-        subject:subjects(id, name, code),
-        options:question_options(option_key, option_text, position),
-        answer_key:question_answer_keys(correct_option_key, model_answer, grading_rubric)
-      `)
-      .in('subject_id', subjectIds)
-      .is('archived_at', null)
-      .order('created_at', { ascending: false });
-
-    questions = ((questionsData ?? []) as unknown[]).map((row: unknown) => {
-      const q = row as Record<string, unknown>;
-      const subjectObj = Array.isArray(q.subject) ? q.subject[0] : q.subject;
-      const answerKeyObj = Array.isArray(q.answer_key) ? q.answer_key[0] : q.answer_key;
-      const rawOptions = (Array.isArray(q.options) ? q.options : []) as {
-        option_key: 'A' | 'B' | 'C' | 'D';
-        option_text: string;
-        position: number;
-      }[];
-
-      const sortedOptions = [...rawOptions].sort((a, b) => a.position - b.position);
-
-      return {
-        id: String(q.id),
-        subject_id: String(q.subject_id),
-        created_by: String(q.created_by),
-        question_type: q.question_type as 'multiple_choice' | 'essay',
-        question_text: String(q.question_text),
-        explanation: q.explanation ? String(q.explanation) : null,
-        created_at: String(q.created_at),
-        updated_at: String(q.updated_at),
-        subject: subjectObj as SubjectSummary | null,
-        options: sortedOptions,
-        answer_key: answerKeyObj ? {
-          correct_option_key: answerKeyObj.correct_option_key as 'A' | 'B' | 'C' | 'D' | null,
-          model_answer: answerKeyObj.model_answer ? String(answerKeyObj.model_answer) : null,
-          grading_rubric: answerKeyObj.grading_rubric ? String(answerKeyObj.grading_rubric) : null,
-        } : null,
+          })),
       };
-    });
+    }
   }
+
+  let assignedSubjects: SubjectSummary[] = [];
+  if (role === 'admin') {
+    assignedSubjects = await ds.getRepository(SubjectSchema).find({
+      select: { id: true, name: true, code: true },
+      where: { archived_at: IsNull() },
+      order: { name: 'ASC' },
+    });
+  } else {
+    const assignments = await ds.getRepository(TeacherSubjectAssignmentSchema).find({
+      select: { subject_id: true },
+      where: { teacher_id: user.id },
+    });
+    const ids = assignments.map((a) => a.subject_id);
+    if (ids.length > 0) {
+      assignedSubjects = await ds.getRepository(SubjectSchema).find({
+        select: { id: true, name: true, code: true },
+        where: { id: In(ids), archived_at: IsNull() },
+        order: { name: 'ASC' },
+      });
+    }
+    if (draftSubjectId && !assignedSubjects.some((s) => s.id === draftSubjectId)) {
+      const draftSub = await ds.getRepository(SubjectSchema).findOne({
+        select: { id: true, name: true, code: true },
+        where: { id: draftSubjectId },
+      });
+      if (draftSub) assignedSubjects.unshift(draftSub);
+    }
+  }
+
+  const subjectIds = assignedSubjects.map((s) => s.id);
+  const subjectMap = new Map(assignedSubjects.map((s) => [s.id, s]));
+
+  const classWhere: Record<string, unknown> = { archived_at: IsNull() };
+  if (role !== 'admin') classWhere.teacher_id = user.id;
+
+  const [classesData, rawQuestions] = await Promise.all([
+    ds.getRepository(ClassSchema).find({
+      select: { id: true, name: true, class_code: true, subject_id: true, academic_year: true },
+      where: classWhere,
+      order: { name: 'ASC' },
+    }),
+    subjectIds.length > 0
+      ? ds.getRepository(QuestionBankSchema).find({
+          where: { subject_id: In(subjectIds), archived_at: IsNull() },
+          order: { created_at: 'DESC' },
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const qIds = rawQuestions.map((q) => q.id);
+  const [optionsRows, keysRows] = qIds.length
+    ? await Promise.all([
+        ds.getRepository(QuestionOptionSchema).find({ where: { question_id: In(qIds) } }),
+        ds.getRepository(QuestionAnswerKeySchema).find({ where: { question_id: In(qIds) } }),
+      ])
+    : [[], []];
+
+  const optionsByQ = new Map<string, QuestionOption[]>();
+  for (const opt of optionsRows) {
+    const arr = optionsByQ.get(opt.question_id) ?? [];
+    arr.push({
+      option_key: opt.option_key.trim() as 'A' | 'B' | 'C' | 'D',
+      option_text: opt.option_text,
+      position: opt.position,
+    });
+    optionsByQ.set(opt.question_id, arr);
+  }
+  const keyByQ = new Map(keysRows.map((k) => [k.question_id, k]));
+
+  const questions: BankQuestion[] = rawQuestions.map((q) => {
+    const keyRow = keyByQ.get(q.id);
+    return {
+      id: q.id,
+      subject_id: q.subject_id,
+      created_by: q.created_by,
+      question_type: q.question_type,
+      question_text: q.question_text,
+      explanation: q.explanation,
+      created_at: q.created_at,
+      updated_at: q.updated_at,
+      subject: subjectMap.get(q.subject_id) ?? null,
+      options: (optionsByQ.get(q.id) ?? []).sort((a, b) => a.position - b.position),
+      answer_key: keyRow
+        ? {
+            correct_option_key: (keyRow.correct_option_key?.trim() as 'A' | 'B' | 'C' | 'D') ?? null,
+            model_answer: keyRow.model_answer,
+            grading_rubric: keyRow.grading_rubric,
+          }
+        : null,
+    };
+  });
 
   return {
     teacherName,
     assignedSubjects,
-    classes,
+    classes: classesData,
     questions,
     initialExam,
   };

@@ -1,113 +1,75 @@
 import Link from 'next/link';
+import { In } from 'typeorm';
 import { FileCheck, PlusCircle } from 'lucide-react';
 import { requireRole } from '@/lib/auth-cache';
-import { sanitizeVietnameseText } from '@/lib/utils';
+import { getDataSource } from '@/lib/db/data-source';
+import {
+  ClassSchema,
+  ExamAttemptSchema,
+  ExamClassSchema,
+  ExamQuestionSchema,
+  ExamSchema,
+  SubjectSchema,
+} from '@/lib/db/entities';
 import { TeacherExamsClient, type ExamItem } from '@/components/teacher/teacher-exams-client';
-import { isCameraRequired, isAutoGradeEssay, isShowAnswersAfterSubmit } from '@/lib/exam-auto-grade';
+import {
+  isAutoGradeEssay,
+  isCameraRequired,
+  isShowAnswersAfterSubmit,
+} from '@/lib/exam-auto-grade';
 
 export const metadata = {
   title: 'Quản lý Đề thi | Cổng Giảng viên LHU',
-  description: 'Quản lý danh sách đề thi, trạng thái phát hành, phòng thi trực tuyến và thống kê phổ điểm tại Đại học Lạc Hồng.',
+  description:
+    'Quản lý danh sách đề thi, trạng thái phát hành, phòng thi trực tuyến và thống kê phổ điểm tại Đại học Lạc Hồng.',
 };
 
 export default async function TeacherExamsPage() {
-  const { user, supabase } = await requireRole('teacher');
+  const { user } = await requireRole('teacher');
+  const ds = await getDataSource();
 
-  // Query Profile — khởi chạy song song với truy vấn đề thi (builder Supabase lazy → Promise.resolve để chạy ngay)
-  const profilePromise = Promise.resolve(
-    supabase
-      .from('profiles')
-      .select('full_name')
-      .eq('id', user.id)
-      .maybeSingle(),
-  );
+  const rawExams = await ds.getRepository(ExamSchema).find({
+    where: { created_by: user.id },
+    order: { created_at: 'DESC' },
+  });
 
-  // Query Exams với zero-crash fallback cho trường require_camera và auto_grade_essay
-  let rawExamsData: any[] = [];
-  const firstExamsResult = await supabase
-    .from('exams')
-    .select(`
-      id, title, status, duration_minutes, instructions, created_at, available_from, available_until,
-      require_camera, auto_grade_essay,
-      subject:subjects(name),
-      exam_questions(id),
-      exam_classes(class:classes(name, class_code)),
-      exam_attempts(id, status)
-    `)
-    .eq('created_by', user.id)
-    .order('created_at', { ascending: false });
+  const examIds = rawExams.map((e) => e.id);
+  const subjectIds = Array.from(new Set(rawExams.map((e) => e.subject_id)));
 
-  if (firstExamsResult.error || !firstExamsResult.data) {
-    const fallbackExamsResult = await supabase
-      .from('exams')
-      .select(`
-        id, title, status, duration_minutes, instructions, created_at, available_from, available_until,
-        require_camera,
-        subject:subjects(name),
-        exam_questions(id),
-        exam_classes(class:classes(name, class_code)),
-        exam_attempts(id, status)
-      `)
-      .eq('created_by', user.id)
-      .order('created_at', { ascending: false });
+  const [subjects, examQuestions, examClasses, examAttempts] = examIds.length
+    ? await Promise.all([
+        subjectIds.length
+          ? ds.getRepository(SubjectSchema).find({ select: { id: true, name: true }, where: { id: In(subjectIds) } })
+          : Promise.resolve([]),
+        ds.getRepository(ExamQuestionSchema).find({ select: { id: true, exam_id: true }, where: { exam_id: In(examIds) } }),
+        ds.getRepository(ExamClassSchema).find({ where: { exam_id: In(examIds) } }),
+        ds.getRepository(ExamAttemptSchema).find({
+          select: { id: true, exam_id: true, status: true },
+          where: { exam_id: In(examIds) },
+        }),
+      ])
+    : [[], [], [], []];
 
-    if (fallbackExamsResult.error || !fallbackExamsResult.data) {
-      const basicExamsResult = await supabase
-        .from('exams')
-        .select(`
-          id, title, status, duration_minutes, instructions, created_at, available_from, available_until,
-          subject:subjects(name),
-          exam_questions(id),
-          exam_classes(class:classes(name, class_code)),
-          exam_attempts(id, status)
-        `)
-        .eq('created_by', user.id)
-        .order('created_at', { ascending: false });
+  const classIds = Array.from(new Set(examClasses.map((ec) => ec.class_id)));
+  const classes = classIds.length
+    ? await ds.getRepository(ClassSchema).find({
+        select: { id: true, name: true, class_code: true },
+        where: { id: In(classIds) },
+      })
+    : [];
 
-      rawExamsData = basicExamsResult.data ?? [];
-    } else {
-      rawExamsData = fallbackExamsResult.data ?? [];
-    }
-  } else {
-    rawExamsData = firstExamsResult.data ?? [];
-  }
-
-  const profileResult = await profilePromise;
-  const teacherName = sanitizeVietnameseText(profileResult.data?.full_name) || user.email || 'Giảng viên';
-
-  type RawExam = {
-    id: string;
-    title: string;
-    status: 'draft' | 'published' | 'closed' | 'archived';
-    duration_minutes: number;
-    instructions: string | null;
-    require_camera?: boolean;
-    auto_grade_essay?: boolean;
-    created_at: string;
-    available_from: string | null;
-    available_until: string | null;
-    subject: { name: string } | { name: string }[] | null;
-    exam_questions: { id: string }[];
-    exam_classes: { class: { name: string; class_code: string } | null }[];
-    exam_attempts: { id: string; status: string }[];
-  };
-
-  const rawExams = rawExamsData as unknown as RawExam[];
+  const subjectMap = new Map(subjects.map((s) => [s.id, s.name]));
+  const classMap = new Map(classes.map((c) => [c.id, c.name]));
 
   const examItems: ExamItem[] = rawExams.map((exam) => {
-    const subjectName = Array.isArray(exam.subject)
-      ? exam.subject[0]?.name || 'Môn học'
-      : exam.subject?.name || 'Môn học';
-
-    const assignedClasses = (exam.exam_classes ?? [])
-      .map((c) => c.class?.name)
+    const assignedClasses = examClasses
+      .filter((ec) => ec.exam_id === exam.id)
+      .map((ec) => classMap.get(ec.class_id))
       .filter((n): n is string => Boolean(n));
 
-    const totalAttempts = exam.exam_attempts?.length || 0;
-    const pendingAttempts = exam.exam_attempts?.filter((a) => a.status === 'pending_grading').length || 0;
-    const requireCamera = isCameraRequired(exam);
-    const autoGradeEssay = isAutoGradeEssay(exam);
-    const showAnswersAfterSubmit = isShowAnswersAfterSubmit(exam);
+    const attempts = examAttempts.filter((a) => a.exam_id === exam.id);
+    const totalAttempts = attempts.length;
+    const pendingAttempts = attempts.filter((a) => a.status === 'pending_grading').length;
 
     return {
       id: exam.id,
@@ -117,20 +79,19 @@ export default async function TeacherExamsPage() {
       created_at: exam.created_at,
       available_from: exam.available_from,
       available_until: exam.available_until,
-      subjectName,
-      questionCount: exam.exam_questions?.length || 0,
+      subjectName: subjectMap.get(exam.subject_id) || 'Môn học',
+      questionCount: examQuestions.filter((q) => q.exam_id === exam.id).length,
       assignedClasses,
       totalAttempts,
       pendingAttempts,
-      requireCamera,
-      autoGradeEssay,
-      showAnswersAfterSubmit,
+      requireCamera: isCameraRequired(exam),
+      autoGradeEssay: isAutoGradeEssay(exam),
+      showAnswersAfterSubmit: isShowAnswersAfterSubmit(exam),
     };
   });
 
   return (
     <main className="w-full max-w-full min-w-0 p-4 sm:p-6 lg:p-8">
-      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 dark:border-slate-800 pb-5 mb-6 min-w-0">
         <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
           <div className="grid size-11 sm:size-12 shrink-0 place-items-center rounded-2xl bg-blue-600/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400">
@@ -157,7 +118,6 @@ export default async function TeacherExamsPage() {
         </div>
       </div>
 
-      {/* Exams Table / Cards with Filter */}
       <TeacherExamsClient exams={examItems} />
     </main>
   );

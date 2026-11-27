@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { ChatMessageRenderer } from '@/components/chat/ChatMessageRenderer';
-import { createClient } from '@/lib/supabase/client';
 
 type ChatMessage = {
   role: 'user' | 'assistant';
@@ -61,22 +60,16 @@ export default function TeacherAiTutorPage() {
 
   // Lấy thông tin giảng viên
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        if (profile?.full_name) {
-          setTeacherName(profile.full_name);
-        } else if (user.email) {
-          setTeacherName(user.email);
+    fetch('/api/auth/me')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.user?.fullName) {
+          setTeacherName(data.user.fullName);
+        } else if (data?.user?.email) {
+          setTeacherName(data.user.email);
         }
-      }
-    });
+      })
+      .catch(() => {});
   }, []);
 
   // Tự động focus vào ô nhập liệu khi vào trang

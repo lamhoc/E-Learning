@@ -1,33 +1,23 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import { getSupabaseEnv } from './lib/supabase/env';
+import { SESSION_COOKIE_NAME, verifySessionToken } from './lib/auth/session';
 
 export async function proxy(request: NextRequest) {
-  const { url, anonKey } = getSupabaseEnv();
-  let supabaseResponse = NextResponse.next({ request });
+  const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  const response = NextResponse.next({ request });
 
-  const supabase = createServerClient(url, anonKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(
-        cookiesToSet: { name: string; value: string; options: CookieOptions }[],
-      ) {
-        cookiesToSet.forEach(({ name, value }) => {
-          request.cookies.set(name, value);
-        });
+  if (token) {
+    const session = await verifySessionToken(token);
+    if (!session) {
+      response.cookies.set(SESSION_COOKIE_NAME, '', {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 0,
+      });
+    }
+  }
 
-        supabaseResponse = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) => {
-          supabaseResponse.cookies.set(name, value, options);
-        });
-      },
-    },
-  });
-
-  await supabase.auth.getClaims();
-  return supabaseResponse;
+  return response;
 }
 
 export const config = {
@@ -35,6 +25,7 @@ export const config = {
     '/login',
     '/subjects/:path*',
     '/teacher/:path*',
+    '/student/:path*',
     '/admin/:path*',
     '/register/teacher/pending',
   ],

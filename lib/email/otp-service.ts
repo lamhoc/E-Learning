@@ -1,20 +1,19 @@
 import 'server-only';
 
 import { createHash, randomInt } from 'node:crypto';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { IsNull } from 'typeorm';
+import { getDataSource } from '@/lib/db/data-source';
+import { AuthOtpSchema } from '@/lib/db/entities';
 import { sendOtpEmail } from './resend';
 
 export type OtpPurpose = 'reset_password' | 'register_verify' | 'login_2fa';
 
-/**
- * Băm mã OTP bằng SHA-256 trước khi lưu vào CSDL
- */
 function hashOtp(otp: string): string {
   return createHash('sha256').update(otp.trim()).digest('hex');
 }
 
 /**
- * Sinh mã OTP 6 số ngẫu nhiên, lưu vào bảng `auth_otps` và gửi email qua Resend
+ * Sinh mã OTP 6 số ngẫu nhiên, lưu vào bảng `auth_otps` trên SQL Server và gửi email
  */
 export async function createAndSendOtp({
   email,
@@ -30,40 +29,41 @@ export async function createAndSendOtp({
   ttlMinutes?: number;
 }): Promise<{ success: boolean; message: string }> {
   const normalizedEmail = email.trim().toLowerCase();
-
-  // 1. Sinh mã OTP 6 chữ số ngẫu nhiên (100000 - 999999)
   const otpCode = randomInt(100000, 1000000).toString();
   const otpHash = hashOtp(otpCode);
   const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000).toISOString();
 
-  const adminClient = createAdminClient();
+  try {
+    const ds = await getDataSource();
+    const otpRepo = ds.getRepository(AuthOtpSchema);
 
-  // 2. Vô hiệu hóa các mã OTP cũ chưa sử dụng của email & purpose này
-  await adminClient
-    .from('auth_otps')
-    .update({ consumed_at: new Date().toISOString() })
-    .eq('email', normalizedEmail)
-    .eq('purpose', purpose)
-    .is('consumed_at', null);
+    // Vô hiệu hóa các mã OTP cũ chưa sử dụng của email & purpose này
+    await otpRepo.update(
+      { email: normalizedEmail, purpose, consumed_at: IsNull() },
+      { consumed_at: new Date().toISOString() },
+    );
 
-  // 3. Ghi mã OTP mới vào CSDL
-  const { error: insertError } = await adminClient.from('auth_otps').insert({
-    email: normalizedEmail,
-    otp_hash: otpHash,
-    purpose,
-    metadata,
-    expires_at: expiresAt,
-  });
-
-  if (insertError) {
-    console.error('Lỗi khi lưu mã OTP vào auth_otps:', insertError);
+    // Ghi mã OTP mới vào SQL Server
+    await otpRepo.save(
+      otpRepo.create({
+        email: normalizedEmail,
+        otp_hash: otpHash,
+        purpose,
+        metadata,
+        attempts: 0,
+        max_attempts: 5,
+        expires_at: expiresAt,
+        consumed_at: null,
+      }),
+    );
+  } catch (err) {
+    console.error('Lỗi khi lưu mã OTP vào auth_otps:', err);
     return {
       success: false,
       message: 'Không thể khởi tạo mã xác thực. Vui lòng thử lại sau ít phút.',
     };
   }
 
-  // 4. Gửi email qua dịch vụ Resend
   const emailResult = await sendOtpEmail({
     to: normalizedEmail,
     otp: otpCode,
@@ -107,27 +107,25 @@ export async function verifyOtp({
     return { valid: false, message: 'Mã xác thực phải bao gồm đúng 6 chữ số.' };
   }
 
-  const adminClient = createAdminClient();
+  const ds = await getDataSource();
+  const otpRepo = ds.getRepository(AuthOtpSchema);
 
-  // 1. Tìm bản ghi OTP mới nhất còn hiệu lực
-  const { data: record, error } = await adminClient
-    .from('auth_otps')
-    .select('id, otp_hash, attempts, max_attempts, expires_at, consumed_at, metadata')
-    .eq('email', normalizedEmail)
-    .eq('purpose', purpose)
-    .is('consumed_at', null)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const record = await otpRepo.findOne({
+    where: {
+      email: normalizedEmail,
+      purpose,
+      consumed_at: IsNull(),
+    },
+    order: { created_at: 'DESC' },
+  });
 
-  if (error || !record) {
+  if (!record) {
     return {
       valid: false,
       message: 'Mã xác thực không tồn tại hoặc đã hết hạn. Hãy yêu cầu mã mới.',
     };
   }
 
-  // 2. Kiểm tra hết hạn thời gian
   if (new Date(record.expires_at).getTime() < Date.now()) {
     return {
       valid: false,
@@ -135,7 +133,6 @@ export async function verifyOtp({
     };
   }
 
-  // 3. Kiểm tra số lần nhập sai tối đa (chống tấn công brute force)
   if (record.attempts >= record.max_attempts) {
     return {
       valid: false,
@@ -143,15 +140,9 @@ export async function verifyOtp({
     };
   }
 
-  // 4. So sánh mã hash
   const inputHash = hashOtp(cleanedOtp);
   if (inputHash !== record.otp_hash) {
-    // Tăng số lần nhập sai
-    await adminClient
-      .from('auth_otps')
-      .update({ attempts: record.attempts + 1 })
-      .eq('id', record.id);
-
+    await otpRepo.update({ id: record.id }, { attempts: record.attempts + 1 });
     const remaining = record.max_attempts - (record.attempts + 1);
     return {
       valid: false,
@@ -159,14 +150,10 @@ export async function verifyOtp({
     };
   }
 
-  // 5. Khớp thành công: Đánh dấu đã sử dụng để chống dùng lại (Replay attack)
-  await adminClient
-    .from('auth_otps')
-    .update({ consumed_at: new Date().toISOString() })
-    .eq('id', record.id);
+  await otpRepo.update({ id: record.id }, { consumed_at: new Date().toISOString() });
 
   return {
     valid: true,
-    metadata: (record.metadata as Record<string, unknown>) || {},
+    metadata: record.metadata || {},
   };
 }

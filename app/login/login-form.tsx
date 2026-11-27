@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { KeyRound } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { ForgotPasswordOtpModal } from '@/components/auth/forgot-password-otp-modal';
 
 export function LoginForm() {
@@ -21,24 +20,35 @@ export function LoginForm() {
     setErrorMessage('');
     setNoticeMessage('');
 
-    const supabase = createClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
-    });
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password,
+        }),
+      });
 
-    if (signInError) {
-      if (signInError.message.toLowerCase().includes('email not confirmed')) {
-        setErrorMessage('Tài khoản chưa được kích hoạt. Hãy dùng mã xác thực gửi tới hộp thư của bạn.');
-      } else {
-        setErrorMessage('Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.');
+      const data = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        success?: boolean;
+      };
+
+      if (!response.ok || !data.success) {
+        setErrorMessage(
+          data.error || 'Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.',
+        );
+        setPending(false);
+        return;
       }
-      setPending(false);
-      return;
-    }
 
-    // Refresh để Server Component lấy session mới và chuyển hướng chuẩn xác
-    router.refresh();
+      // Refresh để Server Component đọc cookie JWT mới và điều hướng theo role
+      router.refresh();
+    } catch {
+      setErrorMessage('Không thể kết nối máy chủ. Vui lòng thử lại.');
+      setPending(false);
+    }
   }
 
   return (
@@ -114,7 +124,6 @@ export function LoginForm() {
         </button>
       </form>
 
-      {/* Modal Đặt lại mật khẩu bằng OTP qua Resend */}
       <ForgotPasswordOtpModal
         isOpen={isOtpModalOpen}
         onClose={() => setIsOtpModalOpen(false)}

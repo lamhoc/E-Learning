@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
 import { callAiChatStream } from '@/lib/ai-provider';
+import { authorizeReleasedAttempt, ExamTutorError } from '@/lib/ai-exam-tutor';
+import { getStudentAttemptReviewData } from '@/lib/student-exam-review';
+import { getRepo } from '@/lib/db/data-source';
+import { AiTutorConversationSchema, AiTutorMessageSchema } from '@/lib/db/entities';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
-import {
-  authorizeReleasedAttempt,
-  ExamTutorError,
-} from '@/lib/ai-exam-tutor';
-import { getStudentAttemptReviewData } from '@/lib/student-exam-review';
 
 type TutorMessage = {
   id: string;
@@ -36,6 +34,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
+function isUniqueConstraintError(err: unknown): boolean {
+  const num = (err as { number?: number; driverError?: { number?: number } })?.number
+    ?? (err as { driverError?: { number?: number } })?.driverError?.number;
+  return num === 2627 || num === 2601;
+}
+
 export async function POST(request: Request) {
   try {
     const body = await parseRequest(request);
@@ -53,72 +57,58 @@ export async function POST(request: Request) {
       throw new ExamTutorError('Thao tác không được hỗ trợ.', 400);
     }
 
-    const { supabase, user, attempt, examTitle } = await authorizeReleasedAttempt(attemptId);
+    const { user, examTitle } = await authorizeReleasedAttempt(attemptId);
+    const [convRepo, msgRepo] = await Promise.all([
+      getRepo(AiTutorConversationSchema),
+      getRepo(AiTutorMessageSchema),
+    ]);
 
     if (action === 'initialize') {
-      const { data: existingConversation, error: conversationError } = await supabase
-        .from('ai_tutor_conversations')
-        .select('id')
-        .eq('attempt_id', attemptId)
-        .eq('student_id', user.id)
-        .maybeSingle();
+      let conversation = await convRepo.findOne({
+        where: { attempt_id: attemptId, student_id: user.id },
+      });
 
-      if (conversationError) {
-        console.error('Failed to load AI tutor conversation:', conversationError);
-        throw new ExamTutorError('Không thể mở cuộc hội thoại.', 500);
-      }
-
-      let conversation = existingConversation;
       if (!conversation) {
-        const { data: created, error: createError } = await supabase
-          .from('ai_tutor_conversations')
-          .insert({
+        try {
+          conversation = await convRepo.save({
             attempt_id: attemptId,
             student_id: user.id,
             title: `Ôn tập: ${examTitle}`.slice(0, 120),
-          })
-          .select('id')
-          .single();
-
-        if (createError?.code === '23505') {
-          const { data: existing, error: retryError } = await supabase
-            .from('ai_tutor_conversations')
-            .select('id')
-            .eq('attempt_id', attemptId)
-            .eq('student_id', user.id)
-            .maybeSingle();
-          if (retryError || !existing) {
-            console.error('Failed to reload concurrent AI tutor conversation:', retryError);
-            throw new ExamTutorError('Không thể mở cuộc hội thoại.', 500);
+          });
+        } catch (createErr) {
+          if (isUniqueConstraintError(createErr)) {
+            conversation = await convRepo.findOne({
+              where: { attempt_id: attemptId, student_id: user.id },
+            });
+          } else {
+            console.error('Failed to create AI tutor conversation:', createErr);
+            throw new ExamTutorError('Không thể tạo cuộc hội thoại.', 500);
           }
-          conversation = existing;
-        } else if (createError || !created) {
-          console.error('Failed to create AI tutor conversation:', createError);
-          throw new ExamTutorError('Không thể tạo cuộc hội thoại.', 500);
-        } else {
-          conversation = created;
         }
       }
 
-      const { data: messages, error: messagesError } = await supabase
-        .from('ai_tutor_messages')
-        .select('id, sender, content')
-        .eq('conversation_id', conversation.id)
-        .order('created_at', { ascending: true })
-        .limit(50);
-
-      if (messagesError) {
-        console.error('Failed to load AI tutor messages:', messagesError);
-        throw new ExamTutorError('Không thể tải lịch sử hội thoại.', 500);
+      if (!conversation) {
+        throw new ExamTutorError('Không thể mở cuộc hội thoại.', 500);
       }
 
-      // Nạp danh sách câu hỏi của bài thi đã làm
-      const reviewResult = await getStudentAttemptReviewData(attemptId);
+      const [messages, reviewResult] = await Promise.all([
+        msgRepo.find({
+          where: { conversation_id: conversation.id },
+          order: { created_at: 'ASC' },
+          take: 50,
+        }),
+        getStudentAttemptReviewData(attemptId),
+      ]);
+
       const reviewData = reviewResult.status === 'success' ? reviewResult.data : null;
 
       return NextResponse.json({
         conversationId: conversation.id,
-        messages: (messages ?? []) as TutorMessage[],
+        messages: messages.map((m) => ({
+          id: m.id,
+          sender: m.sender,
+          content: m.content,
+        })) as TutorMessage[],
         showAnswers: reviewData?.showAnswers ?? false,
         questions: reviewData?.questions ?? [],
         stats: reviewData
@@ -143,46 +133,38 @@ export async function POST(request: Request) {
       throw new ExamTutorError('Tin nhắn trống hoặc vượt quá 2.000 ký tự.', 400);
     }
 
-    const { data: conversation, error: conversationError } = await supabase
-      .from('ai_tutor_conversations')
-      .select('id')
-      .eq('id', body.conversationId)
-      .eq('attempt_id', attemptId)
-      .eq('student_id', user.id)
-      .maybeSingle();
+    const conversation = await convRepo.findOne({
+      where: {
+        id: body.conversationId,
+        attempt_id: attemptId,
+        student_id: user.id,
+      },
+    });
 
-    if (conversationError) {
-      console.error('Failed to verify AI tutor conversation:', conversationError);
-      throw new ExamTutorError('Không thể xác minh cuộc hội thoại.', 500);
-    }
     if (!conversation) throw new ExamTutorError('Không tìm thấy cuộc hội thoại này.', 404);
 
+    const [savedMessages, reviewResult] = await Promise.all([
+      msgRepo.find({
+        where: { conversation_id: conversation.id },
+        order: { created_at: 'DESC' },
+        take: MAX_HISTORY_MESSAGES,
+      }),
+      getStudentAttemptReviewData(attemptId),
+    ]);
 
-
-    const { data: savedMessages, error: historyError } = await supabase
-      .from('ai_tutor_messages')
-      .select('sender, content')
-      .eq('conversation_id', conversation.id)
-      .order('created_at', { ascending: false })
-      .limit(MAX_HISTORY_MESSAGES);
-
-    if (historyError) {
-      console.error('Failed to load AI tutor conversation history:', historyError);
-      throw new ExamTutorError('Không thể tải lịch sử hội thoại.', 500);
-    }
-
-    const reviewResult = await getStudentAttemptReviewData(attemptId);
     const reviewData = reviewResult.status === 'success' ? reviewResult.data : null;
     const isAllowedViewAnswers = reviewData?.showAnswers ?? false;
 
-    // Chuẩn bị danh sách câu hỏi cho System Context
     const examQuestionsContext = (reviewData?.questions ?? []).map((q) => {
       const base: Record<string, unknown> = {
         cau: q.questionNumber,
         loai: q.questionType,
         de_bai: q.questionText,
         cac_lua_chon: q.options.map((opt) => `${opt.key}. ${opt.text}`),
-        sinh_vien_tra_loi: q.questionType === 'multiple_choice' ? (q.studentOption || 'Bỏ trống') : (q.studentText || 'Bỏ trống'),
+        sinh_vien_tra_loi:
+          q.questionType === 'multiple_choice'
+            ? q.studentOption || 'Bỏ trống'
+            : q.studentText || 'Bỏ trống',
       };
 
       if (isAllowedViewAnswers) {
@@ -204,16 +186,11 @@ export async function POST(request: Request) {
       danh_sach_cau_hoi: examQuestionsContext,
     });
 
-    const { error: insertUserError } = await supabase.from('ai_tutor_messages').insert({
+    await msgRepo.insert({
       conversation_id: conversation.id,
       sender: 'student',
       content: body.content.trim(),
     });
-
-    if (insertUserError) {
-      console.error('Failed to save student AI tutor message:', insertUserError);
-      throw new ExamTutorError('Không thể lưu tin nhắn của bạn.', 500);
-    }
 
     const systemPromptRules = isAllowedViewAnswers
       ? `Bạn là "Gia sư AI Chữa đề tận tâm" của Đại học Lạc Hồng.
@@ -241,12 +218,10 @@ QUY CHẾ BẢO MẬT PHÒNG THI ĐẶC BIỆT: Giảng viên ĐANG KHÓA ĐÁP 
         role: 'system' as const,
         content: `${systemPromptRules}\n\nNGỮ CẢNH BÀI THI CỦA SINH VIÊN:\n${context}`,
       },
-      ...(savedMessages ?? [])
-        .reverse()
-        .map((message) => ({
-          role: message.sender === 'assistant' ? 'assistant' as const : 'user' as const,
-          content: message.content,
-        })),
+      ...[...savedMessages].reverse().map((message) => ({
+        role: message.sender === 'assistant' ? ('assistant' as const) : ('user' as const),
+        content: message.content,
+      })),
       { role: 'user' as const, content: body.content.trim() },
     ];
 
@@ -276,6 +251,7 @@ QUY CHẾ BẢO MẬT PHÒNG THI ĐẶC BIỆT: Giảng viên ĐANG KHÓA ĐÁP 
       throw new ExamTutorError('Gia sư AI chưa tạo được câu trả lời.', 502);
     }
 
+    const conversationId = conversation.id;
     const encoder = new TextEncoder();
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
@@ -301,17 +277,12 @@ QUY CHẾ BẢO MẬT PHÒNG THI ĐẶC BIỆT: Giảng viên ĐANG KHÓA ĐÁP 
             throw new Error('Groq returned an empty exam tutor response.');
           }
 
-          const { error: saveReplyError } = await createAdminClient().from('ai_tutor_messages').insert({
-            conversation_id: conversation.id,
+          const messageRepo = await getRepo(AiTutorMessageSchema);
+          await messageRepo.insert({
+            conversation_id: conversationId,
             sender: 'assistant',
             content: fullReply.trim(),
           });
-
-          if (saveReplyError) {
-            console.error('Failed to save AI tutor response:', saveReplyError);
-            controller.error(new Error('Không thể lưu câu trả lời của gia sư AI.'));
-            return;
-          }
 
           controller.close();
         } catch (error) {

@@ -1,25 +1,16 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUserWithRole } from '@/lib/auth-cache';
 
 export default async function ChatRedirectPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user, role } = await getCurrentUserWithRole();
 
   if (!user) {
     redirect('/login');
   }
 
-  const { data: roleRecord } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .maybeSingle();
+  const effectiveRole = role || user.app_metadata?.role;
 
-  const role = roleRecord?.role || user.app_metadata?.role;
-
-  if (role === 'teacher' || role === 'admin') {
+  if (effectiveRole === 'teacher' || effectiveRole === 'admin') {
     redirect('/teacher/ai-tutor');
   }
 

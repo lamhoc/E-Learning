@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { createClient } from '@/lib/supabase/client';
 import { signOut } from '@/app/subjects/actions';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import { Separator } from '@/components/ui/separator';
@@ -34,8 +33,7 @@ export function AdminNav() {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
     try {
-      const supabase = createClient();
-      await supabase.auth.signOut();
+      await fetch('/api/auth/logout', { method: 'POST' });
     } catch (err) {
       console.error('Client admin signOut error:', err);
     } finally {
