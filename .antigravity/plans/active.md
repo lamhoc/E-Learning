@@ -905,7 +905,7 @@
     + Gỡ `@supabase/ssr`, `@supabase/supabase-js` và thư mục `lib/supabase/`.
     + Kiểm thử trực tiếp trên SQL Server 2019 (`scripts/db-init.ts`, `scripts/db-verify.ts`: 29 bảng, bcrypt + JWT HS256), `npx tsc --noEmit` (0 lỗi), `npm run build` (34/34 routes thành công). Local commit an toàn, không push tự ý.
 
-- [x] **Phase 80**: Triển khai hệ thống an toàn trên máy trạm (Next.js Production local `127.0.0.1:3000` + SQL Server 2019 nội bộ + Cloudflare Tunnel HTTPS không mở port router):
+- [x] **Phase 80 (Commit `a15d646`)**: Triển khai hệ thống an toàn trên máy trạm (Next.js Production local `127.0.0.1:3000` + SQL Server 2019 nội bộ + Cloudflare Tunnel HTTPS không mở port router):
   - [x] Cài đặt `Cloudflare.cloudflared` (v2026.11.2) trên máy trạm Windows.
   - [x] Tạo script triển khai 1-click (`scripts/deploy-workstation.ps1`, `scripts/stop-workstation.ps1`, `start-deploy.bat`), npm scripts (`deploy:local`, `deploy:stop`, `db:verify`) và tài liệu `DEPLOY.md`.
   - [x] Khởi chạy thực tế Next.js Production + Cloudflare Tunnel và xác minh truy cập HTTPS trực tuyến (`GET /login` 200, `POST /api/auth/login` 200 + `autobank_session` cookie).
